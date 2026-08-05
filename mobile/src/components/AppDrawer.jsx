@@ -215,6 +215,12 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
             {can.viewOwnPayslip ? (
               <Item icon="document-text-outline" label="Payslips" onPress={() => go('/(tabs)/profile')} />
             ) : null}
+            <Item
+              icon="shield-checkmark-outline"
+              label={can.manageRoles ? 'Access & permissions' : 'My access'}
+              hint={can.manageRoles ? 'Assign roles' : can.label}
+              onPress={() => go('/access')}
+            />
             <Item icon="settings-outline" label="Settings" onPress={() => go('/settings')} />
             <Item
               icon="log-out-outline"

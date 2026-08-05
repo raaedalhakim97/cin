@@ -100,7 +100,6 @@ export default function Settings() {
       <Card>
         <Row label="Name" value={employee?.full_name} />
         <Row label="Role" value={can.label} />
-        <Row label="Access" value={can.purpose} />
         <Row label="Company" value={company?.name} />
         <Row label="Currency" value={company?.currency} />
         {isDemo ? <Row label="Data source" value="Demo (in-memory)" valueColor={c.warning} /> : null}
@@ -111,6 +110,23 @@ export default function Settings() {
           Running on demo data. Nothing you change here is saved to a database, and a reload resets everything.
         </Text>
       ) : null}
+
+      <Pressable onPress={() => router.push('/access')} style={{ marginTop: space(2) }}>
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1) }}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={c.mint} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ ...type.label, color: c.text }}>
+                {can.manageRoles ? 'Access & permissions' : 'My access'}
+              </Text>
+              <Text style={{ ...type.caption, color: c.textMuted }}>
+                {can.manageRoles ? 'See and assign what everyone can reach' : 'See exactly what your role grants'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
+          </View>
+        </Card>
+      </Pressable>
 
       <Pressable onPress={() => router.back()} style={{ marginTop: space(3), alignSelf: 'center' }}>
         <Text style={{ ...type.label, color: c.mint }}>Back</Text>

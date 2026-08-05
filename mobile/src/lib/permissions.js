@@ -17,8 +17,8 @@ export const ROLE_LABELS = {
   read_only: 'Read Only',
 }
 
-// §1's one-line purposes, shown in the app so a user can see why their access
-// looks the way it does.
+// §1's one-line purposes, in second person — for showing someone their own
+// access.
 export const ROLE_PURPOSE = {
   super_admin: 'Full control of your own company',
   hr_manager: 'Runs all HR operations company-wide',
@@ -26,6 +26,18 @@ export const ROLE_PURPOSE = {
   admin: 'Schedules shifts and coordinates documents',
   employee: 'Self-service only',
   read_only: 'Views reports — no changes anywhere',
+}
+
+// The same purposes in third person, for describing another account in the
+// roster. "Manages your own department only" reads as the wrong person when it
+// sits under a colleague's name.
+export const ROLE_PURPOSE_OTHER = {
+  super_admin: 'Full control of the company',
+  hr_manager: 'Runs all HR operations company-wide',
+  department_manager: 'Manages their own department only',
+  admin: 'Schedules shifts and coordinates documents',
+  employee: 'Self-service only',
+  read_only: 'Views reports — cannot change anything',
 }
 
 // Legend, matching §3: F full · W write, no delete · O own only · B branch/team
@@ -172,7 +184,53 @@ export function capabilities(role, { managerSalaryVisibility = false } = {}) {
 
     // 'Employee invites'
     viewInvites: canSee('Employee invites', role),
+
+    // 'User roles / permissions' — F for super_admin only; employee has
+    // O (own, read). Note that every user's login reads their own user_roles row
+    // to discover their role at all, so the '-' against the other roles means
+    // "no management access", not "cannot read own row".
+    manageRoles: cell('User roles / permissions', role) === F,
   }
+}
+
+// The matrix as a per-role reading list, for the "my access" screen: what this
+// role can do, and what it explicitly cannot. Grouped so it stays scannable
+// rather than being a 38-row wall.
+export const MODULE_GROUPS = [
+  {
+    title: 'Me',
+    modules: ['Own profile & documents', 'Attendance (own)', 'Leave — request', 'Leave — cancel own (pending)', 'KPI scores — self-eval', 'Payroll — view'],
+  },
+  {
+    title: 'People',
+    modules: ['Employees (records)', 'Departments', 'Employee invites', 'Attendance (others)', 'User roles / permissions'],
+  },
+  {
+    title: 'Approvals & money',
+    modules: ['Leave — approve step 1', 'Leave — approve final', 'Payroll — draft/edit', 'Payroll — approve', 'Payroll — mark paid'],
+  },
+  {
+    title: 'Performance & conduct',
+    modules: ['KPI scores — evaluate', 'KPI settings & weights', 'KPI adjustments (rewards)', 'Warnings — recommend', 'Warnings — issue directly', 'Warnings — approve rec.', 'PDP plans'],
+  },
+  {
+    title: 'Scheduling & documents',
+    modules: ['Shift schedule', 'Shift templates', 'Shift settings', 'HR documents (all)', 'Document types (catalog)'],
+  },
+  {
+    title: 'Company & compliance',
+    modules: ['Company settings', 'News feed — post', 'News feed — react/comment', 'News feed — moderate', 'Data subject requests', 'Consent records', 'Audit logs', 'Login attempts'],
+  },
+]
+
+// Legend text, so a cell letter means something without the document to hand.
+export const LEVEL_LABEL = {
+  F: 'Full access',
+  W: 'Create and edit, no delete',
+  O: 'Your own records only',
+  B: 'Your team only',
+  R: 'View only',
+  '-': 'No access',
 }
 
 // Which second surface, if any, this role gets beside Personal.
