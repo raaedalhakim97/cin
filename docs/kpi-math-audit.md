@@ -86,7 +86,7 @@ of truth with nothing reconciling them.
 
 ## Finding 3 — approved leave is penalised
 
-`absent_approved` scores **80**, soeach approved leave day drags the average down.
+`absent_approved` scores **80**, so each approved leave day drags the average down.
 Art. 5's table gives approved absence a KPI impact of **0** — neutral. Taking leave
 the handbook grants should not cost KPI points. Either the point value becomes 100,
 or approved-leave days are excluded from the average entirely.
