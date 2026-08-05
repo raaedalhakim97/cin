@@ -54,16 +54,37 @@ function num(v) {
   return Number(v || 0)
 }
 
-// Weighted formula mirrors the DB-generated total_score column — used client-side
-// only to preview ratings before a write; total_score itself is never written.
+// Mirrors the DB's compute_kpi_total — used client-side only to preview a total
+// before a write; total_score itself is always computed by the trigger.
+//
+// Renormalises over the components that exist, as the trigger does since the
+// fix_kpi_partial_evaluation migration. A null component means "not evaluated"
+// and is excluded rather than counted as zero; a 0 is a real score and counts.
+const COMPONENT_WEIGHTS = [
+  ['attendance_score', 30],
+  ['behavior_score', 25],
+  ['achievement_score', 20],
+  ['manager_score', 15],
+  ['self_score', 10],
+]
+
 function computeWeightedTotal(row) {
-  return (
-    num(row.attendance_score) * 0.30 +
-    num(row.behavior_score) * 0.25 +
-    num(row.achievement_score) * 0.20 +
-    num(row.manager_score) * 0.15 +
-    num(row.self_score) * 0.10
-  )
+  let numerator = 0
+  let weight = 0
+  for (const [key, w] of COMPONENT_WEIGHTS) {
+    if (row?.[key] == null) continue
+    numerator += num(row[key]) * w
+    weight += w
+  }
+  return weight > 0 ? numerator / weight : 0
+}
+
+// How much of the assessment exists, as the DB records it in weights_used.
+function coverageOf(row) {
+  const recorded = row?.weights_used?.coverage_pct
+  if (recorded != null) return Number(recorded)
+  const weight = COMPONENT_WEIGHTS.reduce((sum, [key, w]) => (row?.[key] == null ? sum : sum + w), 0)
+  return weight
 }
 
 // Mirrors the DB's compute_kpi_rating(score) — the canonical rating calculator
@@ -76,10 +97,6 @@ function computeRating(score) {
   if (score >= 45) return 'Needs Improvement'
   return 'Unsatisfactory'
 }
-function computeBonusEligible(score) {
-  return score >= 75
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TEAM_ROLES = new Set(['super_admin', 'hr_manager', 'department_manager'])
@@ -353,7 +370,7 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
   if (loading) return <Spinner />
 
   const total = row ? num(row.total_score) : 0
-  const ratingLabel = row?.rating ?? (row ? computeRating(total) : null)
+  const ratingLabel = row?.rating ?? null
   const meta = getRatingMeta(ratingLabel)
   const hasSubmittedSelf = row?.self_score != null
 
@@ -366,6 +383,12 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
           {isEval && <EvalBadge />}
           <ScoreGauge score={total} color={meta.hex} />
           <RatingBadge rating={ratingLabel} />
+          {row && coverageOf(row) < 100 && (
+            <p className="text-xs text-center text-[#666666] dark:text-[#A0A0A0] max-w-[16rem]">
+              Based on {coverageOf(row)}% of the assessment.
+              {ratingLabel ? '' : ' A rating is held back until more of it is complete.'}
+            </p>
+          )}
           {row?.bonus_eligible && (
             <span className="flex items-center gap-1.5 text-xs text-[#00D4A0] font-semibold">
               <Gift size={13} /> Bonus Eligible
@@ -820,21 +843,17 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
   })
 
   async function saveManagerScore(emp, row, managerScore) {
-    const base = row ?? { attendance_score: 0, behavior_score: 0, achievement_score: 0, self_score: 0 }
-    const total = computeWeightedTotal({ ...base, manager_score: managerScore })
-    const rating = computeRating(total)
-    const bonus_eligible = computeBonusEligible(total)
-
+    // rating and bonus_eligible are owned by the compute_kpi_total trigger, which
+    // withholds a rating when too little of the assessment exists. Sending them
+    // from here would be overwritten anyway, and would misrepresent the rule.
     const { error } = row
-      ? await supabase.from('kpi_scores').update({ manager_score: managerScore, rating, bonus_eligible }).eq('id', row.id)
+      ? await supabase.from('kpi_scores').update({ manager_score: managerScore }).eq('id', row.id)
       : await supabase.from('kpi_scores').insert({
           company_id: companyId,
           employee_id: emp.id,
           period_year: period.year,
           period_month: period.month,
           manager_score: managerScore,
-          rating,
-          bonus_eligible,
         })
 
     if (error) {

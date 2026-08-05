@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import { NAV } from '../../src/lib/vocabulary'
 import Screen from '../../src/components/Screen'
 import ScoreRing from '../../src/components/ScoreRing'
 import { Avatar, Badge, Button, Card, EmptyState, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
@@ -162,9 +163,13 @@ export default function KPI() {
 
   const weights = weightsOf(row)
   const myRank = board.findIndex((b) => b.employee_id === employee?.id)
+  // The database records how much of the assessment exists. A score built on part
+  // of it is shown with that caveat rather than presented as a verdict.
+  const coverage = Number(row?.weights_used?.coverage_pct ?? 100)
+  const partial = coverage < 100
 
   return (
-    <Screen title="Performance" onRefresh={load}>
+    <Screen title={NAV.kpi} onRefresh={load}>
       <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>
         {periodLabel(curY, curM)} · updated automatically
       </Text>
@@ -185,8 +190,16 @@ export default function KPI() {
           <Card style={{ alignItems: 'center', paddingVertical: space(3) }}>
             <ScoreRing score={row.total_score} rating={row.rating} />
             <View style={{ marginTop: space(1.5) }}>
-              <Badge label={row.rating ?? 'Not rated'} color={ratingColor[row.rating] ?? c.textMuted} />
+              <Badge label={row.rating ?? 'Not yet rated'} color={ratingColor[row.rating] ?? c.textMuted} />
             </View>
+            {partial ? (
+              <Text
+                style={{ ...type.caption, color: c.textMuted, marginTop: space(1), textAlign: 'center', paddingHorizontal: space(2) }}
+              >
+                Based on {coverage}% of the assessment.
+                {row.rating ? '' : ' A rating is held back until more of it is complete.'}
+              </Text>
+            ) : null}
             {myRank >= 0 ? (
               <Text style={{ ...type.caption, color: c.textMuted, marginTop: space(1) }}>
                 Rank {myRank + 1} of {board.length} this month

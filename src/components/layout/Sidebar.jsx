@@ -19,6 +19,7 @@ import {
   UserCircle,
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+import { NAV } from '../../data/vocabulary'
 import useThemeStore from '../../store/themeStore'
 import useUiStore from '../../store/uiStore'
 import Logo from '../Logo'
@@ -35,22 +36,24 @@ import Logo from '../Logo'
 // (matches SETTINGS_ROLES in App.jsx).
 const SETTINGS_NAV_ROLES = ['super_admin', 'hr_manager']
 
+// Labels come from the canonical vocabulary so the sidebar and the phone app say
+// the same word for the same thing — see docs/ui-parity.md.
 const navItems = [
-  { label: 'Dashboard',       icon: LayoutDashboard, path: '/dashboard',      live: true },
-  { label: 'My Profile',      icon: UserCircle,       path: '/profile',        live: true },
-  { label: 'Employees',       icon: Users,            path: '/employees',      live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
-  { label: 'Attendance',      icon: CalendarCheck,    path: '/attendance',     live: true },
-  { label: 'Leave',           icon: CalendarOff,      path: '/leave',          live: true },
-  { label: 'Payroll',         icon: CreditCard,       path: '/payroll',        live: true },
-  { label: 'KPI Scores',      icon: BarChart3,        path: '/kpi',            live: true },
-  { label: 'Team Analytics',  icon: BarChart2,        path: '/team-analytics', live: true, roles: ['super_admin', 'hr_manager'] },
-  { label: 'HR Documents',    icon: FileText,         path: '/documents',      live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
-  { label: 'Schedule',        icon: Calendar,         path: '/schedule',       live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
-  { label: 'My Schedule',     icon: CalendarClock,    path: '/my-schedule',    live: true },
-  { label: 'News Feed',       icon: Newspaper,        path: '/news',           live: true },
-  { label: 'Leads',           icon: Inbox,            path: '/leads',          live: true, roles: ['super_admin'] },
-  { label: 'Settings',        icon: Settings,         path: '/settings',       live: true, roles: SETTINGS_NAV_ROLES },
-  { label: 'Permissions',     icon: ShieldCheck,      path: '/permissions',    live: true, roles: ['super_admin'] },
+  { label: NAV.home,          icon: LayoutDashboard, path: '/dashboard',      live: true },
+  { label: NAV.profile,       icon: UserCircle,       path: '/profile',        live: true },
+  { label: NAV.employees,     icon: Users,            path: '/employees',      live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
+  { label: NAV.attendance,    icon: CalendarCheck,    path: '/attendance',     live: true },
+  { label: NAV.leave,         icon: CalendarOff,      path: '/leave',          live: true },
+  { label: NAV.payroll,       icon: CreditCard,       path: '/payroll',        live: true },
+  { label: NAV.kpi,           icon: BarChart3,        path: '/kpi',            live: true },
+  { label: NAV.teamAnalytics, icon: BarChart2,        path: '/team-analytics', live: true, roles: ['super_admin', 'hr_manager'] },
+  { label: NAV.documents,     icon: FileText,         path: '/documents',      live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
+  { label: NAV.schedule,      icon: Calendar,         path: '/schedule',       live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
+  { label: NAV.mySchedule,    icon: CalendarClock,    path: '/my-schedule',    live: true },
+  { label: NAV.news,          icon: Newspaper,        path: '/news',           live: true },
+  { label: NAV.leads,         icon: Inbox,            path: '/leads',          live: true, roles: ['super_admin'] },
+  { label: NAV.settings,      icon: Settings,         path: '/settings',       live: true, roles: SETTINGS_NAV_ROLES },
+  { label: NAV.access,        icon: ShieldCheck,      path: '/permissions',    live: true, roles: ['super_admin'] },
 ]
 
 export default function Sidebar() {

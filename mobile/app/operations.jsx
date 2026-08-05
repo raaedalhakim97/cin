@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../src/lib/supabase'
 import useAuthStore from '../src/store/authStore'
+import { NAV } from '../src/lib/vocabulary'
 import Screen from '../src/components/Screen'
 import { STATUS_LABEL } from '../src/lib/attendance'
 import { Avatar, Badge, Card, EmptyState, Overline, SectionTitle, SkeletonCard, StatTile, useTheme } from '../src/components/ui'
@@ -75,7 +76,7 @@ export default function Operations() {
 
   if (!can.manageShifts && !can.manageDocuments) {
     return (
-      <Screen title="Operations">
+      <Screen title={NAV.operations}>
         <EmptyState icon="!" title="Not available" body="Your role doesn't include shift or document coordination." />
       </Screen>
     )
@@ -85,7 +86,7 @@ export default function Operations() {
   const published = shifts.filter((s) => s.status === 'published').length
 
   return (
-    <Screen title="Operations" onRefresh={load}>
+    <Screen title={NAV.operations} onRefresh={load}>
       <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>
         Scheduling and document coordination
       </Text>

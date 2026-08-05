@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import useAuthStore from '../src/store/authStore'
 import useThemeStore from '../src/store/themeStore'
 import useModeStore from '../src/store/modeStore'
+import { NAV } from '../src/lib/vocabulary'
 import Screen from '../src/components/Screen'
 import { MODE_LABEL } from '../src/lib/permissions'
 import { Card, Overline, Row, useTheme } from '../src/components/ui'
@@ -29,7 +30,7 @@ export default function Settings() {
   const setMode = useModeStore((s) => s.setMode)
 
   return (
-    <Screen title="Settings">
+    <Screen title={NAV.settings}>
       <Overline>Appearance</Overline>
       <Card>
         <Text style={{ ...type.body, color: c.textMuted, marginBottom: space(1.5) }}>
@@ -117,7 +118,7 @@ export default function Settings() {
             <Ionicons name="shield-checkmark-outline" size={20} color={c.mint} />
             <View style={{ flex: 1 }}>
               <Text style={{ ...type.label, color: c.text }}>
-                {can.manageRoles ? 'Access & permissions' : 'My access'}
+                {can.manageRoles ? NAV.access : `My ${NAV.access.toLowerCase()}`}
               </Text>
               <Text style={{ ...type.caption, color: c.textMuted }}>
                 {can.manageRoles ? 'See and assign what everyone can reach' : 'See exactly what your role grants'}

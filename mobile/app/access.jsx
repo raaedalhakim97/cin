@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../src/lib/supabase'
 import useAuthStore from '../src/store/authStore'
+import { NAV } from '../src/lib/vocabulary'
 import Screen from '../src/components/Screen'
 import {
   LEVEL_LABEL,
@@ -138,7 +139,7 @@ export default function Access() {
   const showRoleTab = can.manageRoles
 
   return (
-    <Screen title="Access" onRefresh={showRoleTab ? load : undefined}>
+    <Screen title={NAV.access} onRefresh={showRoleTab ? load : undefined}>
       {showRoleTab ? (
         <View style={{ flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: c.surfaceAlt, marginBottom: space(2) }}>
           {[

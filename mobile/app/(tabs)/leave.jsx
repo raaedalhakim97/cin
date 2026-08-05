@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import { NAV } from '../../src/lib/vocabulary'
 import Screen from '../../src/components/Screen'
 import { LEAVE_TYPES, STATUS_META, dayCount, submitRequest, typeLabel } from '../../src/lib/leave'
 import { Badge, Button, Card, EmptyState, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
@@ -103,7 +104,7 @@ export default function Leave() {
 
   if (!can.viewOwnLeave) {
     return (
-      <Screen title="Leave">
+      <Screen title={NAV.leave}>
         <EmptyState
           icon="!"
           title="No leave record"
@@ -115,7 +116,7 @@ export default function Leave() {
 
   return (
     <>
-      <Screen title="Leave" onRefresh={load}>
+      <Screen title={NAV.leave} onRefresh={load}>
         <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>
           Balance, requests and approval status
         </Text>

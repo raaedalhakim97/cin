@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../src/lib/supabase'
 import useAuthStore from '../src/store/authStore'
+import { NAV } from '../src/lib/vocabulary'
 import { Avatar, Card, EmptyState, ErrorState, SkeletonCard, useTheme } from '../src/components/ui'
 import { shortDate } from '../src/lib/format'
 import { radius, space, type } from '../src/theme'
@@ -126,7 +127,7 @@ export default function Feed() {
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Ionicons name="chevron-back" size={24} color={c.text} />
         </Pressable>
-        <Text style={{ ...type.h1, color: c.text }}>Announcements</Text>
+        <Text style={{ ...type.h1, color: c.text }}>{NAV.news}</Text>
       </View>
 
       {loading ? (

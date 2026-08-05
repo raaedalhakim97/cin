@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
 import useModeStore from '../../src/store/modeStore'
+import { NAV } from '../../src/lib/vocabulary'
 import Screen from '../../src/components/Screen'
 import {
   Avatar,
@@ -125,24 +126,24 @@ export default function Home() {
   const QUICK_ACTIONS = (
     managerView
       ? [
-          { icon: 'checkmark-done-outline', label: 'Approvals', to: '/approvals', tint: c.mint, show: can.approveLeaveStep1 },
+          { icon: 'checkmark-done-outline', label: NAV.approvals, to: '/approvals', tint: c.mint, show: can.approveLeaveStep1 },
           { icon: 'people-outline', label: 'Team today', to: '/approvals', tint: c.success, show: can.viewTeamAttendance },
           { icon: 'trending-up-outline', label: 'Team KPI', to: '/(tabs)/kpi', tint: c.warning, show: can.evaluateOthers },
-          { icon: 'megaphone-outline', label: 'News', to: '/feed', tint: c.purple, show: true },
+          { icon: 'megaphone-outline', label: NAV.news, to: '/feed', tint: c.purple, show: true },
         ]
       : opsView
         ? [
             { icon: 'calendar-number-outline', label: 'Shifts', to: '/operations', tint: c.mint, show: can.manageShifts },
-            { icon: 'folder-open-outline', label: 'Documents', to: '/operations', tint: c.info, show: can.manageDocuments },
+            { icon: 'folder-open-outline', label: NAV.documents, to: '/operations', tint: c.info, show: can.manageDocuments },
             { icon: 'people-outline', label: 'Team today', to: '/operations', tint: c.success, show: can.viewTeamAttendance },
-            { icon: 'megaphone-outline', label: 'News', to: '/feed', tint: c.purple, show: true },
+            { icon: 'megaphone-outline', label: NAV.news, to: '/feed', tint: c.purple, show: true },
           ]
         : [
             { icon: 'time-outline', label: clockedIn ? 'Clock out' : 'Clock in', to: '/(tabs)/attendance', tint: c.mint, show: can.clockInOut },
             { icon: 'umbrella-outline', label: 'Request leave', to: '/(tabs)/leave', tint: c.success, show: can.requestLeave },
             { icon: 'document-text-outline', label: 'My payslip', to: '/(tabs)/profile', tint: c.purple, show: can.viewOwnPayslip },
             { icon: 'trending-up-outline', label: 'My KPI', to: '/(tabs)/kpi', tint: c.warning, show: can.selfEvaluate },
-            { icon: 'megaphone-outline', label: 'News', to: '/feed', tint: c.info, show: true },
+            { icon: 'megaphone-outline', label: NAV.news, to: '/feed', tint: c.info, show: true },
           ]
   ).filter((a) => a.show)
 
@@ -150,7 +151,7 @@ export default function Home() {
   const lateCount = team.filter((t) => String(t.status).startsWith('late')).length
 
   return (
-    <Screen title={managerView ? 'Team' : opsView ? 'Operations' : 'Home'} onRefresh={load}>
+    <Screen title={managerView ? 'Team' : opsView ? NAV.operations : NAV.home} onRefresh={load}>
       {/* Quick actions — horizontally scrolling tiles, bleeding to the screen
           edge so it reads as a scrollable row rather than a clipped grid. */}
       <ScrollView
@@ -301,7 +302,7 @@ export default function Home() {
       )}
 
       <SectionTitle action="See all" onAction={() => router.push('/feed')}>
-        Announcements
+        {NAV.news}
       </SectionTitle>
       {posts.length === 0 ? (
         <Card>

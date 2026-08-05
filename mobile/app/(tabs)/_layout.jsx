@@ -2,18 +2,19 @@ import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/components/ui'
 import { space } from '../../src/theme'
+import { TAB } from '../../src/lib/vocabulary'
 
 // Five tabs, hard cap — the design PDF's mobile-nav rule. The news feed and the
 // manager approvals queue are reached from Home as stack routes rather than
 // becoming tabs six and seven.
 const TABS = [
-  { name: 'index', title: 'Home', icon: 'home-outline', activeIcon: 'home' },
-  { name: 'attendance', title: 'Work', icon: 'briefcase-outline', activeIcon: 'briefcase' },
-  { name: 'leave', title: 'Leave', icon: 'umbrella-outline', activeIcon: 'umbrella' },
-  // Kept short so it doesn't truncate at 390px — the screen and drawer both
-  // still call this module Performance.
-  { name: 'kpi', title: 'KPI', icon: 'trending-up-outline', activeIcon: 'trending-up' },
-  { name: 'profile', title: 'Profile', icon: 'person-outline', activeIcon: 'person' },
+  { name: 'index', title: TAB.home, icon: 'home-outline', activeIcon: 'home' },
+  // 'Attend' rather than 'Work': the concept is Attendance everywhere else, and
+  // five labels have to share 390px.
+  { name: 'attendance', title: TAB.attendance, icon: 'time-outline', activeIcon: 'time' },
+  { name: 'leave', title: TAB.leave, icon: 'umbrella-outline', activeIcon: 'umbrella' },
+  { name: 'kpi', title: TAB.kpi, icon: 'trending-up-outline', activeIcon: 'trending-up' },
+  { name: 'profile', title: TAB.profile, icon: 'person-outline', activeIcon: 'person' },
 ]
 
 export default function TabsLayout() {

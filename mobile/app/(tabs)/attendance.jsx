@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import { NAV } from '../../src/lib/vocabulary'
 import Screen from '../../src/components/Screen'
 import { clockIn, clockOut, loadClockSettings, STATUS_LABEL } from '../../src/lib/attendance'
 import { Badge, Card, EmptyState, SectionTitle, SkeletonCard, StatTile, useTheme } from '../../src/components/ui'
@@ -103,7 +104,7 @@ export default function Attendance() {
   // so the screen says that rather than showing an inert clock face.
   if (!can.viewOwnAttendance) {
     return (
-      <Screen title="Attendance">
+      <Screen title={NAV.attendance}>
         <EmptyState
           icon="!"
           title="No attendance record"
@@ -114,7 +115,7 @@ export default function Attendance() {
   }
 
   return (
-    <Screen title="Attendance" onRefresh={load}>
+    <Screen title={NAV.attendance} onRefresh={load}>
       <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>{longDate()}</Text>
 
       <Card style={{ alignItems: 'center', paddingVertical: space(3) }}>

@@ -7,6 +7,7 @@ import useAuthStore from '../store/authStore'
 import useModeStore from '../store/modeStore'
 import useUiStore from '../store/uiStore'
 import { MODE_LABEL } from '../lib/permissions'
+import { NAV } from '../lib/vocabulary'
 import { DURATION, USE_NATIVE_DRIVER, useReducedMotion } from '../lib/motion'
 import { Avatar, useTheme } from './ui'
 import { radius, space, type } from '../theme'
@@ -224,17 +225,17 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
             ) : null}
 
             <View style={{ height: space(1) }} />
-            <Item icon="home-outline" label="Home" onPress={() => go('/(tabs)')} />
-            <Item icon="megaphone-outline" label="Announcements" onPress={() => go('/feed')} />
+            <Item icon="home-outline" label={NAV.home} onPress={() => go('/(tabs)')} />
+            <Item icon="megaphone-outline" label={NAV.news} onPress={() => go('/feed')} />
 
             <GroupLabel>Work</GroupLabel>
             {can.viewOwnAttendance ? (
-              <Item icon="time-outline" label="Attendance" onPress={() => go('/(tabs)/attendance')} />
+              <Item icon="time-outline" label={NAV.attendance} onPress={() => go('/(tabs)/attendance')} />
             ) : null}
-            {can.viewOwnLeave ? <Item icon="umbrella-outline" label="Leave" onPress={() => go('/(tabs)/leave')} /> : null}
-            <Item icon="trending-up-outline" label="Performance" onPress={() => go('/(tabs)/kpi')} />
+            {can.viewOwnLeave ? <Item icon="umbrella-outline" label={NAV.leave} onPress={() => go('/(tabs)/leave')} /> : null}
+            <Item icon="trending-up-outline" label={NAV.kpi} onPress={() => go('/(tabs)/kpi')} />
             {can.viewSchedule ? (
-              <Item icon="calendar-outline" label="My schedule" onPress={() => go('/(tabs)/attendance')} />
+              <Item icon="calendar-outline" label={NAV.mySchedule} onPress={() => go('/(tabs)/attendance')} />
             ) : null}
 
             {/* Second surface, shown only while you're in it. */}
@@ -244,7 +245,7 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
                 {can.approveLeaveStep1 ? (
                   <Item
                     icon="checkmark-done-outline"
-                    label="Leave approvals"
+                    label={NAV.approvals}
                     badge={pendingApprovals}
                     hint={can.approveLeaveFinal ? 'Final sign-off' : 'Step-one review'}
                     onPress={() => go('/approvals')}
@@ -254,7 +255,7 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
                   <Item icon="people-outline" label="Team attendance" onPress={() => go('/approvals')} />
                 ) : null}
                 {can.evaluateOthers ? (
-                  <Item icon="star-outline" label="Team performance" onPress={() => go('/(tabs)/kpi')} />
+                  <Item icon="star-outline" label={`Team ${NAV.kpi}`} onPress={() => go('/(tabs)/kpi')} />
                 ) : null}
                 {can.recommendWarning ? (
                   <Item icon="alert-circle-outline" label="Recommend a warning" hint="HR issues it" onPress={() => go('/approvals')} />
@@ -266,10 +267,10 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
               <>
                 <GroupLabel>Operations</GroupLabel>
                 {can.manageShifts ? (
-                  <Item icon="calendar-number-outline" label="Shift schedule" onPress={() => go('/operations')} />
+                  <Item icon="calendar-number-outline" label={NAV.schedule} onPress={() => go('/operations')} />
                 ) : null}
                 {can.manageDocuments ? (
-                  <Item icon="folder-open-outline" label="Documents" onPress={() => go('/operations')} />
+                  <Item icon="folder-open-outline" label={NAV.documents} onPress={() => go('/operations')} />
                 ) : null}
                 {can.viewTeamAttendance ? (
                   <Item icon="people-outline" label="Team attendance" hint="View only" onPress={() => go('/operations')} />
@@ -281,20 +282,20 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
             ) : null}
 
             <GroupLabel>Account</GroupLabel>
-            <Item icon="person-outline" label="My profile" onPress={() => go('/(tabs)/profile')} />
+            <Item icon="person-outline" label={NAV.profile} onPress={() => go('/(tabs)/profile')} />
             {can.viewOwnPayslip ? (
-              <Item icon="document-text-outline" label="Payslips" onPress={() => go('/(tabs)/profile')} />
+              <Item icon="document-text-outline" label={NAV.payroll} onPress={() => go('/(tabs)/profile')} />
             ) : null}
             <Item
               icon="shield-checkmark-outline"
-              label={can.manageRoles ? 'Access & permissions' : 'My access'}
+              label={can.manageRoles ? NAV.access : `My ${NAV.access.toLowerCase()}`}
               hint={can.manageRoles ? 'Assign roles' : can.label}
               onPress={() => go('/access')}
             />
-            <Item icon="settings-outline" label="Settings" onPress={() => go('/settings')} />
+            <Item icon="settings-outline" label={NAV.settings} onPress={() => go('/settings')} />
             <Item
               icon="log-out-outline"
-              label="Sign out"
+              label={NAV.signOut}
               onPress={() => {
                 onClose()
                 signOut()

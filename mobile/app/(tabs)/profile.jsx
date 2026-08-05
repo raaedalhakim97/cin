@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import { NAV } from '../../src/lib/vocabulary'
 import Screen from '../../src/components/Screen'
 import { Avatar, Badge, Button, Card, EmptyState, Overline, Row, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
 import { money, periodLabel, shortDate } from '../../src/lib/format'
@@ -75,7 +76,7 @@ export default function Profile() {
   }
 
   return (
-    <Screen title="My profile" onRefresh={load}>
+    <Screen title={NAV.profile} onRefresh={load}>
       <Card style={{ alignItems: 'center', paddingVertical: space(3) }}>
         <Avatar name={employee?.full_name} size={72} />
         <Text style={{ ...type.h1, color: c.text, marginTop: space(1.5) }}>{employee?.full_name ?? '—'}</Text>
