@@ -20,7 +20,7 @@ export default function Leave() {
   const insets = useSafeAreaInsets()
   const employee = useAuthStore((s) => s.employee)
   const companyId = useAuthStore((s) => s.companyId)
-  const role = useAuthStore((s) => s.role)
+  const can = useAuthStore((s) => s.caps)
 
   const [balances, setBalances] = useState([])
   const [requests, setRequests] = useState([])
@@ -34,7 +34,7 @@ export default function Leave() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
-  const canRequest = role !== 'read_only'
+  const canRequest = can.requestLeave
 
   const load = useCallback(async () => {
     if (!employee?.id) {
@@ -99,6 +99,18 @@ export default function Leave() {
     paddingHorizontal: space(1.5),
     paddingVertical: space(1),
     flex: 1,
+  }
+
+  if (!can.viewOwnLeave) {
+    return (
+      <Screen title="Leave">
+        <EmptyState
+          icon="!"
+          title="No leave record"
+          body="Read-only accounts cannot request or hold leave. An auditor who also needs to book leave requires a separate employee account."
+        />
+      </Screen>
+    )
   }
 
   return (

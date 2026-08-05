@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
 import Screen from '../../src/components/Screen'
-import { Avatar, Badge, Button, Card, EmptyState, Row, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
+import { Avatar, Badge, Button, Card, EmptyState, Overline, Row, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
 import { money, periodLabel, shortDate } from '../../src/lib/format'
 import { space, type } from '../../src/theme'
 
@@ -19,7 +19,7 @@ export default function Profile() {
   const { c } = useTheme()
   const employee = useAuthStore((s) => s.employee)
   const company = useAuthStore((s) => s.company)
-  const role = useAuthStore((s) => s.role)
+  const can = useAuthStore((s) => s.caps)
   const signOut = useAuthStore((s) => s.signOut)
 
   const [runs, setRuns] = useState([])
@@ -81,7 +81,7 @@ export default function Profile() {
         <Text style={{ ...type.h1, color: c.text, marginTop: space(1.5) }}>{employee?.full_name ?? '—'}</Text>
         <Text style={{ ...type.body, color: c.textMuted }}>{employee?.job_title ?? '—'}</Text>
         <View style={{ marginTop: space(1) }}>
-          <Badge label={employee?.emp_code ?? role ?? 'Employee'} />
+          <Badge label={employee?.emp_code ?? can.label} />
         </View>
       </Card>
 
@@ -96,6 +96,16 @@ export default function Profile() {
         <Row label="Company" value={company?.name} />
       </Card>
 
+      <Card style={{ marginTop: space(2) }}>
+        <Overline>Your access</Overline>
+        <Text style={{ ...type.label, color: c.text }}>{can.label}</Text>
+        <Text style={{ ...type.caption, color: c.textMuted, marginTop: 2 }}>{can.purpose}</Text>
+      </Card>
+
+      {/* "Payroll — view" is '-' for admin: an ops coordinator has no payroll
+          access at all, so the section is absent rather than empty. */}
+      {!can.viewOwnPayslip ? null : (
+        <>
       <SectionTitle>Payslips</SectionTitle>
       {loading ? (
         <SkeletonCard lines={3} />
@@ -151,6 +161,9 @@ export default function Profile() {
             )
           })}
         </View>
+      )}
+
+        </>
       )}
 
       <SectionTitle>My documents</SectionTitle>

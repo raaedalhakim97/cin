@@ -41,14 +41,20 @@ const PEOPLE = [
   { id: 'e6', full_name: 'Tariq Al-Ghamdi', job_title: 'Sales Manager', dept: 'Sales', emp_code: 'EMP-0018', kpi: 80 },
   { id: 'e7', full_name: 'Nour Ibrahim', job_title: 'Marketing Lead', dept: 'Marketing', emp_code: 'EMP-0051', kpi: 88 },
   { id: 'e8', full_name: 'Raaed Hassan', job_title: 'Chief Executive', dept: 'Executive', emp_code: 'EMP-0001', kpi: 96 },
+  { id: 'e9', full_name: 'Faisal Al-Omar', job_title: 'Ops Coordinator', dept: 'Operations', emp_code: 'EMP-0020', kpi: 82 },
+  { id: 'e10', full_name: 'Hana Al-Zahra', job_title: 'Internal Auditor', dept: 'Finance', emp_code: 'EMP-0060', kpi: 79 },
 ]
 
-// The three accounts the demo login offers, so employee, manager and HR views
-// can each be walked through without a database.
+// One account per role, so all six of the access-control standard's roles can be
+// walked through without a database. Order matches §1 of that document, most
+// privileged first.
 export const PERSONAS = [
-  { userId: 'u1', employeeId: 'e1', role: 'employee', label: 'Sarah Al-Hamdan', sub: 'Employee · Product' },
-  { userId: 'u6', employeeId: 'e6', role: 'department_manager', label: 'Tariq Al-Ghamdi', sub: 'Dept. Manager · Sales' },
-  { userId: 'u3', employeeId: 'e3', role: 'hr_manager', label: 'Lina Mansour', sub: 'HR Manager · HR' },
+  { userId: 'u8', employeeId: 'e8', role: 'super_admin', label: 'Raaed Hassan', sub: 'Super Admin · owns the company' },
+  { userId: 'u3', employeeId: 'e3', role: 'hr_manager', label: 'Lina Mansour', sub: 'HR Manager · all HR operations' },
+  { userId: 'u6', employeeId: 'e6', role: 'department_manager', label: 'Tariq Al-Ghamdi', sub: 'Dept. Manager · Sales only' },
+  { userId: 'u9', employeeId: 'e9', role: 'admin', label: 'Faisal Al-Omar', sub: 'Ops Coordinator · shifts & documents' },
+  { userId: 'u1', employeeId: 'e1', role: 'employee', label: 'Sarah Al-Hamdan', sub: 'Employee · self-service only' },
+  { userId: 'u10', employeeId: 'e10', role: 'read_only', label: 'Hana Al-Zahra', sub: 'Read Only · auditor, no writes' },
 ]
 
 const employeeRow = (p) => ({
@@ -90,6 +96,9 @@ export function buildSeed() {
       currency: 'AED',
       trial_ends_at: daysAhead(9).toISOString(),
       work_start_time: '08:00',
+      // §4.7 — salary visibility is opt-in. Left false so the default state is
+      // what a reviewer sees: a department manager gets no team payroll.
+      manager_salary_visibility: false,
       privacy_contact_email: 'privacy@northwind.example',
     },
   ]
@@ -110,7 +119,7 @@ export function buildSeed() {
       overtime_hours: 0,
       employees: { full_name: 'Sarah Al-Hamdan' },
     },
-    ...['e2', 'e3', 'e5', 'e6', 'e7'].map((id, i) => {
+    ...['e2', 'e3', 'e5', 'e6', 'e7', 'e8', 'e9'].map((id, i) => {
       const person = PEOPLE.find((p) => p.id === id)
       return {
         id: `a-today-${id}`,
@@ -172,6 +181,12 @@ export function buildSeed() {
       ['annual', 21, 8],
       ['sick', 10, 3],
     ]),
+    ...leaveFor('e8', [['annual', 30, 4]]),
+    ...leaveFor('e9', [
+      ['annual', 21, 9],
+      ['sick', 10, 1],
+    ]),
+    ...leaveFor('e10', [['annual', 21, 2]]),
   ]
 
   const leave_requests = [
@@ -283,6 +298,9 @@ export function buildSeed() {
     kpiRow('e5', YEAR, MONTH, 94, { attendance: 100, behavior: 92, achievement: 90, manager: 94, self: 90 }),
     kpiRow('e6', YEAR, MONTH, 80, { attendance: 82, behavior: 78, achievement: 80, manager: 80, self: 78 }),
     kpiRow('e7', YEAR, MONTH, 88, { attendance: 90, behavior: 86, achievement: 88, manager: 88, self: 85 }),
+    kpiRow('e8', YEAR, MONTH, 96, { attendance: 98, behavior: 96, achievement: 96, manager: 95, self: 92 }),
+    kpiRow('e9', YEAR, MONTH, 82, { attendance: 86, behavior: 82, achievement: 80, manager: 80, self: 80 }),
+    kpiRow('e10', YEAR, MONTH, 79, { attendance: 84, behavior: 78, achievement: 76, manager: 78, self: 75 }),
     // Sarah's previous months, for the history list.
     kpiRow('e1', YEAR, MONTH === 1 ? 12 : MONTH - 1, 88, { attendance: 85, behavior: 90, achievement: 92, manager: 86, self: 82 }),
     kpiRow('e1', YEAR, MONTH <= 2 ? 11 : MONTH - 2, 82, { attendance: 80, behavior: 84, achievement: 85, manager: 80, self: 78 }),
@@ -312,6 +330,11 @@ export function buildSeed() {
     payrollRow('e1', 2, 'paid'),
     payrollRow('e6', 0, 'approved'),
     payrollRow('e3', 0, 'approved'),
+    payrollRow('e8', 0, 'paid'),
+    // e9 is the ops coordinator: a row exists, but 'Payroll — view' is '-' for
+    // admin, so the app must never show it.
+    payrollRow('e9', 0, 'approved'),
+    payrollRow('e10', 0, 'approved'),
   ]
 
   const hr_documents_with_status = [

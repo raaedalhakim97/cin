@@ -69,7 +69,7 @@ export default function KPI() {
   const { c } = useTheme()
   const employee = useAuthStore((s) => s.employee)
   const companyId = useAuthStore((s) => s.companyId)
-  const role = useAuthStore((s) => s.role)
+  const can = useAuthStore((s) => s.caps)
 
   const now = new Date()
   const curY = now.getFullYear()
@@ -86,7 +86,7 @@ export default function KPI() {
 
   // read_only is excluded from kpi_self_eval RLS (migration 46) — hide the form
   // rather than let the write 400.
-  const canSelfEval = role !== 'read_only'
+  const canSelfEval = can.selfEvaluate
 
   const load = useCallback(async () => {
     if (!employee?.id) {

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import supabase from '../lib/supabase'
+import { capabilities, secondMode } from '../lib/permissions'
 
 // Same discipline as the web authStore: salary, bank_account and national_id are
 // never selected into the client. On mobile this matters more, not less — the
@@ -10,11 +11,13 @@ const SAFE_SELECT =
   'classification, contract_type, hire_date, status, can_post_feed, emp_code, ' +
   'departments!employees_department_id_fkey(name)'
 
-// Roles that see the manager surface (leave approvals + team attendance).
-// Mirrors the web's leave-approval gating: department_manager approves step 1,
-// hr_manager/super_admin approve final.
-export const MANAGER_ROLES = ['super_admin', 'hr_manager', 'department_manager']
+// Which roles get which surface is decided by the access-control standard, not
+// by a list kept here — see lib/permissions.js secondMode().
 
+// Capabilities are stored, not computed in a selector. capabilities() builds a
+// fresh object each call, and zustand compares selector results by reference —
+// selecting `s.can()` therefore re-rendered forever (React error #185). Keeping
+// the object in state gives every screen a stable reference.
 const useAuthStore = create((set, get) => ({
   session: null,
   employee: null,
@@ -22,6 +25,8 @@ const useAuthStore = create((set, get) => ({
   companyId: null,
   company: null,
   loading: true,
+  caps: capabilities(null),
+  second: null,
 
   init: async () => {
     const {
@@ -49,27 +54,42 @@ const useAuthStore = create((set, get) => ({
     if (roleRow?.company_id) {
       const { data } = await supabase
         .from('company')
-        .select('id, name, plan, currency, trial_ends_at')
+        .select('id, name, plan, currency, trial_ends_at, manager_salary_visibility, work_start_time')
         .eq('id', roleRow.company_id)
         .maybeSingle()
       company = data ?? null
     }
 
+    const role = roleRow?.role ?? null
     set({
       session,
       employee: employee ?? null,
-      role: roleRow?.role ?? null,
+      role,
       companyId: roleRow?.company_id ?? null,
       company,
+      // Recomputed here, once per profile load, so screens can select a stable
+      // object. Salary visibility is folded in so callers never have to remember
+      // that department_manager's payroll access is toggle-gated (§4.7).
+      caps: capabilities(role, { managerSalaryVisibility: !!company?.manager_salary_visibility }),
+      second: secondMode(role),
     })
   },
 
   signOut: async () => {
     await supabase.auth.signOut()
-    set({ session: null, employee: null, role: null, companyId: null, company: null })
+    set({
+      session: null,
+      employee: null,
+      role: null,
+      companyId: null,
+      company: null,
+      caps: capabilities(null),
+      second: null,
+    })
   },
 
-  isManager: () => MANAGER_ROLES.includes(get().role),
+  // Retained for callers that only need to know a team surface exists.
+  isManager: () => get().second === 'manager',
 }))
 
 export default useAuthStore

@@ -5,17 +5,16 @@ import { useRouter } from 'expo-router'
 import useAuthStore from '../store/authStore'
 import useModeStore from '../store/modeStore'
 import useUiStore from '../store/uiStore'
+import { MODE_LABEL } from '../lib/permissions'
 import { Avatar, useTheme } from './ui'
 import { radius, space, type } from '../theme'
 
-// Grouped navigation drawer with a Personal / Manager switch at the top, after
-// the reference app. Sections are grouped by what the item is about rather than
-// listed flat, which is what makes a long menu scannable.
-//
-// The Manager half of the toggle is not rendered at all for a role that cannot
-// use it — a disabled control that never becomes available is just noise.
+// Grouped navigation drawer with a surface switch at the top, after the
+// reference app. Which items appear is decided entirely by capabilities derived
+// from the access-control standard — per §4.10, a control a role cannot use is
+// not rendered at all rather than shown and allowed to fail.
 
-function Item({ icon, label, onPress, badge, active }) {
+function Item({ icon, label, onPress, badge, hint }) {
   const { c } = useTheme()
   return (
     <Pressable
@@ -26,11 +25,14 @@ function Item({ icon, label, onPress, badge, active }) {
         gap: space(2),
         paddingVertical: space(1.5),
         paddingHorizontal: space(2.5),
-        backgroundColor: active ? c.cyan + '1A' : pressed ? c.chromeAlt : 'transparent',
+        backgroundColor: pressed ? c.chromeAlt : 'transparent',
       })}
     >
-      <Ionicons name={icon} size={21} color={active ? c.cyan : c.chromeText} />
-      <Text style={{ ...type.bodyL, color: active ? c.cyan : c.chromeText, flex: 1 }}>{label}</Text>
+      <Ionicons name={icon} size={21} color={c.chromeText} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ ...type.bodyL, color: c.chromeText }}>{label}</Text>
+        {hint ? <Text style={{ ...type.caption, color: c.chromeMuted }}>{hint}</Text> : null}
+      </View>
       {badge > 0 ? (
         <View
           style={{
@@ -38,12 +40,12 @@ function Item({ icon, label, onPress, badge, active }) {
             height: 20,
             paddingHorizontal: 5,
             borderRadius: radius.pill,
-            backgroundColor: c.cyan,
+            backgroundColor: c.mint,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 11, fontWeight: '700', color: c.onCyan }}>{badge}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: c.onMint }}>{badge}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -75,7 +77,8 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
   const onClose = useUiStore((s) => s.closeDrawer)
   const employee = useAuthStore((s) => s.employee)
   const company = useAuthStore((s) => s.company)
-  const isManager = useAuthStore((s) => s.isManager())
+  const can = useAuthStore((s) => s.caps)
+  const second = useAuthStore((s) => s.second)
   const signOut = useAuthStore((s) => s.signOut)
   const mode = useModeStore((s) => s.mode)
   const setMode = useModeStore((s) => s.setMode)
@@ -85,20 +88,15 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
     router.push(path)
   }
 
+  const inSecond = mode === second
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, flexDirection: 'row' }}>
-        <View
-          style={{
-            width: '82%',
-            maxWidth: 340,
-            backgroundColor: c.chrome,
-            paddingTop: insets.top + space(1),
-          }}
-        >
+        <View style={{ width: '82%', maxWidth: 340, backgroundColor: c.chrome, paddingTop: insets.top + space(1) }}>
           <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space(3) }}>
-            {/* Personal / Manager switch */}
-            {isManager ? (
+            {/* Surface switch — only for a role that has a second surface. */}
+            {second ? (
               <View
                 style={{
                   flexDirection: 'row',
@@ -108,35 +106,29 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
                   backgroundColor: c.chromeAlt,
                 }}
               >
-                {['personal', 'manager'].map((m) => {
+                {['personal', second].map((m) => {
                   const active = mode === m
                   return (
                     <Pressable
                       key={m}
-                      onPress={() => setMode(m)}
+                      onPress={() => setMode(m, second)}
                       style={{
                         flex: 1,
                         paddingVertical: space(1.25),
                         borderRadius: radius.pill,
-                        backgroundColor: active ? c.cyan : 'transparent',
+                        backgroundColor: active ? c.mint : 'transparent',
                         alignItems: 'center',
                       }}
                     >
-                      <Text
-                        style={{
-                          ...type.label,
-                          color: active ? c.onCyan : c.chromeMuted,
-                        }}
-                      >
-                        {m === 'personal' ? 'Personal' : 'Manager'}
-                      </Text>
+                      <Text style={{ ...type.label, color: active ? c.onMint : c.chromeMuted }}>{MODE_LABEL[m]}</Text>
                     </Pressable>
                   )
                 })}
               </View>
             ) : null}
 
-            {/* Identity */}
+            {/* Identity, with the role spelled out — useful when access differs
+                from what a colleague sees. */}
             <Pressable
               onPress={() => go('/(tabs)/profile')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: space(2), padding: space(2.5) }}
@@ -147,36 +139,82 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
                   {employee?.full_name ?? 'Not linked'}
                 </Text>
                 <Text style={{ ...type.caption, color: c.chromeMuted }} numberOfLines={1}>
-                  {employee?.job_title ?? '—'}
+                  {can.label}
                   {company?.name ? ` · ${company.name}` : ''}
                 </Text>
               </View>
             </Pressable>
 
+            {can.isReadOnly ? (
+              <View style={{ marginHorizontal: space(2.5), padding: space(1.5), borderRadius: radius.sm, backgroundColor: c.warning + '1F' }}>
+                <Text style={{ ...type.caption, color: c.warning }}>
+                  Read-only account. You can view records but cannot change anything, including your own.
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={{ height: space(1) }} />
             <Item icon="home-outline" label="Home" onPress={() => go('/(tabs)')} />
             <Item icon="megaphone-outline" label="Announcements" onPress={() => go('/feed')} />
 
             <GroupLabel>Work</GroupLabel>
-            <Item icon="time-outline" label="Attendance" onPress={() => go('/(tabs)/attendance')} />
-            <Item icon="calendar-outline" label="Leave" onPress={() => go('/(tabs)/leave')} />
+            {can.viewOwnAttendance ? (
+              <Item icon="time-outline" label="Attendance" onPress={() => go('/(tabs)/attendance')} />
+            ) : null}
+            {can.viewOwnLeave ? <Item icon="umbrella-outline" label="Leave" onPress={() => go('/(tabs)/leave')} /> : null}
             <Item icon="trending-up-outline" label="Performance" onPress={() => go('/(tabs)/kpi')} />
+            {can.viewSchedule ? (
+              <Item icon="calendar-outline" label="My schedule" onPress={() => go('/(tabs)/attendance')} />
+            ) : null}
 
-            {mode === 'manager' && isManager ? (
+            {/* Second surface, shown only while you're in it. */}
+            {inSecond && second === 'manager' ? (
               <>
                 <GroupLabel>My team</GroupLabel>
-                <Item
-                  icon="checkmark-done-outline"
-                  label="Approvals"
-                  badge={pendingApprovals}
-                  onPress={() => go('/approvals')}
-                />
-                <Item icon="people-outline" label="Team attendance" onPress={() => go('/approvals')} />
+                {can.approveLeaveStep1 ? (
+                  <Item
+                    icon="checkmark-done-outline"
+                    label="Leave approvals"
+                    badge={pendingApprovals}
+                    hint={can.approveLeaveFinal ? 'Final sign-off' : 'Step-one review'}
+                    onPress={() => go('/approvals')}
+                  />
+                ) : null}
+                {can.viewTeamAttendance ? (
+                  <Item icon="people-outline" label="Team attendance" onPress={() => go('/approvals')} />
+                ) : null}
+                {can.evaluateOthers ? (
+                  <Item icon="star-outline" label="Team performance" onPress={() => go('/(tabs)/kpi')} />
+                ) : null}
+                {can.recommendWarning ? (
+                  <Item icon="alert-circle-outline" label="Recommend a warning" hint="HR issues it" onPress={() => go('/approvals')} />
+                ) : null}
+              </>
+            ) : null}
+
+            {inSecond && second === 'ops' ? (
+              <>
+                <GroupLabel>Operations</GroupLabel>
+                {can.manageShifts ? (
+                  <Item icon="calendar-number-outline" label="Shift schedule" onPress={() => go('/operations')} />
+                ) : null}
+                {can.manageDocuments ? (
+                  <Item icon="folder-open-outline" label="Documents" onPress={() => go('/operations')} />
+                ) : null}
+                {can.viewTeamAttendance ? (
+                  <Item icon="people-outline" label="Team attendance" hint="View only" onPress={() => go('/operations')} />
+                ) : null}
+                {can.viewInvites ? (
+                  <Item icon="link-outline" label="Invite links" hint="View only" onPress={() => go('/operations')} />
+                ) : null}
               </>
             ) : null}
 
             <GroupLabel>Account</GroupLabel>
             <Item icon="person-outline" label="My profile" onPress={() => go('/(tabs)/profile')} />
-            <Item icon="document-text-outline" label="Payslips" onPress={() => go('/(tabs)/profile')} />
+            {can.viewOwnPayslip ? (
+              <Item icon="document-text-outline" label="Payslips" onPress={() => go('/(tabs)/profile')} />
+            ) : null}
             <Item icon="settings-outline" label="Settings" onPress={() => go('/settings')} />
             <Item
               icon="log-out-outline"
@@ -189,7 +227,6 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
           </ScrollView>
         </View>
 
-        {/* Tapping the dimmed remainder closes the drawer. */}
         <Pressable style={{ flex: 1, backgroundColor: '#00000088' }} onPress={onClose} />
       </View>
     </Modal>

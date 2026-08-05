@@ -17,13 +17,13 @@ import { space } from '../theme'
 export default function Screen({ title, children, onRefresh, refreshing = false, scroll = true }) {
   const { c } = useTheme()
   const openDrawer = useUiStore((s) => s.openDrawer)
-  const isManager = useAuthStore((s) => s.isManager())
+  const can = useAuthStore((s) => s.caps)
   const mode = useModeStore((s) => s.mode)
   const [pending, setPending] = useState(0)
 
   // Drives the badge on the bell. Only meaningful for a role that can approve.
   const loadPending = useCallback(async () => {
-    if (!isManager) {
+    if (!can.approveLeaveStep1) {
       setPending(0)
       return
     }
@@ -32,7 +32,7 @@ export default function Screen({ title, children, onRefresh, refreshing = false,
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending')
     setPending(count ?? 0)
-  }, [isManager])
+  }, [can.approveLeaveStep1])
 
   useFocusEffect(
     useCallback(() => {
@@ -45,7 +45,7 @@ export default function Screen({ title, children, onRefresh, refreshing = false,
       <TopBar
         title={title}
         onMenu={openDrawer}
-        notifications={mode === 'manager' ? pending : 0}
+        notifications={mode !== 'personal' ? pending : 0}
         onNotifications={openDrawer}
         onHelp={openDrawer}
       />

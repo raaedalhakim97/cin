@@ -23,7 +23,7 @@ export default function Attendance() {
   const { c } = useTheme()
   const employee = useAuthStore((s) => s.employee)
   const companyId = useAuthStore((s) => s.companyId)
-  const role = useAuthStore((s) => s.role)
+  const can = useAuthStore((s) => s.caps)
 
   const [settings, setSettings] = useState(null)
   const [today, setToday] = useState(null)
@@ -77,7 +77,7 @@ export default function Attendance() {
     }, [load])
   )
 
-  const isReadOnly = role === 'read_only'
+  const isReadOnly = !can.clockInOut
   const clockedIn = !!today?.clock_in && !today?.clock_out
   const done = !!today?.clock_out
 
@@ -98,6 +98,20 @@ export default function Attendance() {
   const otHours = month.reduce((sum, r) => sum + Number(r.overtime_hours || 0), 0)
 
   const statusColors = STATUS_COLOR(c)
+
+  // 'Attendance (own)' is '-' for read_only: no own-attendance access at all,
+  // so the screen says that rather than showing an inert clock face.
+  if (!can.viewOwnAttendance) {
+    return (
+      <Screen title="Attendance">
+        <EmptyState
+          icon="!"
+          title="No attendance record"
+          body="Read-only accounts have no attendance of their own. An auditor who also needs to clock in requires a separate employee account."
+        />
+      </Screen>
+    )
+  }
 
   return (
     <Screen title="Attendance" onRefresh={load}>
@@ -168,7 +182,7 @@ export default function Attendance() {
 
         {isReadOnly ? (
           <Text style={{ ...type.caption, color: c.textFaint, marginTop: space(1.5), textAlign: 'center' }}>
-            Your role can view attendance but not clock in.
+            Read-only accounts cannot clock in or out.
           </Text>
         ) : null}
 

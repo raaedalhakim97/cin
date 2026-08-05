@@ -63,6 +63,7 @@ export default function RootLayout() {
           <Stack.Screen name="feed" options={{ presentation: 'card' }} />
           <Stack.Screen name="approvals" options={{ presentation: 'card' }} />
           <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+          <Stack.Screen name="operations" options={{ presentation: 'card' }} />
         </Stack>
         {/* One drawer for the whole app, above the stack so it overlays any
             screen. Its open state is in uiStore. */}

@@ -11,16 +11,16 @@ import { Avatar, Badge, Button, Card, EmptyState, SectionTitle, SkeletonCard, us
 import { localDateStr, shortDate, timeOfDay } from '../src/lib/format'
 import { radius, space, type } from '../src/theme'
 
-const HR_ROLES = ['super_admin', 'hr_manager']
-
 export default function Approvals() {
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const role = useAuthStore((s) => s.role)
-  const isManager = useAuthStore((s) => s.isManager())
+  const can = useAuthStore((s) => s.caps)
 
-  const isHR = HR_ROLES.includes(role)
+  // "Leave — approve final" is F only for super_admin and hr_manager; a
+  // department_manager has step one only (B).
+  const isHR = can.approveLeaveFinal
+  const isManager = can.approveLeaveStep1
 
   const [requests, setRequests] = useState([])
   const [team, setTeam] = useState([])

@@ -20,7 +20,7 @@ export default function Feed() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const employee = useAuthStore((s) => s.employee)
-  const role = useAuthStore((s) => s.role)
+  const can = useAuthStore((s) => s.caps)
 
   const [posts, setPosts] = useState([])
   const [reactions, setReactions] = useState([])
@@ -31,9 +31,9 @@ export default function Feed() {
   const [draft, setDraft] = useState('')
   const [posting, setPosting] = useState(false)
 
-  // read_only is blocked from reacting and commenting per the access matrix
-  // ("News feed — react/comment": read_only = blocked).
-  const canInteract = role !== 'read_only'
+  // "News feed — react/comment": F for super_admin/hr_manager/
+  // department_manager/admin, O for employee, blocked for read_only.
+  const canInteract = can.reactAndComment
 
   const load = useCallback(async () => {
     setError(false)
@@ -247,7 +247,7 @@ export default function Feed() {
                       </View>
                     ) : (
                       <Text style={{ ...type.caption, color: c.textFaint }}>
-                        Your role can read the feed but not comment.
+                        Read-only accounts can read the feed but not comment.
                       </Text>
                     )}
                   </View>

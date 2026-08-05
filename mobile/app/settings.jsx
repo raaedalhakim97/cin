@@ -5,6 +5,7 @@ import useAuthStore from '../src/store/authStore'
 import useThemeStore from '../src/store/themeStore'
 import useModeStore from '../src/store/modeStore'
 import Screen from '../src/components/Screen'
+import { MODE_LABEL } from '../src/lib/permissions'
 import { Card, Overline, Row, useTheme } from '../src/components/ui'
 import { isDemo } from '../src/lib/supabase'
 import { radius, space, type } from '../src/theme'
@@ -22,8 +23,8 @@ export default function Settings() {
   const setPreference = useThemeStore((s) => s.setPreference)
   const employee = useAuthStore((s) => s.employee)
   const company = useAuthStore((s) => s.company)
-  const role = useAuthStore((s) => s.role)
-  const isManager = useAuthStore((s) => s.isManager())
+  const can = useAuthStore((s) => s.caps)
+  const second = useAuthStore((s) => s.second)
   const mode = useModeStore((s) => s.mode)
   const setMode = useModeStore((s) => s.setMode)
 
@@ -48,44 +49,44 @@ export default function Settings() {
                   paddingVertical: space(1.5),
                   borderRadius: radius.sm,
                   borderWidth: active ? 2 : 1,
-                  borderColor: active ? c.cyan : c.border,
+                  borderColor: active ? c.mint : c.border,
                   backgroundColor: active ? c.accentSoft : 'transparent',
                 }}
               >
-                <Ionicons name={t.icon} size={20} color={active ? c.cyan : c.textMuted} />
-                <Text style={{ ...type.label, color: active ? c.cyan : c.textMuted }}>{t.label}</Text>
+                <Ionicons name={t.icon} size={20} color={active ? c.mint : c.textMuted} />
+                <Text style={{ ...type.label, color: active ? c.mint : c.textMuted }}>{t.label}</Text>
               </Pressable>
             )
           })}
         </View>
       </Card>
 
-      {isManager ? (
+      {second ? (
         <>
           <View style={{ height: space(3) }} />
           <Overline>View</Overline>
           <Card>
             <Text style={{ ...type.body, color: c.textMuted, marginBottom: space(1.5) }}>
-              Personal shows only your own record. Manager adds your team's attendance and the approvals queue.
+              {second === 'manager'
+                ? "Personal shows only your own record. Manager adds your team's attendance and the approvals queue."
+                : 'Personal shows only your own record. Operations adds shift scheduling and document coordination.'}
             </Text>
             <View style={{ flexDirection: 'row', padding: 4, borderRadius: radius.pill, backgroundColor: c.surfaceAlt }}>
-              {['personal', 'manager'].map((m) => {
+              {['personal', second].map((m) => {
                 const active = mode === m
                 return (
                   <Pressable
                     key={m}
-                    onPress={() => setMode(m)}
+                    onPress={() => setMode(m, second)}
                     style={{
                       flex: 1,
                       paddingVertical: space(1.25),
                       borderRadius: radius.pill,
                       alignItems: 'center',
-                      backgroundColor: active ? c.cyan : 'transparent',
+                      backgroundColor: active ? c.mint : 'transparent',
                     }}
                   >
-                    <Text style={{ ...type.label, color: active ? c.onCyan : c.textMuted }}>
-                      {m === 'personal' ? 'Personal' : 'Manager'}
-                    </Text>
+                    <Text style={{ ...type.label, color: active ? c.onMint : c.textMuted }}>{MODE_LABEL[m]}</Text>
                   </Pressable>
                 )
               })}
@@ -98,7 +99,8 @@ export default function Settings() {
       <Overline>Account</Overline>
       <Card>
         <Row label="Name" value={employee?.full_name} />
-        <Row label="Role" value={role} />
+        <Row label="Role" value={can.label} />
+        <Row label="Access" value={can.purpose} />
         <Row label="Company" value={company?.name} />
         <Row label="Currency" value={company?.currency} />
         {isDemo ? <Row label="Data source" value="Demo (in-memory)" valueColor={c.warning} /> : null}
@@ -111,7 +113,7 @@ export default function Settings() {
       ) : null}
 
       <Pressable onPress={() => router.back()} style={{ marginTop: space(3), alignSelf: 'center' }}>
-        <Text style={{ ...type.label, color: c.cyan }}>Back</Text>
+        <Text style={{ ...type.label, color: c.mint }}>Back</Text>
       </Pressable>
     </Screen>
   )
