@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import supabase from '../src/lib/supabase'
+import supabase, { isDemo } from '../src/lib/supabase'
+import { demoPersonas } from '../src/lib/demo/client'
 import { logLoginAttempt } from '../src/lib/sessionService'
-import { Button, useTheme } from '../src/components/ui'
+import { Avatar, Badge, Button, Card, useTheme } from '../src/components/ui'
 import { radius, space, type } from '../src/theme'
 
 export default function Login() {
@@ -14,9 +15,10 @@ export default function Login() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function onSubmit() {
-    const trimmed = email.trim()
-    if (!trimmed || !password) {
+  async function onSubmit(overrideEmail) {
+    const trimmed = (overrideEmail ?? email).trim()
+    // In demo mode any password is accepted — the persona is chosen by email.
+    if (!trimmed || (!password && !isDemo)) {
       setError('Enter your email and password.')
       return
     }
@@ -25,7 +27,7 @@ export default function Login() {
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: trimmed,
-      password,
+      password: password || 'demo',
     })
 
     // Logged either way, matching the web app's audit behaviour (Art. 26.5).
@@ -113,7 +115,32 @@ export default function Login() {
           </View>
         ) : null}
 
-        <Button label="Sign in" onPress={onSubmit} loading={busy} style={{ marginTop: space(3) }} />
+        <Button label="Sign in" onPress={() => onSubmit()} loading={busy} style={{ marginTop: space(3) }} />
+
+        {isDemo ? (
+          <View style={{ marginTop: space(3) }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1), marginBottom: space(1) }}>
+              <Badge label="DEMO MODE" color={c.warning} />
+              <Text style={{ ...type.caption, color: c.textMuted, flex: 1 }}>
+                In-memory data, no database. Tap an account.
+              </Text>
+            </View>
+
+            {demoPersonas.map((p) => (
+              <Pressable key={p.userId} onPress={() => onSubmit(p.email)} disabled={busy}>
+                <Card style={{ marginTop: space(1) }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
+                    <Avatar name={p.label} size={40} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ ...type.label, color: c.text }}>{p.label}</Text>
+                      <Text style={{ ...type.caption, color: c.textMuted }}>{p.sub}</Text>
+                    </View>
+                  </View>
+                </Card>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         <Text style={{ ...type.caption, color: c.textFaint, textAlign: 'center', marginTop: space(3) }}>
           BYOND by SERVA — HR Platform

@@ -1,28 +1,37 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
+import demoClient from './demo/client'
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
 
-// The web app calls createClient() with whatever env holds and white-screens on
-// a missing value (services/supabase.js). Fail loudly here instead — a bad build
-// should be obvious at startup, not a blank screen after login.
-if (!url || !anonKey) {
-  throw new Error(
-    'Missing EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY. ' +
-      'Copy mobile/.env.example to mobile/.env and fill both in.'
-  )
-}
+// Demo mode is the default until a project is wired up: with no credentials the
+// app runs against in-memory seed data so every screen is usable and reviewable.
+// Setting both env vars switches to the real database — no screen changes, since
+// the demo client implements the same surface.
+//
+// EXPO_PUBLIC_FORCE_DEMO=1 keeps demo mode on even when credentials exist, which
+// is useful for screenshots and for showing the app without touching live data.
+const forceDemo = process.env.EXPO_PUBLIC_FORCE_DEMO === '1'
+const hasCredentials = Boolean(url && anonKey && !url.includes('placeholder'))
 
-const supabase = createClient(url, anonKey, {
-  auth: {
-    // AsyncStorage keeps the session across app restarts; detectSessionInUrl is
-    // a browser-only concern and breaks on native if left on.
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-})
+export const isDemo = forceDemo || !hasCredentials
+
+const realClient = () =>
+  createClient(url, anonKey, {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      // Browser-only concern; leaving it on breaks native.
+      detectSessionInUrl: false,
+    },
+  })
+
+const supabase = isDemo ? demoClient : realClient()
+
+if (isDemo) {
+  console.log('[supabase] demo mode — in-memory seed data, no network calls')
+}
 
 export default supabase
