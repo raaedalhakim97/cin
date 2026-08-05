@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, TextInput } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, TextInput } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import Screen from '../../src/components/Screen'
 import ScoreRing from '../../src/components/ScoreRing'
 import { Avatar, Badge, Button, Card, EmptyState, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
 import { periodLabel } from '../../src/lib/format'
@@ -67,7 +67,6 @@ function ComponentBar({ label, weight, score, auto }) {
 
 export default function KPI() {
   const { c } = useTheme()
-  const insets = useSafeAreaInsets()
   const employee = useAuthStore((s) => s.employee)
   const companyId = useAuthStore((s) => s.companyId)
   const role = useAuthStore((s) => s.role)
@@ -165,12 +164,7 @@ export default function KPI() {
   const myRank = board.findIndex((b) => b.employee_id === employee?.id)
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={{ padding: space(2), paddingTop: insets.top + space(2), paddingBottom: space(4) }}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.mint} />}
-    >
-      <Text style={{ ...type.h1, color: c.text }}>My KPI</Text>
+    <Screen title="Performance" onRefresh={load}>
       <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>
         {periodLabel(curY, curM)} · updated automatically
       </Text>
@@ -338,6 +332,6 @@ export default function KPI() {
           </Card>
         </>
       ) : null}
-    </ScrollView>
+    </Screen>
   )
 }

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, Pressable } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import Screen from '../../src/components/Screen'
 import { clockIn, clockOut, loadClockSettings, STATUS_LABEL } from '../../src/lib/attendance'
 import { Badge, Card, EmptyState, SectionTitle, SkeletonCard, StatTile, useTheme } from '../../src/components/ui'
 import { localDateStr, longDate, timeOfDay } from '../../src/lib/format'
@@ -21,7 +21,6 @@ const STATUS_COLOR = (c) => ({
 
 export default function Attendance() {
   const { c } = useTheme()
-  const insets = useSafeAreaInsets()
   const employee = useAuthStore((s) => s.employee)
   const companyId = useAuthStore((s) => s.companyId)
   const role = useAuthStore((s) => s.role)
@@ -101,12 +100,7 @@ export default function Attendance() {
   const statusColors = STATUS_COLOR(c)
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={{ padding: space(2), paddingTop: insets.top + space(2), paddingBottom: space(4) }}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.mint} />}
-    >
-      <Text style={{ ...type.h1, color: c.text }}>Attendance</Text>
+    <Screen title="Attendance" onRefresh={load}>
       <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>{longDate()}</Text>
 
       <Card style={{ alignItems: 'center', paddingVertical: space(3) }}>
@@ -232,6 +226,6 @@ export default function Attendance() {
           ))}
         </Card>
       )}
-    </ScrollView>
+    </Screen>
   )
 }

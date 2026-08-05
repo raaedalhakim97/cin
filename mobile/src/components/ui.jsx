@@ -1,18 +1,88 @@
 import { useColorScheme, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import useThemeStore from '../store/themeStore'
 import { palette, radius, space, type } from '../theme'
 
+// Resolves the stored preference into a concrete theme: an explicit light/dark
+// choice wins, and 'system' defers to the OS.
 export function useTheme() {
+  const preference = useThemeStore((s) => s.preference)
   const scheme = useColorScheme()
-  const isDark = scheme === 'dark'
+  const isDark = preference === 'system' ? scheme === 'dark' : preference === 'dark'
   return { c: palette(isDark), isDark }
 }
 
 export function Card({ children, style }) {
-  const { c } = useTheme()
+  const { c, isDark } = useTheme()
   return (
-    <View style={[{ backgroundColor: c.surface, borderColor: c.border, borderWidth: 1, borderRadius: radius.md, padding: space(2) }, style]}>
+    <View
+      style={[
+        {
+          backgroundColor: c.surface,
+          borderColor: c.border,
+          borderWidth: 1,
+          borderRadius: radius.md,
+          padding: space(2),
+        },
+        // A light ground gets a soft lift instead of a hard border reading as the
+        // only separation; on dark the border alone is enough.
+        !isDark && {
+          shadowColor: '#0D1B2A',
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 1,
+        },
+        style,
+      ]}
+    >
       {children}
     </View>
+  )
+}
+
+// Horizontal quick-action tile, as on the reference app's home screen.
+export function QuickAction({ icon, label, onPress, tint }) {
+  const { c } = useTheme()
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 96,
+        padding: space(1.5),
+        borderRadius: radius.md,
+        backgroundColor: c.surface,
+        borderWidth: 1,
+        borderColor: c.border,
+        alignItems: 'flex-start',
+        gap: space(1),
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: space(4),
+          height: space(4),
+          borderRadius: radius.sm,
+          backgroundColor: (tint ?? c.cyan) + '1F',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </View>
+      <Text style={{ ...type.caption, fontWeight: '600', color: c.text }} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
+export function Overline({ children }) {
+  const { c } = useTheme()
+  return (
+    <Text style={{ ...type.overline, color: c.textFaint, marginBottom: space(1) }}>
+      {String(children).toUpperCase()}
+    </Text>
   )
 }
 

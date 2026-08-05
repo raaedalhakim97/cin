@@ -4,6 +4,8 @@ import { Stack, useRouter, useSegments } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import useAuthStore from '../src/store/authStore'
+import useThemeStore from '../src/store/themeStore'
+import AppDrawer from '../src/components/AppDrawer'
 import { useTheme } from '../src/components/ui'
 
 function Gate({ children }) {
@@ -32,7 +34,7 @@ function Gate({ children }) {
 
 export default function RootLayout() {
   const init = useAuthStore((s) => s.init)
-  const { isDark } = useTheme()
+  const hydrateTheme = useThemeStore((s) => s.hydrate)
 
   useEffect(() => {
     let sub
@@ -44,16 +46,27 @@ export default function RootLayout() {
     return () => sub?.unsubscribe()
   }, [init])
 
+  // Restores the saved light/dark choice from storage.
+  useEffect(() => {
+    hydrateTheme()
+  }, [hydrateTheme])
+
   return (
     <SafeAreaProvider>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      {/* The top bar is dark in both themes, so the status bar text is always
+          light — it sits on the chrome, not on the content surface. */}
+      <StatusBar style="light" />
       <Gate>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="login" />
           <Stack.Screen name="feed" options={{ presentation: 'card' }} />
           <Stack.Screen name="approvals" options={{ presentation: 'card' }} />
+          <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         </Stack>
+        {/* One drawer for the whole app, above the stack so it overlays any
+            screen. Its open state is in uiStore. */}
+        <AppDrawer />
       </Gate>
     </SafeAreaProvider>
   )

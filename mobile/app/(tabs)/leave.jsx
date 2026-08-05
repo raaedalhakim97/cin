@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, TextInput, Pressable, Modal } from 'react-native'
+import { View, Text, ScrollView, TextInput, Pressable, Modal } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
+import Screen from '../../src/components/Screen'
 import { LEAVE_TYPES, STATUS_META, dayCount, submitRequest, typeLabel } from '../../src/lib/leave'
 import { Badge, Button, Card, EmptyState, SectionTitle, SkeletonCard, useTheme } from '../../src/components/ui'
 import { localDateStr, shortDate } from '../../src/lib/format'
@@ -102,12 +103,7 @@ export default function Leave() {
 
   return (
     <>
-      <ScrollView
-        style={{ flex: 1, backgroundColor: c.bg }}
-        contentContainerStyle={{ padding: space(2), paddingTop: insets.top + space(2), paddingBottom: space(4) }}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.mint} />}
-      >
-        <Text style={{ ...type.h1, color: c.text }}>Leave</Text>
+      <Screen title="Leave" onRefresh={load}>
         <Text style={{ ...type.caption, color: c.textMuted, marginBottom: space(2) }}>
           Balance, requests and approval status
         </Text>
@@ -206,7 +202,7 @@ export default function Leave() {
             })}
           </View>
         )}
-      </ScrollView>
+      </Screen>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <View style={{ flex: 1, backgroundColor: '#00000099', justifyContent: 'flex-end' }}>

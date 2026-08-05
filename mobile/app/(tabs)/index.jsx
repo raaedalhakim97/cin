@@ -1,31 +1,44 @@
 import { useCallback, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, ScrollView, Pressable } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import supabase from '../../src/lib/supabase'
 import useAuthStore from '../../src/store/authStore'
-import { Avatar, Card, Badge, EmptyState, ErrorState, SectionTitle, SkeletonCard, StatTile, useTheme } from '../../src/components/ui'
-import { greeting, localDateStr, longDate, shortDate, timeOfDay } from '../../src/lib/format'
+import useModeStore from '../../src/store/modeStore'
+import Screen from '../../src/components/Screen'
+import {
+  Avatar,
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  Overline,
+  QuickAction,
+  SectionTitle,
+  SkeletonCard,
+  StatTile,
+  useTheme,
+} from '../../src/components/ui'
+import { greeting, localDateStr, shortDate, timeOfDay } from '../../src/lib/format'
 import { ratingColor, radius, space, type } from '../../src/theme'
 
 export default function Home() {
   const { c } = useTheme()
-  const insets = useSafeAreaInsets()
   const router = useRouter()
   const employee = useAuthStore((s) => s.employee)
   const isManager = useAuthStore((s) => s.isManager())
+  const mode = useModeStore((s) => s.mode)
+  const managerView = mode === 'manager' && isManager
 
   const [state, setState] = useState({ loading: true, error: false })
   const [attendance, setAttendance] = useState(null)
   const [leaveRemaining, setLeaveRemaining] = useState(null)
   const [kpi, setKpi] = useState(null)
   const [shift, setShift] = useState(null)
-  const [latestPost, setLatestPost] = useState(null)
-  const [pendingApprovals, setPendingApprovals] = useState(0)
+  const [posts, setPosts] = useState([])
+  const [team, setTeam] = useState([])
+  const [pendingRequests, setPendingRequests] = useState([])
 
-  // Mirrors the web EmployeeDashboard's fan-out: every query keyed off
-  // employee.id, all in flight at once.
   const load = useCallback(async () => {
     if (!employee?.id) {
       setState({ loading: false, error: false })
@@ -35,19 +48,19 @@ export default function Home() {
     const today = localDateStr()
     const year = new Date().getFullYear()
 
-    const [att, balances, kpiRows, shiftRow, post] = await Promise.all([
+    const [att, balances, kpiRows, shiftRow, feed] = await Promise.all([
       supabase.from('attendance').select('clock_in, clock_out, status').eq('employee_id', employee.id).eq('date', today).maybeSingle(),
       supabase.from('leave_balances').select('remaining_days').eq('employee_id', employee.id).eq('year', year),
       supabase
         .from('kpi_scores')
-        .select('total_score, rating, period_year, period_month')
+        .select('total_score, rating')
         .eq('employee_id', employee.id)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false })
         .limit(1),
       supabase
         .from('today_schedule')
-        .select('start_at, end_at, template_name, shift_type')
+        .select('start_at, end_at, template_name')
         .eq('employee_id', employee.id)
         .order('start_at')
         .limit(1)
@@ -56,13 +69,11 @@ export default function Home() {
         .from('feed_posts')
         .select('id, title, body, created_at, employees(full_name)')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .limit(2),
     ])
 
-    const failed = att.error || balances.error || kpiRows.error
-    if (failed) {
-      console.error('[Home] load failed', failed)
+    if (att.error || balances.error || kpiRows.error) {
+      console.error('[Home] load failed', att.error || balances.error || kpiRows.error)
       setState({ loading: false, error: true })
       return
     }
@@ -73,14 +84,19 @@ export default function Home() {
     )
     setKpi(kpiRows.data?.[0] ?? null)
     setShift(shiftRow.data ?? null)
-    setLatestPost(post.data ?? null)
+    setPosts(feed.data ?? [])
 
     if (isManager) {
-      const { count } = await supabase
-        .from('leave_requests')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending')
-      setPendingApprovals(count ?? 0)
+      const [todayTeam, reqs] = await Promise.all([
+        supabase.from('attendance').select('id, employee_id, clock_in, clock_out, status, employees(full_name)').eq('date', today).limit(30),
+        supabase
+          .from('leave_requests')
+          .select('id, leave_type, days_requested, status, employees(full_name)')
+          .in('status', ['pending', 'manager_approved'])
+          .limit(10),
+      ])
+      setTeam(todayTeam.data ?? [])
+      setPendingRequests(reqs.data ?? [])
     }
 
     setState({ loading: false, error: false })
@@ -92,30 +108,64 @@ export default function Home() {
     }, [load])
   )
 
-  const clockStatus = !attendance?.clock_in
-    ? { label: 'Not clocked in', color: c.textMuted }
-    : attendance.clock_out
-      ? { label: `Clocked out · ${timeOfDay(attendance.clock_out)}`, color: c.info }
-      : { label: `Clocked in · ${timeOfDay(attendance.clock_in)}`, color: c.success }
+  const clockedIn = !!attendance?.clock_in && !attendance?.clock_out
+  const done = !!attendance?.clock_out
+
+  // Labels stay short enough to sit on one or two lines in a 96px tile — longer
+  // ones wrap mid-word and read as broken.
+  const QUICK_ACTIONS = managerView
+    ? [
+        { icon: 'checkmark-done-outline', label: 'Approvals', to: '/approvals', tint: c.cyan },
+        { icon: 'people-outline', label: 'Team today', to: '/approvals', tint: c.success },
+        { icon: 'megaphone-outline', label: 'News', to: '/feed', tint: c.purple },
+        { icon: 'trending-up-outline', label: 'Team KPI', to: '/(tabs)/kpi', tint: c.warning },
+      ]
+    : [
+        { icon: 'time-outline', label: clockedIn ? 'Clock out' : 'Clock in', to: '/(tabs)/attendance', tint: c.cyan },
+        { icon: 'umbrella-outline', label: 'Request leave', to: '/(tabs)/leave', tint: c.success },
+        { icon: 'document-text-outline', label: 'My payslip', to: '/(tabs)/profile', tint: c.purple },
+        { icon: 'trending-up-outline', label: 'My KPI', to: '/(tabs)/kpi', tint: c.warning },
+        { icon: 'megaphone-outline', label: 'News', to: '/feed', tint: c.info },
+      ]
+
+  const presentCount = team.filter((t) => t.clock_in).length
+  const lateCount = team.filter((t) => String(t.status).startsWith('late')).length
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={{ padding: space(2), paddingTop: insets.top + space(2), paddingBottom: space(4) }}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.mint} />}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginBottom: space(2) }}>
-        <Avatar name={employee?.full_name} size={48} />
+    <Screen title={managerView ? 'Team' : 'Home'} onRefresh={load}>
+      {/* Quick actions — horizontally scrolling tiles, bleeding to the screen
+          edge so it reads as a scrollable row rather than a clipped grid. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginHorizontal: -space(2), marginBottom: space(1) }}
+        contentContainerStyle={{ paddingHorizontal: space(2), gap: space(1) }}
+      >
+        {QUICK_ACTIONS.map((a) => (
+          <QuickAction
+            key={a.label}
+            label={a.label}
+            tint={a.tint}
+            icon={<Ionicons name={a.icon} size={19} color={a.tint} />}
+            onPress={() => router.push(a.to)}
+          />
+        ))}
+      </ScrollView>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5), marginTop: space(2) }}>
+        <Avatar name={employee?.full_name} size={44} />
         <View style={{ flex: 1 }}>
-          <Text style={{ ...type.h1, color: c.text }} numberOfLines={1}>
+          <Text style={{ ...type.h2, color: c.text }} numberOfLines={1}>
             {greeting()}, {employee?.full_name?.split(' ')[0] ?? 'there'}
           </Text>
-          <Text style={{ ...type.caption, color: c.textMuted }}>{longDate()}</Text>
+          <Text style={{ ...type.caption, color: c.textMuted }}>
+            {managerView ? 'Manager view · your team' : 'Personal view · your record'}
+          </Text>
         </View>
       </View>
 
       {state.loading ? (
-        <View style={{ gap: space(1.5) }}>
+        <View style={{ gap: space(1.5), marginTop: space(2) }}>
           <SkeletonCard lines={2} />
           <SkeletonCard lines={3} />
         </View>
@@ -127,9 +177,57 @@ export default function Home() {
           title="No employee record"
           body="Your account isn't linked to an employee profile yet. Ask HR to send you an invite."
         />
+      ) : managerView ? (
+        <>
+          <SectionTitle>Today</SectionTitle>
+          <View style={{ flexDirection: 'row', gap: space(1.5) }}>
+            <StatTile value={presentCount} label="Clocked in" hint={`of ${team.length}`} color={c.success} />
+            <StatTile value={lateCount} label="Late" color={lateCount ? c.warning : undefined} />
+            <StatTile value={pendingRequests.length} label="To approve" color={pendingRequests.length ? c.cyan : undefined} />
+          </View>
+
+          <SectionTitle action="Review" onAction={() => router.push('/approvals')}>
+            Waiting on you
+          </SectionTitle>
+          {pendingRequests.length === 0 ? (
+            <Card>
+              <Text style={{ ...type.body, color: c.textMuted }}>Nothing waiting. Your team is all clear.</Text>
+            </Card>
+          ) : (
+            <Card style={{ padding: 0 }}>
+              {pendingRequests.map((r, i) => (
+                <View
+                  key={r.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: space(1.5),
+                    padding: space(1.5),
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: c.border,
+                  }}
+                >
+                  <Avatar name={r.employees?.full_name} size={34} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...type.body, color: c.text }} numberOfLines={1}>
+                      {r.employees?.full_name ?? 'Unknown'}
+                    </Text>
+                    <Text style={{ ...type.caption, color: c.textMuted }}>
+                      {r.leave_type} · {r.days_requested} {Number(r.days_requested) === 1 ? 'day' : 'days'}
+                    </Text>
+                  </View>
+                  <Badge
+                    label={r.status === 'manager_approved' ? 'Final' : 'Step 1'}
+                    color={r.status === 'manager_approved' ? c.info : c.warning}
+                  />
+                </View>
+              ))}
+            </Card>
+          )}
+        </>
       ) : (
         <>
-          <View style={{ flexDirection: 'row', gap: space(1.5) }}>
+          <View style={{ flexDirection: 'row', gap: space(1.5), marginTop: space(2) }}>
             <StatTile
               value={kpi?.total_score ? Math.round(kpi.total_score) : '—'}
               label="KPI score"
@@ -141,78 +239,66 @@ export default function Home() {
 
           <SectionTitle>Today</SectionTitle>
           <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space(1) }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ ...type.label, color: clockStatus.color }}>{clockStatus.label}</Text>
+                <Text style={{ ...type.label, color: done ? c.info : clockedIn ? c.success : c.textMuted }}>
+                  {done
+                    ? `Clocked out · ${timeOfDay(attendance.clock_out)}`
+                    : clockedIn
+                      ? `Clocked in · ${timeOfDay(attendance.clock_in)}`
+                      : 'Not clocked in'}
+                </Text>
                 <Text style={{ ...type.caption, color: c.textMuted, marginTop: 2 }}>
                   {shift
                     ? `${shift.template_name ?? 'Shift'} · ${timeOfDay(shift.start_at)}–${timeOfDay(shift.end_at)}`
                     : 'No shift scheduled'}
                 </Text>
               </View>
-              <Pressable
-                onPress={() => router.push('/attendance')}
-                style={{
-                  paddingHorizontal: space(2),
-                  paddingVertical: space(1),
-                  borderRadius: radius.sm,
-                  backgroundColor: c.mint,
-                }}
-              >
-                <Text style={{ ...type.label, color: c.onMint }}>
-                  {attendance?.clock_in && !attendance?.clock_out ? 'Clock out' : 'Clock in'}
-                </Text>
-              </Pressable>
+              {!done ? (
+                <Pressable
+                  onPress={() => router.push('/(tabs)/attendance')}
+                  style={{
+                    paddingHorizontal: space(2),
+                    paddingVertical: space(1.25),
+                    borderRadius: radius.sm,
+                    backgroundColor: c.cyan,
+                  }}
+                >
+                  <Text style={{ ...type.label, color: c.onCyan }}>{clockedIn ? 'Clock out' : 'Clock in'}</Text>
+                </Pressable>
+              ) : null}
             </View>
           </Card>
+        </>
+      )}
 
-          {isManager ? (
-            <>
-              <SectionTitle>Manager</SectionTitle>
-              <Pressable onPress={() => router.push('/approvals')}>
-                <Card>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5) }}>
-                    <Ionicons name="checkmark-done-outline" size={22} color={c.mint} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ ...type.label, color: c.text }}>Leave approvals</Text>
-                      <Text style={{ ...type.caption, color: c.textMuted }}>
-                        {pendingApprovals > 0
-                          ? `${pendingApprovals} request${pendingApprovals === 1 ? '' : 's'} waiting`
-                          : 'Nothing waiting'}
-                      </Text>
-                    </View>
-                    {pendingApprovals > 0 ? <Badge label={String(pendingApprovals)} color={c.warning} /> : null}
-                    <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
-                  </View>
-                </Card>
-              </Pressable>
-            </>
-          ) : null}
-
-          <SectionTitle action="See all" onAction={() => router.push('/feed')}>
-            Announcements
-          </SectionTitle>
-          {latestPost ? (
-            <Pressable onPress={() => router.push('/feed')}>
+      <SectionTitle action="See all" onAction={() => router.push('/feed')}>
+        Announcements
+      </SectionTitle>
+      {posts.length === 0 ? (
+        <Card>
+          <Text style={{ ...type.body, color: c.textMuted }}>No announcements yet.</Text>
+        </Card>
+      ) : (
+        <View style={{ gap: space(1) }}>
+          {posts.map((p) => (
+            <Pressable key={p.id} onPress={() => router.push('/feed')}>
               <Card>
+                <Overline>{p.employees?.full_name ?? 'HR'}</Overline>
                 <Text style={{ ...type.label, color: c.text }} numberOfLines={2}>
-                  {latestPost.title || 'Untitled post'}
+                  {p.title || 'Untitled post'}
                 </Text>
                 <Text style={{ ...type.body, color: c.textMuted, marginTop: 4 }} numberOfLines={2}>
-                  {latestPost.body}
+                  {p.body}
                 </Text>
                 <Text style={{ ...type.caption, color: c.textFaint, marginTop: space(1) }}>
-                  {latestPost.employees?.full_name ?? 'HR'} · {shortDate(latestPost.created_at)}
+                  {shortDate(p.created_at)}
                 </Text>
               </Card>
             </Pressable>
-          ) : (
-            <Card>
-              <Text style={{ ...type.body, color: c.textMuted }}>No announcements yet.</Text>
-            </Card>
-          )}
-        </>
+          ))}
+        </View>
       )}
-    </ScrollView>
+    </Screen>
   )
 }
