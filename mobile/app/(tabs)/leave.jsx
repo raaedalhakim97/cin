@@ -45,7 +45,7 @@ export default function Leave() {
     const [bal, reqs] = await Promise.all([
       supabase
         .from('leave_balances')
-        .select('id, leave_type, total_days, used_days, remaining_days')
+        .select('id, leave_type, entitled_days, used_days, pending_days, remaining_days')
         .eq('employee_id', employee.id)
         .eq('year', year),
       supabase
@@ -134,7 +134,7 @@ export default function Leave() {
         ) : (
           <View style={{ gap: space(1) }}>
             {balances.map((b) => {
-              const total = Number(b.total_days || 0)
+              const total = Number(b.entitled_days || 0)
               const used = Number(b.used_days || 0)
               const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0
               return (

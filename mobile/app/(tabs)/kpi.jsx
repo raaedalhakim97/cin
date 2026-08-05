@@ -110,7 +110,7 @@ export default function KPI() {
         .limit(6),
       supabase
         .from('kpi_scores')
-        .select('id, employee_id, total_score, employees(full_name)')
+        .select('id, employee_id, total_score, employees!kpi_scores_employee_id_fkey(full_name)')
         .eq('period_year', curY)
         .eq('period_month', curM)
         .order('total_score', { ascending: false })

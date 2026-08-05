@@ -156,15 +156,20 @@ export function buildSeed() {
     }),
   ]
 
+  // Column names follow the live schema: entitled_days (not total_days), plus
+  // pending_days for requests awaiting approval. remaining_days is generated in
+  // Postgres; the demo client keeps it in step on write.
   const leaveFor = (employeeId, entries) =>
-    entries.map(([leave_type, total_days, used_days], i) => ({
+    entries.map(([leave_type, entitled_days, used_days], i) => ({
       id: `lb-${employeeId}-${i}`,
+      company_id: COMPANY_ID,
       employee_id: employeeId,
       leave_type,
       year: YEAR,
-      total_days,
+      entitled_days,
       used_days,
-      remaining_days: total_days - used_days,
+      pending_days: 0,
+      remaining_days: entitled_days - used_days,
     }))
 
   const leave_balances = [
@@ -348,7 +353,9 @@ export function buildSeed() {
     {
       id: 'fp1',
       company_id: COMPANY_ID,
-      employee_id: 'e3',
+      author_employee_id: 'e3',
+      status: 'published',
+      category: 'payroll',
       title: 'April payslips are ready',
       body: 'You can now view and download your April payslip from the Profile tab. Payroll disputes must be raised within 5 working days of salary credit.',
       created_at: daysAgo(0).toISOString(),
@@ -357,7 +364,9 @@ export function buildSeed() {
     {
       id: 'fp2',
       company_id: COMPANY_ID,
-      employee_id: 'e8',
+      author_employee_id: 'e8',
+      status: 'published',
+      category: 'recognition',
       title: 'Dana Al-Rashid — Employee of the Month',
       body: 'Dana closed the quarter with a KPI of 94 and perfect attendance. That earns +10 KPI points and a certificate. Congratulations!',
       created_at: daysAgo(2).toISOString(),
@@ -366,7 +375,9 @@ export function buildSeed() {
     {
       id: 'fp3',
       company_id: COMPANY_ID,
-      employee_id: 'e3',
+      author_employee_id: 'e3',
+      status: 'published',
+      category: 'policy',
       title: 'Ramadan working hours',
       body: 'Working hours are reduced by 2 hours per day for the duration of Ramadan, per applicable local labour law. Shift schedules have been updated already — check the Attend tab.',
       created_at: daysAgo(6).toISOString(),

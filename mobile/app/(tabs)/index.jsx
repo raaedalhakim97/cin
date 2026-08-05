@@ -72,7 +72,7 @@ export default function Home() {
         .maybeSingle(),
       supabase
         .from('feed_posts')
-        .select('id, title, body, created_at, employees(full_name)')
+        .select('id, title, body, created_at, employees!feed_posts_author_employee_id_fkey(full_name)')
         .order('created_at', { ascending: false })
         .limit(2),
     ])
@@ -93,13 +93,13 @@ export default function Home() {
 
     if (can.viewTeamAttendance) {
       const [todayTeam, reqs] = await Promise.all([
-        supabase.from('attendance').select('id, employee_id, clock_in, clock_out, status, employees(full_name)').eq('date', today).limit(30),
+        supabase.from('attendance').select('id, employee_id, clock_in, clock_out, status, employees!attendance_employee_id_fkey(full_name)').eq('date', today).limit(30),
         // Only a role that can approve needs the queue; an ops coordinator
         // reads attendance to schedule around it but never approves leave.
         can.approveLeaveStep1
           ? supabase
               .from('leave_requests')
-              .select('id, leave_type, days_requested, status, employees(full_name)')
+              .select('id, leave_type, days_requested, status, employees!leave_requests_employee_id_fkey(full_name)')
               .in('status', ['pending', 'manager_approved'])
               .limit(10)
           : Promise.resolve({ data: [] }),

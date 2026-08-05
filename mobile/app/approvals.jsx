@@ -39,13 +39,13 @@ export default function Approvals() {
     const [reqs, todayAttendance] = await Promise.all([
       supabase
         .from('leave_requests')
-        .select('id, employee_id, leave_type, start_date, end_date, days_requested, status, reason, employees(full_name)')
+        .select('id, employee_id, leave_type, start_date, end_date, days_requested, status, reason, employees!leave_requests_employee_id_fkey(full_name)')
         .in('status', statuses)
         .order('created_at', { ascending: true })
         .limit(50),
       supabase
         .from('attendance')
-        .select('id, employee_id, clock_in, clock_out, status, employees(full_name)')
+        .select('id, employee_id, clock_in, clock_out, status, employees!attendance_employee_id_fkey(full_name)')
         .eq('date', localDateStr())
         .order('clock_in', { ascending: true })
         .limit(50),

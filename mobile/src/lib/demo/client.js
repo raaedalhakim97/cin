@@ -90,7 +90,7 @@ function afterWrite(table, row) {
   // leave_balances.remaining_days is a generated column in Postgres; keep it
   // consistent here so the UI reflects writes.
   if (table === 'leave_balances') {
-    row.remaining_days = Number(row.total_days || 0) - Number(row.used_days || 0)
+    row.remaining_days = Number(row.entitled_days || 0) - Number(row.used_days || 0)
   }
   return row
 }

@@ -42,7 +42,7 @@ export default function Operations() {
         .limit(30),
       supabase
         .from('attendance')
-        .select('id, employee_id, clock_in, clock_out, status, employees(full_name)')
+        .select('id, employee_id, clock_in, clock_out, status, employees!attendance_employee_id_fkey(full_name)')
         .eq('date', today)
         .limit(50),
       supabase
@@ -53,7 +53,7 @@ export default function Operations() {
       // Read-only: knowing who is away is what makes a schedule workable.
       supabase
         .from('leave_requests')
-        .select('id, leave_type, start_date, end_date, status, employees(full_name)')
+        .select('id, leave_type, start_date, end_date, status, employees!leave_requests_employee_id_fkey(full_name)')
         .eq('status', 'approved')
         .gte('end_date', today)
         .order('start_date')

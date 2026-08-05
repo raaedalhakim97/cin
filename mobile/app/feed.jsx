@@ -39,7 +39,7 @@ export default function Feed() {
     setError(false)
     const { data: postRows, error: postErr } = await supabase
       .from('feed_posts')
-      .select('id, title, body, created_at, employees(full_name)')
+      .select('id, title, body, created_at, employees!feed_posts_author_employee_id_fkey(full_name)')
       .order('created_at', { ascending: false })
       .limit(30)
 
@@ -58,7 +58,7 @@ export default function Feed() {
         supabase.from('feed_reactions').select('id, post_id, employee_id, reaction').in('post_id', ids),
         supabase
           .from('feed_comments')
-          .select('id, post_id, body, created_at, employees(full_name)')
+          .select('id, post_id, body, created_at, employees!feed_comments_employee_id_fkey(full_name)')
           .in('post_id', ids)
           .order('created_at', { ascending: true }),
       ])
