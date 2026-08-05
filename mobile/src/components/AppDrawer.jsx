@@ -1,4 +1,5 @@
-import { View, Text, Pressable, Modal, ScrollView } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { View, Text, Pressable, ScrollView, Animated, Dimensions, Easing } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
@@ -6,6 +7,7 @@ import useAuthStore from '../store/authStore'
 import useModeStore from '../store/modeStore'
 import useUiStore from '../store/uiStore'
 import { MODE_LABEL } from '../lib/permissions'
+import { DURATION, USE_NATIVE_DRIVER, useReducedMotion } from '../lib/motion'
 import { Avatar, useTheme } from './ui'
 import { radius, space, type } from '../theme'
 
@@ -13,6 +15,15 @@ import { radius, space, type } from '../theme'
 // reference app. Which items appear is decided entirely by capabilities derived
 // from the access-control standard — per §4.10, a control a role cannot use is
 // not rendered at all rather than shown and allowed to fail.
+//
+// This is an absolutely-positioned overlay, not a <Modal>. Modal's 'slide'
+// animation enters from the bottom, which is wrong for a panel anchored to the
+// left edge — it has to travel in from the side it lives on. The Modal also left
+// a full-screen container mounted after closing, which swallowed taps on the
+// hamburger. Driving translateX here fixes both: the panel slides from the left,
+// and when closed the overlay is unmounted entirely.
+
+const PANEL_WIDTH = Math.min(340, Dimensions.get('window').width * 0.82)
 
 function Item({ icon, label, onPress, badge, hint }) {
   const { c } = useTheme()
@@ -83,6 +94,30 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
   const mode = useModeStore((s) => s.mode)
   const setMode = useModeStore((s) => s.setMode)
 
+  const reduceMotion = useReducedMotion()
+
+  // 0 closed, 1 open. Drives both the panel's slide and the scrim's fade so they
+  // stay in step.
+  const progress = useRef(new Animated.Value(0)).current
+  // Kept mounted while closing so the exit animation can play, then removed so
+  // nothing is left to intercept touches.
+  const [mounted, setMounted] = useState(visible)
+
+  useEffect(() => {
+    if (visible) setMounted(true)
+
+    const animation = Animated.timing(progress, {
+      toValue: visible ? 1 : 0,
+      duration: reduceMotion ? 0 : DURATION.base,
+      easing: Easing.bezier(0.2, 0, 0, 1),
+      useNativeDriver: USE_NATIVE_DRIVER,
+    })
+    animation.start(({ finished }) => {
+      if (finished && !visible) setMounted(false)
+    })
+    return () => animation.stop()
+  }, [visible, reduceMotion, progress])
+
   const go = (path) => {
     onClose()
     router.push(path)
@@ -90,10 +125,45 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
 
   const inSecond = mode === second
 
+  if (!mounted) return null
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        <View style={{ width: '82%', maxWidth: 340, backgroundColor: c.chrome, paddingTop: insets.top + space(1) }}>
+    <View
+      // pointerEvents follows the open state, so a closing overlay stops
+      // capturing touches immediately rather than when the animation ends.
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', zIndex: 100 }}
+    >
+      {/* Scrim, behind the panel, fading with the same progress value. */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#000',
+          opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
+        }}
+      >
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close menu" />
+      </Animated.View>
+
+      <Animated.View
+        style={{
+          width: PANEL_WIDTH,
+          backgroundColor: c.chrome,
+          paddingTop: insets.top + space(1),
+          transform: [
+            {
+              translateX: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-PANEL_WIDTH, 0],
+              }),
+            },
+          ],
+        }}
+      >
           <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space(3) }}>
             {/* Surface switch — only for a role that has a second surface. */}
             {second ? (
@@ -230,11 +300,8 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
                 signOut()
               }}
             />
-          </ScrollView>
-        </View>
-
-        <Pressable style={{ flex: 1, backgroundColor: '#00000088' }} onPress={onClose} />
-      </View>
-    </Modal>
+        </ScrollView>
+      </Animated.View>
+    </View>
   )
 }

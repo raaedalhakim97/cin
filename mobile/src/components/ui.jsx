@@ -1,6 +1,31 @@
-import { useColorScheme, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { useRef } from 'react'
+import { useColorScheme, View, Text, Pressable, ActivityIndicator, StyleSheet, Animated, Easing } from 'react-native'
 import useThemeStore from '../store/themeStore'
+import { DURATION, USE_NATIVE_DRIVER, useReducedMotion } from '../lib/motion'
 import { palette, radius, space, type } from '../theme'
+
+// Press feedback: a small scale-down alongside the opacity change. Opacity alone
+// reads as flat — the scale is what makes a tap feel like it landed on something
+// physical. Skipped entirely when the OS asks for reduced motion.
+export function usePressScale(to = 0.97) {
+  const scale = useRef(new Animated.Value(1)).current
+  const reduceMotion = useReducedMotion()
+
+  const animate = (value) =>
+    Animated.timing(scale, {
+      toValue: value,
+      duration: DURATION.fast,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: USE_NATIVE_DRIVER,
+    }).start()
+
+  return {
+    scale,
+    onPressIn: () => !reduceMotion && animate(to),
+    onPressOut: () => !reduceMotion && animate(1),
+    style: { transform: [{ scale }] },
+  }
+}
 
 // Resolves the stored preference into a concrete theme: an explicit light/dark
 // choice wins, and 'system' defers to the OS.
@@ -43,9 +68,13 @@ export function Card({ children, style }) {
 // Horizontal quick-action tile, as on the reference app's home screen.
 export function QuickAction({ icon, label, onPress, tint }) {
   const { c } = useTheme()
+  const press = usePressScale(0.95)
   return (
+    <Animated.View style={press.style}>
     <Pressable
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={({ pressed }) => ({
         width: 96,
         padding: space(1.5),
@@ -74,6 +103,7 @@ export function QuickAction({ icon, label, onPress, tint }) {
         {label}
       </Text>
     </Pressable>
+    </Animated.View>
   )
 }
 
@@ -98,14 +128,18 @@ export function Badge({ label, color }) {
 
 export function Button({ label, onPress, variant = 'primary', disabled, loading, style }) {
   const { c } = useTheme()
+  const press = usePressScale(0.97)
   const isPrimary = variant === 'primary'
   const isDanger = variant === 'danger'
   const bg = isPrimary ? c.mint : isDanger ? c.danger : 'transparent'
   const fg = isPrimary ? c.onMint : isDanger ? '#FFFFFF' : c.text
 
   return (
+    <Animated.View style={[press.style, style]}>
     <Pressable
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       disabled={disabled || loading}
       style={({ pressed }) => [
         {
@@ -121,12 +155,12 @@ export function Button({ label, onPress, variant = 'primary', disabled, loading,
           borderColor: c.border,
           opacity: disabled || loading ? 0.55 : pressed ? 0.85 : 1,
         },
-        style,
       ]}
     >
       {loading && <ActivityIndicator size="small" color={fg} />}
       <Text style={{ ...type.label, color: fg }}>{label}</Text>
     </Pressable>
+    </Animated.View>
   )
 }
 

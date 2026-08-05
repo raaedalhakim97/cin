@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import useAuthStore from '../src/store/authStore'
 import useThemeStore from '../src/store/themeStore'
 import AppDrawer from '../src/components/AppDrawer'
+import { DURATION, useReducedMotion } from '../src/lib/motion'
 import { useTheme } from '../src/components/ui'
 
 function Gate({ children }) {
@@ -35,6 +36,7 @@ function Gate({ children }) {
 export default function RootLayout() {
   const init = useAuthStore((s) => s.init)
   const hydrateTheme = useThemeStore((s) => s.hydrate)
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     let sub
@@ -57,9 +59,19 @@ export default function RootLayout() {
           light — it sits on the chrome, not on the content surface. */}
       <StatusBar style="light" />
       <Gate>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="login" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            // Pushed screens slide in from the right and back out the same way,
+            // so forward and back read as opposite directions.
+            animation: reduceMotion ? 'none' : 'slide_from_right',
+            animationDuration: DURATION.slow,
+          }}
+        >
+          {/* The tab host and login are roots, not pushes — sliding them would
+              imply a back destination that isn't there. */}
+          <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+          <Stack.Screen name="login" options={{ animation: reduceMotion ? 'none' : 'fade' }} />
           <Stack.Screen name="feed" options={{ presentation: 'card' }} />
           <Stack.Screen name="approvals" options={{ presentation: 'card' }} />
           <Stack.Screen name="settings" options={{ presentation: 'card' }} />
