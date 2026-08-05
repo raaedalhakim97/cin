@@ -122,6 +122,56 @@ Worth recording, because these were verified rather than assumed:
   write `super_admin`-only or HR-only, matching Shape D.
 - Every policy examined gates on `company_id` first, per §9.
 
+## 7. Test accounts (BYOND Test Co only)
+
+Six accounts, one per role, were created inside `BYOND Test Co`
+(`2f6ba7dc-8a63-4300-9213-6b0e3b8eb425`) so all six roles can be exercised. The
+real `BYOND` tenant was not touched. Each is linked to an already-seeded
+fictional employee; passwords are held outside this repo.
+
+| Role | Email | Linked employee |
+|---|---|---|
+| `super_admin` | `superadmin@byond-test.com` | Aisha Rahman |
+| `hr_manager` | `hrmanager@byond-test.com` | Mariam Saleh |
+| `department_manager` | `deptmanager@byond-test.com` | Omar Haddad (Sales) |
+| `admin` | `opsadmin@byond-test.com` | Khalid Mansour |
+| `employee` | `employee@byond-test.com` | Hassan Ali |
+| `read_only` | `readonly@byond-test.com` | Fatima Zahra |
+
+**These are test credentials in a production project and share one password.**
+They should be deleted, or their passwords rotated, before real customers are
+onboarded.
+
+### RLS verified per role
+
+Measured by impersonating each account with RLS enforced (`set local role
+authenticated` plus `request.jwt.claims`), counting visible rows:
+
+| Role | employees | rows from the other tenant | user_roles |
+|---|---|---|---|
+| `super_admin` | 10 | **0** | 6 |
+| `hr_manager` | 10 | **0** | 6 |
+| `department_manager` | **3** | **0** | 1 |
+| `admin` | 10 | **0** | 1 |
+| `employee` | **1** | **0** | 1 |
+| `read_only` | 10 | **0** | 1 |
+
+What this establishes:
+
+- **Multi-tenant isolation holds.** Every role sees zero rows from the other
+  company. §9 is now verified rather than assumed.
+- **Branch scoping works.** The department manager sees 3 of 10 employees — the
+  Sales department only — so `get_user_department_id()` scoping is real.
+- **`employee` sees exactly its own row**, and every non-privileged role sees
+  exactly one `user_roles` row: its own. This settles the question left open
+  earlier — own-row reads are permitted for all roles.
+- **`hr_manager` sees all 6 `user_roles` rows**, confirming by measurement that
+  §3's `–` on that cell is wrong.
+
+Attendance, payroll and leave all returned 0 for every role because Test Co has
+no rows in those tables. Those paths are **unverified, not passing** — seeding
+Test Co activity would close that gap.
+
 ## How this was captured
 
 ```sql
