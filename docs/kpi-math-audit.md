@@ -1,5 +1,14 @@
 # Automatic KPI math — audit against live data
 
+> **Resolved 2026-08-05.** Finding 1 is fixed and applied as three migrations
+> (`fix_kpi_partial_evaluation`, `exclude_carried_forward_scores_from_rating`,
+> `stop_carry_forward_manufacturing_scores` — the database is now at 54). Outcome
+> on the 123 live rows: rows rated Unsatisfactory fell from 3 to 1 (the one
+> genuine low score), 2 rows became "not yet rated" instead of falsely
+> Unsatisfactory, and bonus-eligible rows returned to 61 — nobody gained a bonus.
+> See "What was applied" at the foot of this file. Findings 2, 3 and 4 remain
+> open.
+
 Measured 2026-08-05 against the real `BYOND` company (`9e43e4ca…`). No seeded or
 fictional rows were used; every number below comes from rows already in the
 database.
@@ -125,3 +134,43 @@ the number was inherited rather than given.
 - `recompute_kpi_totals` does **not** recalculate `attendance_score`; it only
   touches `updated_at` to re-fire the total trigger. Historical attendance values
   are not rewritten by it.
+
+
+## What was applied, and what went wrong on the way
+
+Three migrations, because the first two each exposed something the audit had
+described but not connected.
+
+**1. `fix_kpi_partial_evaluation`** — renormalise over populated weight, drop the
+`0` defaults on the component columns, backfill legacy zeros to NULL for the two
+human-entered components and `manager_score`.
+
+**2. `exclude_carried_forward_scores_from_rating`** — because migration 1 had an
+effect the dry run did not predict. Nulling the zeros in `manager_score`
+*re-activated* the carry-forward those zeros had been suppressing: June's manager
+score of 90 was pulled into July, and EMP-0001 went from 31.61 Unsatisfactory to
+82.03 High Performer **and bonus-eligible**, on the strength of the previous
+month's review. The dry run had missed this because it modelled "populated" as
+`> 0` rather than simulating the post-backfill NULLs — it was not a faithful
+simulation of the change being made.
+
+**3. `stop_carry_forward_manufacturing_scores`** — because migration 2 could not
+fix it either. Carry-forward *writes* the inherited value into the column, so by
+the time migration 2 ran, the 90 was already stored and indistinguishable from a
+real review; the `manager_inherited` flag it added recorded `false`. Carry-forward
+is now informational only: the previous value is recorded in `weights_used` as
+`previous_manager_score` for context, is never written to the column, and never
+counts toward the total, coverage, rating or bonus.
+
+Final state of the two affected rows:
+
+| Row | att | self | coverage | total | rating | bonus |
+|---|---|---|---|---|---|---|
+| EMP-0001 · 2026-07 | 84.38 | 63 | 40% | **79.04** | not yet rated | no |
+| EMP-0004 · 2026-07 | 75.00 | 0 | 40% | 56.25 | not yet rated | no |
+
+79.04 is the figure this audit predicted for that row. Both are now honest: a real
+score, no verdict until enough of the assessment exists.
+
+The lesson worth keeping: a dry run that approximates the logic instead of
+executing it will agree with you when you are wrong.
