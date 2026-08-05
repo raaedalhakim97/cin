@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "BYOND HR",
+    "slug": "byond-hr",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "byondhr",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0F0F0F",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.byond.hr",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "BYOND HR records your location when you clock in or out, so your attendance can be verified against your work site."
+      }
+    },
+    "android": {
+      "package": "com.byond.hr",
+      "adaptiveIcon": { "backgroundColor": "#0F0F0F" },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "BYOND HR records your location when you clock in or out, so your attendance can be verified against your work site."
+        }
+      ]
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}
