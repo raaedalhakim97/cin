@@ -30,12 +30,28 @@ const DELAY_CLASS = {
   320: 'delay-[320ms]',
 }
 
+// Read once. matchMedia is cheap but this is called by every Reveal on the page.
+const PREFERS_REDUCED_MOTION =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 function useInView() {
   const ref = useRef(null)
-  const [inView, setInView] = useState(false)
+  // Start revealed when animating would be wrong or impossible.
+  //
+  // Every section on this page renders at opacity-0 and waits for an observer
+  // callback, so if IntersectionObserver is missing the entire marketing site
+  // is a blank black screen — the worst possible failure for the one page
+  // strangers see first. Same treatment when the visitor has asked for reduced
+  // motion: show them the content, skip the entrance.
+  const [inView, setInView] = useState(
+    () => PREFERS_REDUCED_MOTION || typeof IntersectionObserver === 'undefined'
+  )
   useEffect(() => {
+    if (inView) return undefined
     const el = ref.current
-    if (!el) return
+    if (!el) return undefined
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -47,7 +63,7 @@ function useInView() {
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [])
+  }, [inView])
   return [ref, inView]
 }
 
@@ -67,9 +83,12 @@ function Reveal({ children, delay = 0, className = '' }) {
 
 function CountUp({ to, prefix = '', suffix = '', duration = 1400 }) {
   const [ref, inView] = useInView()
-  const [value, setValue] = useState(0)
+  // Counting up is the animation. Without motion, start at the final number
+  // rather than animating to it — set here instead of in the effect, so there
+  // is no cascading render.
+  const [value, setValue] = useState(() => (PREFERS_REDUCED_MOTION ? to : 0))
   useEffect(() => {
-    if (!inView) return
+    if (!inView || PREFERS_REDUCED_MOTION) return
     let raf
     const start = performance.now()
     const step = (now) => {
@@ -252,8 +271,9 @@ function Hero() {
           </Reveal>
           <Reveal delay={160}>
             <p className="text-lg leading-relaxed text-[#B5B5B5] mt-6 max-w-[500px]">
-              BYOND tracks every KPI automatically and turns it into living performance graphs — so managers coach
-              with clarity, and no one gets lost in a spreadsheet.
+              Attendance scores itself from the moment your team clocks in. Reviews, goals and manager input sit
+              alongside it in one living performance graph — so managers coach with clarity, and no one gets lost
+              in a spreadsheet.
             </p>
           </Reveal>
           <Reveal delay={240}>
@@ -273,26 +293,35 @@ function Hero() {
             </div>
           </Reveal>
           <Reveal delay={320}>
-            <div className="flex gap-6 sm:gap-8 mt-12 flex-wrap">
+            {/* Every figure here is a fact about the product, not a claim about
+                results we have not measured. 14 days is what
+                self_onboard_company actually sets; the two zeros are literally
+                true because there is nothing to integrate or import. */}
+            {/* Stacked on a phone, in a row from sm up.
+                It was flex-wrap with w-px dividers between the items, which
+                looks right until the row wraps — then a divider ends up
+                stranded at the end of a line with nothing to divide. Dividers
+                only exist in the layout that has something on both sides. */}
+            <div className="flex flex-col sm:flex-row gap-5 sm:gap-8 mt-12">
               <div>
                 <div className="text-[34px] font-extrabold tracking-tight text-[#00D4A0]">
-                  <CountUp to={38} suffix="%" />
+                  <CountUp to={14} suffix=" days" />
                 </div>
-                <div className="text-[13px] text-[#8A8A8A] mt-0.5">avg. productivity lift</div>
+                <div className="text-[13px] text-[#8A8A8A] mt-0.5">free, no card required</div>
               </div>
-              <div className="w-px bg-[#222]" />
+              <div className="hidden sm:block w-px bg-[#222] self-stretch" />
               <div>
                 <div className="text-[34px] font-extrabold tracking-tight text-white">
-                  <CountUp to={5} prefix="<" suffix=" min" />
+                  <CountUp to={0} />
                 </div>
-                <div className="text-[13px] text-[#8A8A8A] mt-0.5">to full setup</div>
+                <div className="text-[13px] text-[#8A8A8A] mt-0.5">imports or connectors</div>
               </div>
-              <div className="w-px bg-[#222]" />
+              <div className="hidden sm:block w-px bg-[#222] self-stretch" />
               <div>
                 <div className="text-[34px] font-extrabold tracking-tight text-white">
-                  <CountUp to={120} suffix="+" />
+                  <CountUp to={100} suffix="%" />
                 </div>
-                <div className="text-[13px] text-[#8A8A8A] mt-0.5">KPI templates</div>
+                <div className="text-[13px] text-[#8A8A8A] mt-0.5">of attendance scored automatically</div>
               </div>
             </div>
           </Reveal>
@@ -354,32 +383,47 @@ function Hero() {
   )
 }
 
+// This strip used to read "Trusted by SME teams across the Gulf" above five
+// invented company names. BYOND has no customers yet, so that was a false
+// statement about commercial relationships — and the kind a single question
+// from a prospect destroys. Replaced with capabilities that are built and
+// shipping, which is the only proof we actually have.
+const CAPABILITIES = ['Web & mobile', 'Geofenced attendance', 'WPS-ready payroll export', 'UAE labour-law aware']
+
 function LogoStrip() {
   return (
     <Reveal className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 mt-10">
-      <div className="border-y border-[#1a1a1a] py-7 flex flex-wrap items-center justify-between gap-6">
+      <div className="border-y border-[#1a1a1a] py-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         <span className="text-xs tracking-[.16em] uppercase text-[#6E6E6E] font-semibold">
-          Trusted by SME teams across the Gulf
+          Built in Dubai for teams across the Gulf
         </span>
-        <div className="flex flex-wrap gap-8 lg:gap-10 items-center opacity-[0.55] font-bold text-lg tracking-tight text-[#C9C9C9]">
-          <span>Meridian</span>
-          <span>Qasr&nbsp;Labs</span>
-          <span>Nakhla</span>
-          <span>Vantage</span>
-          <span>Dune&nbsp;&amp;&nbsp;Co</span>
+        <div className="flex flex-wrap gap-x-7 gap-y-3 items-center text-[15px] font-semibold tracking-tight text-[#9A9A9A]">
+          {CAPABILITIES.map((c) => (
+            <span key={c} className="flex items-center gap-2">
+              <Check size={13} strokeWidth={3} className="text-[#00D4A0] shrink-0" />
+              {c}
+            </span>
+          ))}
         </div>
       </div>
     </Reveal>
   )
 }
 
+// Each card describes something that exists in the product today.
+//
+// The first one used to promise "connect your tools once" and the fifth
+// "lightweight OKRs". There are no integrations in the codebase and no OKR
+// feature — both were claims a buyer would discover were untrue in week one of
+// the trial. Rewritten around the real architecture, which is a better pitch
+// anyway: nothing to integrate because the source data already lives here.
 const FEATURES = [
-  { icon: Workflow, title: 'Automatic KPI tracking', body: 'Connect your tools once. BYOND pulls activity and scores KPIs continuously — zero manual entry.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 0 },
-  { icon: TrendingUp, title: 'Live performance graphs', body: 'Every person and pod gets a trend line that updates in real time. See momentum at a glance.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 80 },
+  { icon: Workflow, title: 'Nothing to integrate', body: 'Attendance, leave and reviews already live in BYOND, so KPIs score themselves from the source. No connectors, no imports, no IT project.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 0 },
+  { icon: TrendingUp, title: 'Live performance graphs', body: 'Every person and team gets a trend line that updates as the month runs. See momentum at a glance.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 80 },
   { icon: LayoutGrid, title: 'Team dashboards', body: 'One clear view of who is thriving and who needs support — organised the way your teams actually work.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 160 },
-  { icon: AlertTriangle, title: 'Smart alerts', body: 'A KPI dip gets flagged before it becomes a problem — so you coach early, not after the fact.', iconBg: 'bg-[#FF4D4D]/10', iconColor: 'text-[#FF4D4D]', delay: 0 },
-  { icon: Target, title: 'Goals & reviews', body: 'Lightweight OKRs and review cycles that connect daily work to the outcomes that matter.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 80 },
-  { icon: HeartHandshake, title: 'Human-centered insights', body: 'Not surveillance — coaching. BYOND turns numbers into prompts that help managers support their people.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 160 },
+  { icon: AlertTriangle, title: 'Awards issue, warnings never', body: 'Strong attendance earns recognition automatically. A warning is only ever proposed to HR — discipline stays a human decision, with the hearing rights the labour law requires.', iconBg: 'bg-[#FF4D4D]/10', iconColor: 'text-[#FF4D4D]', delay: 0 },
+  { icon: Target, title: 'Quarterly review cycles', body: 'Employee rates themselves, then the manager, then the system adds what it measured. Each stage is locked to its own turn, so nobody scores after seeing the answer.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 80 },
+  { icon: HeartHandshake, title: 'Human-centered by design', body: 'Approved leave never costs you a point. An unassessed month is not a zero. The scoring model is built to be defensible to the person being scored.', iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]', delay: 160 },
 ]
 
 function Features() {
@@ -391,8 +435,8 @@ function Features() {
           Everything you need to track performance — automatically.
         </h2>
         <p className="text-lg leading-relaxed text-[#B5B5B5] mt-5">
-          No manual entry, no guesswork. BYOND connects to the tools your team already uses and turns activity into
-          clear, human performance signals.
+          No manual entry, no guesswork. Clock-ins, leave and reviews all happen inside BYOND, so performance
+          scores itself from data you already have.
         </p>
       </Reveal>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-14">
@@ -413,8 +457,8 @@ function Features() {
 }
 
 const STEPS = [
-  { num: '01', title: 'Connect', body: 'Link the tools your team already uses — no data migration, no IT project.', delay: 0 },
-  { num: '02', title: 'Track automatically', body: 'KPIs score themselves in real time. Dashboards fill in without anyone touching a spreadsheet.', delay: 100 },
+  { num: '01', title: 'Add your team', body: 'Create the company, invite your people, set your work locations. No data migration, no IT project.', delay: 0 },
+  { num: '02', title: 'Let it score itself', body: 'Clock-ins, approved leave and review cycles feed the KPI engine. Dashboards fill in without anyone touching a spreadsheet.', delay: 100 },
   { num: '03', title: 'Coach beyond', body: 'Act on live signals and coaching prompts to help every person perform beyond their limits.', delay: 200 },
 ]
 
@@ -557,20 +601,24 @@ function Showcase() {
   )
 }
 
-function Quote() {
+// This was a testimonial from "Reem Al Marri, People Lead, Vantage · Dubai" —
+// an invented person, quoted saying something she never said, at a company that
+// does not exist. A fabricated endorsement attributed to a named individual is
+// a different category of problem from marketing enthusiasm, and it is the kind
+// of thing that is discovered rather than forgotten.
+//
+// Replaced with a first-party statement. It is framed and attributed as the
+// company speaking, so nobody can mistake it for social proof we have not
+// earned. When a real customer says something worth quoting, it goes here.
+function Principle() {
   return (
     <Reveal className="max-w-[900px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6 text-center">
-      <div className="text-[clamp(24px,3.4vw,40px)] font-semibold tracking-tight leading-[1.3]">
-        &quot;We stopped chasing spreadsheets and started actually coaching. BYOND made performance{' '}
-        <span className="text-[#00D4A0]">visible</span> — and human.&quot;
+      <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">Why we built it</div>
+      <div className="text-[clamp(24px,3.4vw,40px)] font-semibold tracking-tight leading-[1.3] mt-5">
+        Most HR software measures whether people turned up. We wanted one that could tell a manager{' '}
+        <span className="text-[#00D4A0]">who needs help</span> — while there is still a quarter left to help them.
       </div>
-      <div className="mt-7 flex items-center justify-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-[linear-gradient(135deg,#00D4A0,#0a7a5e)]" />
-        <div className="text-left">
-          <div className="text-[15px] font-semibold">Reem Al Marri</div>
-          <div className="text-[13px] text-[#8A8A8A]">People Lead, Vantage · Dubai</div>
-        </div>
-      </div>
+      <div className="mt-7 text-[13px] text-[#8A8A8A]">BYOND by SERVA · Dubai</div>
     </Reveal>
   )
 }
@@ -638,18 +686,29 @@ function Footer() {
             <a href="#showcase" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Dashboards</a>
             <a href="#how" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">How it works</a>
           </div>
+          {/* "About" and "Careers" were href="#" — links that look real and go
+              nowhere. Dropped rather than faked; they come back when the pages do. */}
           <div className="flex flex-col gap-3">
-            <span className="text-xs tracking-[.14em] uppercase text-[#6E6E6E] font-semibold">Company</span>
-            <a href="#" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">About</a>
-            <a href="#" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Careers</a>
+            <span className="text-xs tracking-[.14em] uppercase text-[#6E6E6E] font-semibold">Get started</span>
             <Link to={SIGNUP_HREF} className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Start free trial</Link>
             <Link to={DEMO_HREF} className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Book a demo</Link>
+            <Link to="/login" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Log in</Link>
+          </div>
+          <div className="flex flex-col gap-3">
+            <span className="text-xs tracking-[.14em] uppercase text-[#6E6E6E] font-semibold">Legal</span>
+            <Link to="/privacy" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>
       <div className="max-w-[1240px] mx-auto mt-10 pt-6 border-t border-[#1a1a1a] flex flex-col sm:flex-row justify-between gap-3 text-[13px] text-[#6E6E6E]">
         <span>© 2026 BYOND by SERVA · Dubai, UAE</span>
-        <span>Privacy · Terms</span>
+        {/* Was plain text styled to look like links. Now they are links. */}
+        <span className="flex gap-3">
+          <Link to="/privacy" className="hover:text-[#B5B5B5] transition-colors">Privacy</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/terms" className="hover:text-[#B5B5B5] transition-colors">Terms</Link>
+        </span>
       </div>
     </footer>
   )
@@ -665,7 +724,7 @@ export default function Landing() {
       <HowItWorks />
       <Acronym />
       <Showcase />
-      <Quote />
+      <Principle />
       <CTASection />
       <Footer />
     </div>
