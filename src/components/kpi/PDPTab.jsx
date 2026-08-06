@@ -660,7 +660,7 @@ export default function PDPTab({ employee, companyId, canManage, showToast, role
   return (
     <div className="space-y-6 max-w-5xl">
       {canManage && (
-        <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit">
+        <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit max-w-full overflow-x-auto">
           {[
             { id: 'mine', label: 'My Development', icon: User },
             { id: 'manage', label: 'Manage Plans', icon: Users2 },

@@ -525,7 +525,7 @@ export default function Settings() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit mb-8 overflow-x-auto">
+          <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit max-w-full mb-8 overflow-x-auto">
             {visibleTabs.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
