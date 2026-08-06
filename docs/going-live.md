@@ -213,7 +213,9 @@ These are not optional, and `docs/deployment.md` explains each one:
   Your whole onboarding is invite-based, so a real company cannot be onboarded
   without this. Do it first.
 - **A backup you have actually restored.** The free plan has none.
-- **Delete the six `ByondTest#2026` accounts.**
+- **Delete the six `@byond-test.com` role-testing accounts.** Their password was
+  rotated on 6 August 2026 after an earlier revision of `docs/deployment.md`
+  published it while this repository was public.
 - **Turn on leaked-password protection** in the dashboard.
 - **Decide about the region.** The database is in Mumbai and holds Emirates ID
   numbers, IBANs and salaries. A project's region cannot be changed after it is
