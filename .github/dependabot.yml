@@ -1,0 +1,41 @@
+version: 2
+
+# Dependency updates, grouped so this produces a small number of reviewable PRs
+# rather than a stream of individual ones nobody reads.
+#
+# Security updates from GitHub's advisory database arrive separately and are not
+# grouped or throttled by these settings — those should be merged promptly.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Patch and minor bumps are almost always safe and boring. One PR a week.
+      routine:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'deps'
+
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      routine:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: 'deps(mobile)'
+
+  # The workflow pins actions by major tag (actions/checkout@v4). This catches
+  # the case where a pinned action is superseded or withdrawn.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'ci'

@@ -1,3 +1,9 @@
+> **Confidential — do not publish.** This file names the live project and
+> inventories which functions bypass RLS and what they expose. It was written
+> for a private repository. If this repository is ever made public, this file
+> must be removed from the working tree *and* from git history first. See
+> `SECURITY.md`.
+
 # Database security snapshot — BYOND-hr
 
 **Captured 2026-08-05 from project `rxkgnbvjywiqkgbbypfs` at migration `20260728143114`
