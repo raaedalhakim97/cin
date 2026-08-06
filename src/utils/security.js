@@ -2,7 +2,7 @@
 
 export const maskBankAccount = () => '•••• •••• •••• ••••'
 
-export const maskSalary = () => '•••,••• AED'
+export const maskSalary = () => '•••,•••'
 
 export const maskNationalId = (id) => {
   if (!id || id.length < 4) return '••••'

@@ -61,7 +61,7 @@ export default function HRDashboard() {
       supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('leave_requests').select('employee_id').eq('status', 'approved').lte('start_date', today).gte('end_date', today),
       supabase.from('payroll_runs').select('status').eq('period_year', now.getFullYear()).eq('period_month', now.getMonth() + 1),
-      supabase.from('leave_requests').select('id, employee_id, leave_type, start_date, end_date, created_at, employees(full_name)')
+      supabase.from('leave_requests').select('id, employee_id, leave_type, start_date, end_date, created_at, employees!leave_requests_employee_id_fkey(full_name)')
         .eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
       supabase.from('employees').select('id, full_name, hire_date, contract_type, contract_end_date').eq('status', 'active'),
       supabase.from('data_subject_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),

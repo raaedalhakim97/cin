@@ -60,19 +60,40 @@ function num(v) {
 // Renormalises over the components that exist, as the trigger does since the
 // fix_kpi_partial_evaluation migration. A null component means "not evaluated"
 // and is excluded rather than counted as zero; a 0 is a real score and counts.
-const COMPONENT_WEIGHTS = [
-  ['attendance_score', 30],
-  ['behavior_score', 25],
-  ['achievement_score', 20],
-  ['manager_score', 15],
-  ['self_score', 10],
-]
+// Fallback weights, used only until a row's own weights_used is available.
+// The real weights live in kpi_settings and are per-company, so anything
+// hardcoded here is a guess about someone else's configuration — the DB
+// stamps the weights it actually used onto every row, and those win.
+const DEFAULT_WEIGHTS = {
+  attendance_score: 30,
+  behavior_score: 25,
+  achievement_score: 20,
+  manager_score: 15,
+  self_score: 10,
+  reliability_score: 0,
+}
+
+const COMPONENT_KEYS = Object.keys(DEFAULT_WEIGHTS)
+
+// weights_used keys drop the `_score` suffix.
+function weightsFor(row) {
+  const used = row?.weights_used
+  if (!used) return DEFAULT_WEIGHTS
+  const out = {}
+  for (const key of COMPONENT_KEYS) {
+    const recorded = used[key.replace(/_score$/, '')]
+    out[key] = recorded == null ? DEFAULT_WEIGHTS[key] : Number(recorded)
+  }
+  return out
+}
 
 function computeWeightedTotal(row) {
+  const weights = weightsFor(row)
   let numerator = 0
   let weight = 0
-  for (const [key, w] of COMPONENT_WEIGHTS) {
-    if (row?.[key] == null) continue
+  for (const key of COMPONENT_KEYS) {
+    const w = weights[key]
+    if (!w || row?.[key] == null) continue
     numerator += num(row[key]) * w
     weight += w
   }
@@ -83,8 +104,13 @@ function computeWeightedTotal(row) {
 function coverageOf(row) {
   const recorded = row?.weights_used?.coverage_pct
   if (recorded != null) return Number(recorded)
-  const weight = COMPONENT_WEIGHTS.reduce((sum, [key, w]) => (row?.[key] == null ? sum : sum + w), 0)
-  return weight
+  const weights = weightsFor(row)
+  const total = COMPONENT_KEYS.reduce((sum, key) => sum + weights[key], 0)
+  const covered = COMPONENT_KEYS.reduce(
+    (sum, key) => (row?.[key] == null || !weights[key] ? sum : sum + weights[key]),
+    0
+  )
+  return total > 0 ? Math.round((covered * 1000) / total) / 10 : 0
 }
 
 // Mirrors the DB's compute_kpi_rating(score) — the canonical rating calculator
@@ -102,12 +128,16 @@ function computeRating(score) {
 const TEAM_ROLES = new Set(['super_admin', 'hr_manager', 'department_manager'])
 const WARN_ROLES = new Set(['super_admin', 'hr_manager'])
 
+// `weight` here is only the label's fallback — the real figure comes from the
+// row's weights_used via weightsFor(). `auto` marks components the system
+// derives from attendance rather than a person scoring them.
 const COMPONENTS = [
-  { key: 'attendance_score', label: 'Attendance',  weight: 30 },
-  { key: 'behavior_score',   label: 'Behavior',     weight: 25 },
-  { key: 'achievement_score', label: 'Achievement', weight: 20 },
-  { key: 'manager_score',   label: 'Manager Evaluation', weight: 15 },
-  { key: 'self_score',      label: 'Self Evaluation', weight: 10 },
+  { key: 'attendance_score',  label: 'Attendance',          weight: 30, auto: true },
+  { key: 'reliability_score', label: 'Hours Completed',     weight: 0,  auto: true },
+  { key: 'behavior_score',    label: 'Behavior',            weight: 25 },
+  { key: 'achievement_score', label: 'Achievement',         weight: 20 },
+  { key: 'manager_score',     label: 'Manager Evaluation',  weight: 15 },
+  { key: 'self_score',        label: 'Self Evaluation',     weight: 10 },
 ]
 
 // Mirrors calculate_attendance_score() — the DB averages one of these per-day
@@ -117,8 +147,11 @@ const ATTENDANCE_SCORE_GUIDE = [
   { status: 'Late (minor)',          points: 85 },
   { status: 'Late (moderate)',       points: 70 },
   { status: 'Late (major)',          points: 50 },
-  { status: 'Absent (approved)',     points: 80 },
   { status: 'Absent (unauthorized)', points: 0 },
+  // Approved absence is excluded from the average entirely — taking leave you
+  // are entitled to should not move a performance score. It used to score 80,
+  // which quietly penalised anyone who used their allowance.
+  { status: 'Absent (approved)',     points: 'not counted' },
 ]
 
 const RATING_META = {
@@ -230,7 +263,7 @@ function AttendanceScoreTooltip() {
           {ATTENDANCE_SCORE_GUIDE.map(g => (
             <div key={g.status} className="flex items-center justify-between text-[11px]">
               <span className="text-[#A0A0A0]">{g.status}</span>
-              <span className="font-semibold text-white">{g.points} pts</span>
+              <span className="font-semibold text-white">{typeof g.points === 'number' ? `${g.points} pts` : g.points}</span>
             </div>
           ))}
         </div>
@@ -401,12 +434,17 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
         <div className="p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
           <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white mb-5">Score Breakdown</h2>
           <div className="space-y-5">
-            {COMPONENTS.map(c => (
-              <ComponentBar
-                key={c.key} label={c.label} weight={c.weight} value={row?.[c.key]}
-                auto={c.key === 'attendance_score'}
-              />
-            ))}
+            {COMPONENTS.map(c => {
+              const w = weightsFor(row)[c.key]
+              // A component carrying no weight is measured but not scored.
+              // Hide it entirely when there is also nothing to show.
+              if (!w && row?.[c.key] == null) return null
+              return (
+                <ComponentBar
+                  key={c.key} label={c.label} weight={w} value={row?.[c.key]} auto={c.auto}
+                />
+              )
+            })}
           </div>
         </div>
       </div>

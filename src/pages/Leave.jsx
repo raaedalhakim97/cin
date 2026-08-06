@@ -816,7 +816,7 @@ export default function Leave() {
 
     let q = supabase
       .from('leave_requests')
-      .select(showAll ? '*, employees(full_name)' : '*')
+      .select(showAll ? '*, employees!leave_requests_employee_id_fkey(full_name)' : '*')
       .eq('status', 'approved')
       .lte('start_date', last)
       .gte('end_date', first)

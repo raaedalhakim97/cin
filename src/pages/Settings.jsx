@@ -164,7 +164,7 @@ function DataRequestsTab({ employee, showToast }) {
     setLoading(true)
     const { data } = await supabase
       .from('data_subject_requests')
-      .select('*, employees(full_name)')
+      .select('*, employees!data_subject_requests_employee_id_fkey(full_name)')
       .order('requested_at', { ascending: false })
     setRows(data ?? [])
     setLoading(false)

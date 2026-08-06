@@ -1261,7 +1261,7 @@ export default function Attendance() {
     const mo = viewDate.getMonth()
     const { data, error } = await supabase
       .from('attendance')
-      .select('date, clock_in, clock_out, status, overtime_hours, employees(full_name)')
+      .select('date, clock_in, clock_out, status, overtime_hours, employees!attendance_employee_id_fkey(full_name)')
       .gte('date', localDateStr(new Date(yr, mo, 1)))
       .lte('date', localDateStr(new Date(yr, mo + 1, 0)))
       .order('date')

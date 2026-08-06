@@ -11,13 +11,17 @@ import { Avatar, Badge, Button, Card, EmptyState, SectionTitle, SkeletonCard, us
 import { periodLabel } from '../../src/lib/format'
 import { ratingColor, radius, space, type } from '../../src/theme'
 
-// The five components and their default split (Art. 14: 30/25/20/15/10). Actual
+// The components and their default split (Art. 14: 30/25/20/15/10). Actual
 // weights come from each score row's weights_used snapshot; this is only the
 // fallback for rows written before that column existed.
-const DEFAULT_WEIGHTS = { attendance: 30, behavior: 25, achievement: 20, manager: 15, self: 10 }
+//
+// `reliability` defaults to 0 — it is measured on every closed day but does
+// not score until a company chooses to weight it.
+const DEFAULT_WEIGHTS = { attendance: 30, reliability: 0, behavior: 25, achievement: 20, manager: 15, self: 10 }
 
 const COMPONENTS = [
   { key: 'attendance', scoreKey: 'attendance_score', label: 'Attendance', auto: true },
+  { key: 'reliability', scoreKey: 'reliability_score', label: 'Hours completed', auto: true },
   { key: 'behavior', scoreKey: 'behavior_score', label: 'Behavior' },
   { key: 'achievement', scoreKey: 'achievement_score', label: 'Achievements' },
   { key: 'manager', scoreKey: 'manager_score', label: 'Manager evaluation' },
@@ -31,6 +35,7 @@ function weightsOf(row) {
   if (!w || typeof w !== 'object') return DEFAULT_WEIGHTS
   return {
     attendance: num(w.attendance),
+    reliability: num(w.reliability),
     behavior: num(w.behavior),
     achievement: num(w.achievement),
     manager: num(w.manager),
@@ -209,19 +214,26 @@ export default function KPI() {
 
           <SectionTitle>Breakdown</SectionTitle>
           <Card>
-            {COMPONENTS.map((comp) => (
-              <ComponentBar
-                key={comp.key}
-                label={comp.label}
-                weight={weights[comp.key]}
-                score={row[comp.scoreKey]}
-                auto={comp.auto}
-              />
-            ))}
+            {COMPONENTS.map((comp) => {
+              // A component with no weight and nothing measured has nothing
+              // to say — don't take up a row for it.
+              if (!weights[comp.key] && row[comp.scoreKey] == null) return null
+              return (
+                <ComponentBar
+                  key={comp.key}
+                  label={comp.label}
+                  weight={weights[comp.key]}
+                  score={row[comp.scoreKey]}
+                  auto={comp.auto}
+                />
+              )
+            })}
             <View style={{ borderTopWidth: 1, borderTopColor: c.border, marginTop: space(2), paddingTop: space(1.5) }}>
               <Text style={{ ...type.caption, color: c.textMuted }}>
                 Attendance is scored automatically from your clock-ins: on time 100, late under 30 min 85, under an hour
-                70, over an hour 50, approved absence 80, unauthorised 0 — averaged across the month.
+                70, over an hour 50, unauthorised absence 0 — averaged across the month. Approved leave is left out of
+                the average entirely. Hours completed compares the time between your clock-in and clock-out against the
+                day you were scheduled.
               </Text>
             </View>
           </Card>
