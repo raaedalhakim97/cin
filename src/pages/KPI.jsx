@@ -1,8 +1,25 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Check, X, Loader2, AlertTriangle, Gauge, History, Users, ShieldAlert,
-  Gift, Trophy, Pencil, Calendar, Filter, Info, Target, Lock,
-  ChevronDown, ChevronUp, AlignLeft,
+  AlertTriangle,
+  AlignLeft,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ClipboardCheck,
+  Filter,
+  Gauge,
+  Gift,
+  History,
+  Info,
+  Loader2,
+  Lock,
+  Pencil,
+  ShieldAlert,
+  Target,
+  Trophy,
+  Users,
+  X,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
@@ -10,6 +27,8 @@ import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import HowCalculatedPopover from '../components/kpi/HowCalculatedPopover'
 import PDPTab from '../components/kpi/PDPTab'
+import ReviewCyclesTab from '../components/kpi/ReviewCyclesTab'
+import SelfReviewCard from '../components/kpi/SelfReviewCard'
 import ToastComp, { useToast } from '../components/Toast'
 import { SkeletonBlock } from '../components/Skeleton'
 
@@ -54,16 +73,63 @@ function num(v) {
   return Number(v || 0)
 }
 
-// Weighted formula mirrors the DB-generated total_score column — used client-side
-// only to preview ratings before a write; total_score itself is never written.
+// Mirrors the DB's compute_kpi_total — used client-side only to preview a total
+// before a write; total_score itself is always computed by the trigger.
+//
+// Renormalises over the components that exist, as the trigger does since the
+// fix_kpi_partial_evaluation migration. A null component means "not evaluated"
+// and is excluded rather than counted as zero; a 0 is a real score and counts.
+// Fallback weights, used only until a row's own weights_used is available.
+// The real weights live in kpi_settings and are per-company, so anything
+// hardcoded here is a guess about someone else's configuration — the DB
+// stamps the weights it actually used onto every row, and those win.
+const DEFAULT_WEIGHTS = {
+  attendance_score: 30,
+  behavior_score: 25,
+  achievement_score: 20,
+  manager_score: 15,
+  self_score: 10,
+  reliability_score: 0,
+}
+
+const COMPONENT_KEYS = Object.keys(DEFAULT_WEIGHTS)
+
+// weights_used keys drop the `_score` suffix.
+function weightsFor(row) {
+  const used = row?.weights_used
+  if (!used) return DEFAULT_WEIGHTS
+  const out = {}
+  for (const key of COMPONENT_KEYS) {
+    const recorded = used[key.replace(/_score$/, '')]
+    out[key] = recorded == null ? DEFAULT_WEIGHTS[key] : Number(recorded)
+  }
+  return out
+}
+
 function computeWeightedTotal(row) {
-  return (
-    num(row.attendance_score) * 0.30 +
-    num(row.behavior_score) * 0.25 +
-    num(row.achievement_score) * 0.20 +
-    num(row.manager_score) * 0.15 +
-    num(row.self_score) * 0.10
+  const weights = weightsFor(row)
+  let numerator = 0
+  let weight = 0
+  for (const key of COMPONENT_KEYS) {
+    const w = weights[key]
+    if (!w || row?.[key] == null) continue
+    numerator += num(row[key]) * w
+    weight += w
+  }
+  return weight > 0 ? numerator / weight : 0
+}
+
+// How much of the assessment exists, as the DB records it in weights_used.
+function coverageOf(row) {
+  const recorded = row?.weights_used?.coverage_pct
+  if (recorded != null) return Number(recorded)
+  const weights = weightsFor(row)
+  const total = COMPONENT_KEYS.reduce((sum, key) => sum + weights[key], 0)
+  const covered = COMPONENT_KEYS.reduce(
+    (sum, key) => (row?.[key] == null || !weights[key] ? sum : sum + weights[key]),
+    0
   )
+  return total > 0 ? Math.round((covered * 1000) / total) / 10 : 0
 }
 
 // Mirrors the DB's compute_kpi_rating(score) — the canonical rating calculator
@@ -76,21 +142,32 @@ function computeRating(score) {
   if (score >= 45) return 'Needs Improvement'
   return 'Unsatisfactory'
 }
-function computeBonusEligible(score) {
-  return score >= 75
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TEAM_ROLES = new Set(['super_admin', 'hr_manager', 'department_manager'])
 const WARN_ROLES = new Set(['super_admin', 'hr_manager'])
 
+// Who proposed this warning. A rule-generated recommendation has
+// recommended_by NULL — attributing it to "manager" would tell HR a human
+// judged this when nothing of the sort happened, and that changes how it
+// should be reviewed.
+function recSource(rec) {
+  if (rec?.source === 'rule') return 'the attendance rules'
+  return rec?.manager?.full_name ?? 'a manager'
+}
+
+// `weight` here is only the label's fallback — the real figure comes from the
+// row's weights_used via weightsFor(). `auto` marks components the system
+// derives from attendance rather than a person scoring them.
 const COMPONENTS = [
-  { key: 'attendance_score', label: 'Attendance',  weight: 30 },
-  { key: 'behavior_score',   label: 'Behavior',     weight: 25 },
-  { key: 'achievement_score', label: 'Achievement', weight: 20 },
-  { key: 'manager_score',   label: 'Manager Evaluation', weight: 15 },
-  { key: 'self_score',      label: 'Self Evaluation', weight: 10 },
+  { key: 'attendance_score',  label: 'Attendance',          weight: 30, auto: true,
+    note: 'Auto-calculated from attendance' },
+  { key: 'reliability_score', label: 'Hours Completed',     weight: 0,  auto: true,
+    note: 'Auto-calculated: time worked vs time scheduled' },
+  { key: 'behavior_score',    label: 'Behavior',            weight: 25 },
+  { key: 'achievement_score', label: 'Achievement',         weight: 20 },
+  { key: 'manager_score',     label: 'Manager Evaluation',  weight: 15 },
+  { key: 'self_score',        label: 'Self Evaluation',     weight: 10 },
 ]
 
 // Mirrors calculate_attendance_score() — the DB averages one of these per-day
@@ -100,8 +177,11 @@ const ATTENDANCE_SCORE_GUIDE = [
   { status: 'Late (minor)',          points: 85 },
   { status: 'Late (moderate)',       points: 70 },
   { status: 'Late (major)',          points: 50 },
-  { status: 'Absent (approved)',     points: 80 },
   { status: 'Absent (unauthorized)', points: 0 },
+  // Approved absence is excluded from the average entirely — taking leave you
+  // are entitled to should not move a performance score. It used to score 80,
+  // which quietly penalised anyone who used their allowance.
+  { status: 'Absent (approved)',     points: 'not counted' },
 ]
 
 const RATING_META = {
@@ -213,7 +293,7 @@ function AttendanceScoreTooltip() {
           {ATTENDANCE_SCORE_GUIDE.map(g => (
             <div key={g.status} className="flex items-center justify-between text-[11px]">
               <span className="text-[#A0A0A0]">{g.status}</span>
-              <span className="font-semibold text-white">{g.points} pts</span>
+              <span className="font-semibold text-white">{typeof g.points === 'number' ? `${g.points} pts` : g.points}</span>
             </div>
           ))}
         </div>
@@ -223,21 +303,28 @@ function AttendanceScoreTooltip() {
   )
 }
 
-function ComponentBar({ label, weight, value, auto = false }) {
+// `note` is the one-line explanation under an auto-derived component, and
+// `tooltip` its optional detail popover. They are per-component because the
+// attendance point table explains attendance only — showing it against
+// reliability would describe the wrong calculation.
+function ComponentBar({ label, weight, value, auto = false, note, tooltip }) {
   const pct = Math.max(0, Math.min(100, num(value)))
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5 text-sm">
         <div className="flex items-center gap-1.5">
           <span className="font-semibold text-[#1A1A1A] dark:text-white">{label}</span>
-          {auto && <AttendanceScoreTooltip />}
+          {tooltip}
         </div>
         <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">
-          {weight}% weight · <span className="font-semibold text-[#1A1A1A] dark:text-white">{pct.toFixed(0)}</span>/100
+          {/* A zero weight is not "0% of your score" — it means the component is
+              measured and shown but does not count toward the total yet. */}
+          {weight > 0 ? `${weight}% weight · ` : 'not scored · '}
+          <span className="font-semibold text-[#1A1A1A] dark:text-white">{pct.toFixed(0)}</span>/100
         </span>
       </div>
-      {auto && (
-        <p className="text-[11px] text-[#00D4A0] mb-1.5">Auto-calculated from attendance</p>
+      {auto && note && (
+        <p className="text-[11px] text-[#00D4A0] mb-1.5">{note}</p>
       )}
       <div className="h-2.5 bg-[#F0F0F0] dark:bg-[#2A2A2A] rounded-full overflow-hidden">
         <div className="h-full bg-[#00D4A0] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
@@ -353,12 +440,16 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
   if (loading) return <Spinner />
 
   const total = row ? num(row.total_score) : 0
-  const ratingLabel = row?.rating ?? (row ? computeRating(total) : null)
+  const ratingLabel = row?.rating ?? null
   const meta = getRatingMeta(ratingLabel)
   const hasSubmittedSelf = row?.self_score != null
 
   return (
     <div className="space-y-8 max-w-5xl">
+      {/* The quarterly self-assessment. Renders nothing unless HR has opened a
+          cycle, so it cannot invite a write the database would reject. */}
+      <SelfReviewCard employeeId={employee?.id} showToast={showToast} />
+
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-stretch">
         {/* Gauge card */}
         <div className="p-8 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] flex flex-col items-center justify-center gap-4">
@@ -366,6 +457,12 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
           {isEval && <EvalBadge />}
           <ScoreGauge score={total} color={meta.hex} />
           <RatingBadge rating={ratingLabel} />
+          {row && coverageOf(row) < 100 && (
+            <p className="text-xs text-center text-[#666666] dark:text-[#A0A0A0] max-w-[16rem]">
+              Based on {coverageOf(row)}% of the assessment.
+              {ratingLabel ? '' : ' A rating is held back until more of it is complete.'}
+            </p>
+          )}
           {row?.bonus_eligible && (
             <span className="flex items-center gap-1.5 text-xs text-[#00D4A0] font-semibold">
               <Gift size={13} /> Bonus Eligible
@@ -378,12 +475,19 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
         <div className="p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
           <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white mb-5">Score Breakdown</h2>
           <div className="space-y-5">
-            {COMPONENTS.map(c => (
-              <ComponentBar
-                key={c.key} label={c.label} weight={c.weight} value={row?.[c.key]}
-                auto={c.key === 'attendance_score'}
-              />
-            ))}
+            {COMPONENTS.map(c => {
+              const w = weightsFor(row)[c.key]
+              // A component carrying no weight is measured but not scored.
+              // Hide it entirely when there is also nothing to show.
+              if (!w && row?.[c.key] == null) return null
+              return (
+                <ComponentBar
+                  key={c.key} label={c.label} weight={w} value={row?.[c.key]} auto={c.auto}
+                  note={c.note}
+                  tooltip={c.key === 'attendance_score' ? <AttendanceScoreTooltip /> : null}
+                />
+              )
+            })}
           </div>
         </div>
       </div>
@@ -820,21 +924,17 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
   })
 
   async function saveManagerScore(emp, row, managerScore) {
-    const base = row ?? { attendance_score: 0, behavior_score: 0, achievement_score: 0, self_score: 0 }
-    const total = computeWeightedTotal({ ...base, manager_score: managerScore })
-    const rating = computeRating(total)
-    const bonus_eligible = computeBonusEligible(total)
-
+    // rating and bonus_eligible are owned by the compute_kpi_total trigger, which
+    // withholds a rating when too little of the assessment exists. Sending them
+    // from here would be overwritten anyway, and would misrepresent the rule.
     const { error } = row
-      ? await supabase.from('kpi_scores').update({ manager_score: managerScore, rating, bonus_eligible }).eq('id', row.id)
+      ? await supabase.from('kpi_scores').update({ manager_score: managerScore }).eq('id', row.id)
       : await supabase.from('kpi_scores').insert({
           company_id: companyId,
           employee_id: emp.id,
           period_year: period.year,
           period_month: period.month,
           manager_score: managerScore,
-          rating,
-          bonus_eligible,
         })
 
     if (error) {
@@ -1334,7 +1434,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
       employeeName: rec.employees?.full_name,
       warningLevel: rec.warning_level,
       reason: rec.reason,
-      managerName: rec.manager?.full_name,
+      managerName: recSource(rec),
       recommendationId: rec.id,
     })
     setShowWarningModal(true)
@@ -1416,7 +1516,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
               <div key={rec.id} className="flex items-center gap-4 px-5 py-3.5">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">
-                    {rec.employees?.full_name ?? 'Unknown'} <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">· Level {rec.warning_level} · from {rec.manager?.full_name ?? 'manager'}</span>
+                    {rec.employees?.full_name ?? 'Unknown'} <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">· Level {rec.warning_level} · from {recSource(rec)}</span>
                   </p>
                   <p className="text-xs text-[#666666] dark:text-[#A0A0A0] truncate" title={rec.reason}>{rec.reason}</p>
                 </div>
@@ -1558,7 +1658,7 @@ function RejectRecommendationModal({ rec, onClose, onConfirm }) {
         <form onSubmit={submit} className="p-6 space-y-4">
           <div className="p-3.5 rounded-xl bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A]">
             <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">{rec.employees?.full_name ?? 'Employee'}</p>
-            <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">Level {rec.warning_level} · from {rec.manager?.full_name ?? 'manager'}</p>
+            <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">Level {rec.warning_level} · from {recSource(rec)}</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-[#1A1A1A] dark:text-white mb-1.5">Note (optional)</label>
@@ -1625,6 +1725,7 @@ export default function KPI() {
     { id: 'history', label: 'History', icon: History },
     ...(canTeam ? [{ id: 'team', label: 'Team KPI', icon: Users }] : []),
     ...(canWarn ? [{ id: 'warnings', label: 'Warnings & Rewards', icon: ShieldAlert }] : []),
+    ...(canWarn ? [{ id: 'reviews', label: 'Review Cycles', icon: ClipboardCheck }] : []),
     { id: 'pdp', label: 'Development Plans', icon: Target },
   ]
 
@@ -1679,6 +1780,9 @@ export default function KPI() {
           )}
           {activeTab === 'warnings' && canWarn && (
             <WarningsRewardsTab companyId={companyId} issuerId={employee?.id} showToast={showToast} />
+          )}
+          {activeTab === 'reviews' && canWarn && (
+            <ReviewCyclesTab showToast={showToast} />
           )}
           {activeTab === 'pdp' && (
             <PDPTab employee={employee} companyId={companyId} canManage={canWarn} showToast={showToast} role={role} />

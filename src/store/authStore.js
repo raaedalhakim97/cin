@@ -12,7 +12,7 @@ const useAuthStore = create((set, get) => ({
   employee: null,     // never contains salary, bank_account, or national_id
   role: null,
   companyId: null,    // tenant scope — sourced from user_roles.company_id
-  company: null,       // { id, name, plan, trial_ends_at, created_via, privacy_contact_email } — for TrialBanner + Profile.jsx's Privacy & Data section
+  company: null,       // { id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone } — for TrialBanner, Profile.jsx's Privacy & Data section, and money/time formatting
   sessionToken: null, // Supabase access token — in memory only, never persisted
   loading: true,
 
@@ -63,7 +63,11 @@ const useAuthStore = create((set, get) => ({
     if (roleData?.company_id) {
       const { data: companyData, error: companyError } = await supabase
         .from('company')
-        .select('id, name, plan, trial_ends_at, created_via, privacy_contact_email')
+        // currency and timezone are here because they are formatting inputs the
+        // whole app needs: without currency in the store, every salary figure
+        // fell back to a hardcoded 'AED', which is wrong for any tenant that
+        // isn't in the UAE.
+        .select('id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone')
         .eq('id', roleData.company_id)
         .maybeSingle()
       if (companyError) {

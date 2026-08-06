@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint:ci": "node scripts/lint-ratchet.mjs",
+    "check:secrets": "./scripts/check-secrets.sh",
+    "test:db": "psql -v ON_ERROR_STOP=1 \"$PGURL\" -f supabase/tests/guarantees.sql"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

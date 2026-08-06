@@ -85,9 +85,16 @@ const SELECT =
 
 // ─── Micro-components ─────────────────────────────────────────────────────────
 
-function MoneyText({ value, revealed, currency = 'AED', prefix = '' }) {
+// `currency` used to default to the string 'AED', which is wrong for any
+// tenant outside the UAE. It now resolves from the company on the store.
+// An explicit currency="" still means "no unit here" — several call sites
+// rely on that to avoid repeating the unit on every line of a breakdown —
+// so only an omitted prop falls back to the tenant's currency.
+function MoneyText({ value, revealed, currency, prefix = '' }) {
+  const companyCurrency = useAuthStore(s => s.company?.currency) ?? 'AED'
+  const unit = currency === undefined ? companyCurrency : currency
   if (!revealed) return <>{maskSalary()}</>
-  return <>{prefix}{fmtMoney(value)}{currency ? ` ${currency}` : ''}</>
+  return <>{prefix}{fmtMoney(value)}{unit ? ` ${unit}` : ''}</>
 }
 
 function RevealButton({ revealed, onClick }) {
@@ -418,6 +425,7 @@ function MyPayslipTab({ employee, companyId, showToast }) {
 // ─── Edit Run Modal ───────────────────────────────────────────────────────────
 
 function EditRunModal({ run, onClose, onSave }) {
+  const currency = useAuthStore(s => s.company?.currency) ?? 'AED'
   const [form, setForm] = useState({
     basic_salary:        run.basic_salary ?? 0,
     housing_allowance:   run.housing_allowance ?? 0,
@@ -485,11 +493,11 @@ function EditRunModal({ run, onClose, onSave }) {
           <div className="p-3.5 rounded-xl bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-[#666666] dark:text-[#A0A0A0]">Gross</span>
-              <span className="font-semibold text-[#1A1A1A] dark:text-white">{fmtMoney(gross)} AED</span>
+              <span className="font-semibold text-[#1A1A1A] dark:text-white">{fmtMoney(gross)} {currency}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-[#666666] dark:text-[#A0A0A0]">Net</span>
-              <span className="font-bold text-[#00D4A0]">{fmtMoney(net)} AED</span>
+              <span className="font-bold text-[#00D4A0]">{fmtMoney(net)} {currency}</span>
             </div>
           </div>
 
@@ -836,7 +844,7 @@ function SummaryTab({ canExport, showToast }) {
       const [{ data: cur }, { data: prev }] = await Promise.all([
         supabase
           .from('payroll_runs')
-          .select('gross_salary, net_salary, employees(departments!employees_department_id_fkey(name))')
+          .select('gross_salary, net_salary, employees!payroll_runs_employee_id_fkey(departments!employees_department_id_fkey(name))')
           .eq('period_year', curY)
           .eq('period_month', curM),
         supabase
@@ -857,7 +865,7 @@ function SummaryTab({ canExport, showToast }) {
     setExporting(true)
     const { data, error } = await supabase
       .from('payroll_runs')
-      .select('basic_salary, housing_allowance, transport_allowance, other_allowance, overtime_pay, performance_bonus, deductions, status, employees(full_name)')
+      .select('basic_salary, housing_allowance, transport_allowance, other_allowance, overtime_pay, performance_bonus, deductions, status, employees!payroll_runs_employee_id_fkey(full_name)')
       .eq('period_year', curY)
       .eq('period_month', curM)
     setExporting(false)

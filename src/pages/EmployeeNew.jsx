@@ -80,6 +80,7 @@ function Section({ title, children }) {
 export default function EmployeeNew() {
   const navigate    = useNavigate()
   const companyId   = useAuthStore((s) => s.companyId)
+  const currency    = useAuthStore((s) => s.company?.currency) ?? 'AED'
   const [departments, setDepartments] = useState([])
   const [submitting,  setSubmitting]  = useState(false)
   const [serverError, setServerError] = useState('')
@@ -315,7 +316,7 @@ export default function EmployeeNew() {
                   Salary values are stored securely and displayed masked to authorized users.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <Field label="Basic Salary (AED)">
+                  <Field label={`Basic Salary (${currency})`}>
                     <Input
                       {...register('basic_salary')}
                       type="number"
@@ -324,7 +325,7 @@ export default function EmployeeNew() {
                       placeholder="15000"
                     />
                   </Field>
-                  <Field label="Housing Allowance (AED)">
+                  <Field label={`Housing Allowance (${currency})`}>
                     <Input
                       {...register('housing_allowance')}
                       type="number"
@@ -333,7 +334,7 @@ export default function EmployeeNew() {
                       placeholder="5000"
                     />
                   </Field>
-                  <Field label="Transport Allowance (AED)">
+                  <Field label={`Transport Allowance (${currency})`}>
                     <Input
                       {...register('transport_allowance')}
                       type="number"
@@ -342,7 +343,7 @@ export default function EmployeeNew() {
                       placeholder="1500"
                     />
                   </Field>
-                  <Field label="Other Allowance (AED)">
+                  <Field label={`Other Allowance (${currency})`}>
                     <Input
                       {...register('other_allowance')}
                       type="number"

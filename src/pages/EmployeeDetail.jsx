@@ -249,12 +249,16 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 function SalaryCard({ label, value }) {
+  // Read from the store rather than threaded through four layers of props.
+  // company.currency is the tenant's own currency; the AED fallback only
+  // applies before the company row has loaded.
+  const currency = useAuthStore(s => s.company?.currency) ?? 'AED'
   const hasSalary = value !== null && value !== undefined
   return (
     <div className="p-4 rounded-xl bg-[#F5F5F0] dark:bg-[#0F0F0F] border border-[#E8E8E8] dark:border-[#2A2A2A]">
       <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1.5">{label}</p>
       <p className="text-base font-bold text-[#1A1A1A] dark:text-white tracking-widest">
-        {hasSalary ? '•••,••• AED' : '—'}
+        {hasSalary ? `•••,••• ${currency}` : '—'}
       </p>
     </div>
   )
@@ -987,6 +991,7 @@ function KpiTab({ employeeId }) {
 // ─── Payroll tab ──────────────────────────────────────────────────────────────
 
 function PayrollTab({ employeeId }) {
+  const currency = useAuthStore(s => s.company?.currency) ?? 'AED'
   const [runs, setRuns]           = useState([])
   const [loading, setLoading]     = useState(true)
   const [expandedId, setExpandedId] = useState(null)
@@ -1072,14 +1077,14 @@ function PayrollTab({ employeeId }) {
                         <div key={e.label} className="flex items-center justify-between text-sm">
                           <span className="text-[#666666] dark:text-[#A0A0A0]">{e.label}</span>
                           <span className="font-semibold text-[#1A1A1A] dark:text-white">
-                            {revealed ? `${fmtMoney(e.value)} AED` : maskSalary()}
+                            {revealed ? `${fmtMoney(e.value)} ${currency}` : maskSalary()}
                           </span>
                         </div>
                       ))}
                       <div className="flex items-center justify-between text-sm pt-2.5 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
                         <span className="font-semibold text-[#1A1A1A] dark:text-white">Gross Total</span>
                         <span className="font-bold text-[#00D4A0]">
-                          {revealed ? `${fmtMoney(gross)} AED` : maskSalary()}
+                          {revealed ? `${fmtMoney(gross)} ${currency}` : maskSalary()}
                         </span>
                       </div>
                     </div>
@@ -1092,13 +1097,13 @@ function PayrollTab({ employeeId }) {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#666666] dark:text-[#A0A0A0]">Statutory & Other Deductions</span>
                         <span className="font-semibold text-[#FF4D4D]">
-                          {revealed ? `- ${fmtMoney(run.deductions)} AED` : maskSalary()}
+                          {revealed ? `- ${fmtMoney(run.deductions)} ${currency}` : maskSalary()}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm pt-2.5 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
                         <span className="font-semibold text-[#1A1A1A] dark:text-white">Net Salary</span>
                         <span className="font-bold text-[#00D4A0]">
-                          {revealed ? `${fmtMoney(net)} AED` : maskSalary()}
+                          {revealed ? `${fmtMoney(net)} ${currency}` : maskSalary()}
                         </span>
                       </div>
                     </div>

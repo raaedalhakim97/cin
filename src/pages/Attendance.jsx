@@ -83,6 +83,32 @@ function getGpsPosition(timeout = 10000) {
   })
 }
 
+// Haversine, metres. Mirrors public.distance_metres() in the database. The
+// trigger is the authority — it re-measures every punch and can reject it —
+// but checking here first means the error names a distance the person can act
+// on instead of a failed request.
+function distanceMetres(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 6371000 * 2 * Math.asin(Math.sqrt(a))
+}
+
+// Nearest active work location to a fix. Null when the company hasn't defined
+// any — no locations means no fence, in the browser and in the trigger alike.
+function nearestLocation(coords, locations) {
+  if (!coords || !locations?.length) return null
+  let best = null
+  for (const l of locations) {
+    const d = distanceMetres(coords.latitude, coords.longitude, l.latitude, l.longitude)
+    if (!best || d < best.distance) best = { location: l, distance: d, within: d <= l.radius_metres }
+  }
+  return best
+}
+
 // Late/present classification, shared by the shift-linked and fixed-time
 // fallback paths in clockIn() below — only the expected start instant and
 // grace period differ between the two.
@@ -281,6 +307,131 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
           )}
         </>
       )}
+    </div>
+  )
+}
+
+// ─── Attendance exceptions ────────────────────────────────────────────────────
+// Records that can't be trusted as they stand. Before this existed they were
+// invisible: a clock-in with no clock-out just sat in the table, counted by
+// calculate_attendance_score as a normal present day, and nobody had a screen
+// that would show it. Read for anyone who may read the roster; the Fix link
+// only appears for the roles that may actually correct a record.
+function AttendanceExceptions({ rows, loading, canEdit, onFix }) {
+  if (loading) return <SkeletonBlock className="h-32 mb-6" />
+  if (!rows.length) {
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl mb-6 bg-[#00D4A0]/10 border border-[#00D4A0]/20">
+        <CheckCircle2 size={15} className="text-[#00D4A0] shrink-0" />
+        <p className="text-sm text-[#1A1A1A] dark:text-white">
+          No attendance exceptions this month — every record has a clock-in and a clock-out.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#FF8C42]/30 overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 bg-[#FF8C42]/10 border-b border-[#FF8C42]/20">
+        <AlertTriangle size={15} className="text-[#FF8C42] shrink-0" />
+        <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">
+          {rows.length} attendance {rows.length === 1 ? 'exception' : 'exceptions'} this month
+        </p>
+      </div>
+      <div className="divide-y divide-[#E8E8E8] dark:divide-[#2A2A2A] max-h-72 overflow-y-auto">
+        {rows.map((r) => (
+          <div key={r.id} className="flex items-center gap-3 px-5 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">
+                {r.employees?.full_name ?? 'Unknown'}
+              </p>
+              <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
+                {new Date(r.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {' · '}{r.problem}
+              </p>
+            </div>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => onFix(r)}
+                className="shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold text-[#00D4A0] border border-[#00D4A0]/30 hover:bg-[#00D4A0]/10 transition-colors"
+              >
+                Fix
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      {!canEdit && (
+        <p className="px-5 py-3 text-xs text-[#666666] dark:text-[#A0A0A0] border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
+          Your role can see these but not correct them — send them to HR.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── Early-checkout confirmation ──────────────────────────────────────────────
+// Clocking out before the scheduled end is allowed — people leave early for
+// good reasons — but it is never silent. The shortfall lands in
+// attendance.early_minutes either way; the reason typed here is what makes it
+// legible to whoever reads the record later.
+function EarlyCheckoutModal({ prompt, saving, onCancel, onConfirm }) {
+  const [reason, setReason] = useState('')
+  if (!prompt) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div
+        className="w-full max-w-md bg-white dark:bg-[#1E1E1E] rounded-2xl border border-[#E8E8E8] dark:border-[#2A2A2A] shadow-2xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-[#FF8C42]/10 flex items-center justify-center shrink-0">
+            <AlertTriangle size={16} className="text-[#FF8C42]" />
+          </div>
+          <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white">
+            Leaving {prompt.label} early
+          </h2>
+        </div>
+
+        <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mb-4">
+          {prompt.fromShift ? 'Your shift' : 'Your working day'} ends at {prompt.endLabel}. Clocking out now
+          records the day as {prompt.label} short of the scheduled end.
+        </p>
+
+        <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1.5">
+          Reason <span className="font-normal text-[#AAAAAA] dark:text-[#555555]">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={300}
+          placeholder="e.g. medical appointment"
+          className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors"
+        />
+
+        <div className="flex gap-3 mt-5">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#1A1A1A] dark:text-white border border-[#E8E8E8] dark:border-[#2A2A2A] hover:border-[#00D4A0]/40 disabled:opacity-60 transition-colors"
+          >
+            Stay clocked in
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(reason)}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF8C42] hover:bg-[#E87A34] disabled:opacity-60 transition-colors"
+          >
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            Clock out anyway
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -655,7 +806,19 @@ export default function Attendance() {
   const role      = useAuthStore(s => s.role)
   const companyId = useAuthStore(s => s.companyId)
 
+  // Two different questions, previously answered by one flag.
+  //
+  // canAdmin is the *write* capability: correcting someone else's record.
+  // §4.3 keeps that with HR — "the person who builds the schedule should
+  // never also be able to falsify the clock-in it produces".
+  //
+  // canViewRoster is the *read* capability: looking up anyone's history and
+  // exporting it. att_select / attendance_admin_select already grant that to
+  // admin, department_manager and read_only in the database; the page just
+  // never offered it, so operations could see today and nothing else.
   const canAdmin = role === 'super_admin' || role === 'hr_manager'
+  const canViewRoster =
+    canAdmin || role === 'admin' || role === 'department_manager' || role === 'read_only'
 
   // Which month is the calendar showing
   const now = new Date()
@@ -674,6 +837,10 @@ export default function Attendance() {
   const [todayLoading,   setTodayLoading]   = useState(true)
   const [actionLoading,  setActionLoading]  = useState(false)
   const [clockError,     setClockError]     = useState('')
+  // Non-null while the early-checkout confirmation is on screen.
+  const [earlyPrompt,    setEarlyPrompt]    = useState(null)
+  const [exceptions,     setExceptions]     = useState([])
+  const [exceptionsLoading, setExceptionsLoading] = useState(true)
 
   const [editCell,    setEditCell]    = useState(null)
   const [modalSaving, setModalSaving] = useState(false)
@@ -695,21 +862,32 @@ export default function Attendance() {
   // off, the app still attempts GPS (for the map-pin display below) but
   // proceeds without it on failure.
   const [requireGpsClockIn, setRequireGpsClockIn] = useState(true)
+  // Geofence (work_locations + shift_settings.enforce_geofence). With no
+  // locations defined the fence is inert everywhere, which is the default.
+  const [workLocations, setWorkLocations] = useState([])
+  const [enforceGeofence, setEnforceGeofence] = useState(false)
+  const [earlyGrace, setEarlyGrace] = useState(5)
+  const [companyWorkEnd, setCompanyWorkEnd] = useState('17:00:00')
 
   useEffect(() => {
     if (!companyId) return
     Promise.all([
-      supabase.from('shift_settings').select('late_grace_minutes, require_shift_to_clock_in, require_gps_clock_in').eq('company_id', companyId).maybeSingle(),
+      supabase.from('shift_settings').select('late_grace_minutes, require_shift_to_clock_in, require_gps_clock_in, enforce_geofence, early_checkout_grace_minutes').eq('company_id', companyId).maybeSingle(),
       supabase.from('kpi_settings').select('late_grace_minutes').eq('company_id', companyId).maybeSingle(),
-      supabase.from('company').select('work_start_time').eq('id', companyId).maybeSingle(),
-    ]).then(([shiftRes, kpiRes, companyRes]) => {
+      supabase.from('company').select('work_start_time, work_end_time').eq('id', companyId).maybeSingle(),
+      supabase.from('work_locations').select('id, name, latitude, longitude, radius_metres').eq('company_id', companyId).eq('active', true),
+    ]).then(([shiftRes, kpiRes, companyRes, locRes]) => {
       if (shiftRes.data) {
         setShiftLateGrace(shiftRes.data.late_grace_minutes)
         setRequireShiftToClockIn(!!shiftRes.data.require_shift_to_clock_in)
         setRequireGpsClockIn(!!shiftRes.data.require_gps_clock_in)
+        setEnforceGeofence(!!shiftRes.data.enforce_geofence)
+        setEarlyGrace(shiftRes.data.early_checkout_grace_minutes ?? 5)
       }
       if (kpiRes.data) setKpiLateGrace(kpiRes.data.late_grace_minutes)
       if (companyRes.data?.work_start_time) setCompanyWorkStart(companyRes.data.work_start_time)
+      if (companyRes.data?.work_end_time) setCompanyWorkEnd(companyRes.data.work_end_time)
+      setWorkLocations(locRes.data ?? [])
     })
   }, [companyId])
 
@@ -754,13 +932,59 @@ export default function Attendance() {
 
   // Load employee list for HR dropdown
   useEffect(() => {
-    if (!canAdmin) return
+    if (!canViewRoster) return
     supabase
       .from('employees')
       .select('id, full_name')
       .order('full_name')
       .then(({ data }) => setEmployees(data ?? []))
-  }, [canAdmin])
+  }, [canViewRoster])
+
+  // Company-wide exceptions for the viewed month. A row is an exception when
+  // it cannot be read as a finished day: a clock-in on a past date that was
+  // never closed, or a record with no clock-in at all but a status that
+  // calculate_attendance_score will happily average in.
+  // Bumped after a correction lands, to re-run the query below.
+  const [exceptionsKey, setExceptionsKey] = useState(0)
+  const reloadExceptions = () => setExceptionsKey((k) => k + 1)
+
+  useEffect(() => {
+    // The panel isn't rendered for roles that can't read the roster, so the
+    // loading flag it would set is never observed.
+    if (!canViewRoster) return undefined
+    let cancelled = false
+    async function load() {
+      const yr = viewDate.getFullYear()
+      const mo = viewDate.getMonth()
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('id, date, clock_in, clock_out, status, employee_id, employees!attendance_employee_id_fkey(full_name)')
+        .gte('date', localDateStr(new Date(yr, mo, 1)))
+        .lte('date', localDateStr(new Date(yr, mo + 1, 0)))
+        .order('date', { ascending: false })
+      if (cancelled) return
+
+      if (error) {
+        console.error('[Attendance] exceptions query failed', error)
+        setExceptions([])
+        setExceptionsLoading(false)
+        return
+      }
+
+      const today = localDateStr(new Date())
+      setExceptions(
+        (data ?? []).flatMap((r) => {
+          if (!r.clock_in) return [{ ...r, problem: 'No clock-in recorded, but the day has a status' }]
+          // Today's open record is just someone still at work.
+          if (!r.clock_out && r.date < today) return [{ ...r, problem: 'Clocked in but never clocked out' }]
+          return []
+        })
+      )
+      setExceptionsLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [viewDate, canViewRoster, exceptionsKey])
 
   // Fetch month records when calendar month or employee changes
   const fetchMonth = useCallback(async (empId, vd) => {
@@ -826,8 +1050,19 @@ export default function Attendance() {
       lng = coords.longitude
     } catch (err) {
       console.error('[Attendance] clockIn geolocation failed', err)
-      if (requireGpsClockIn) {
+      // Enforcing the fence makes a fix mandatory whatever require_gps says —
+      // otherwise "block location" would be the way around the fence.
+      if (requireGpsClockIn || (enforceGeofence && workLocations.length)) {
         setClockError('Location access is required to clock in. Please enable location permissions for this site and try again.')
+        setActionLoading(false)
+        return
+      }
+    }
+
+    if (enforceGeofence) {
+      const near = nearestLocation(lat != null ? { latitude: lat, longitude: lng } : null, workLocations)
+      if (near && !near.within) {
+        setClockError(`You're ${Math.round(near.distance)}m from ${near.location.name}. Clock-in is only accepted within ${near.location.radius_metres}m.`)
         setActionLoading(false)
         return
       }
@@ -873,7 +1108,13 @@ export default function Attendance() {
     })
     if (error) {
       console.error('[Attendance] clockIn failed', error)
-      setClockError('Something went wrong clocking in. Please try again.')
+      // The attendance_guard trigger raises geofence refusals as P0001 with
+      // text already written for the person reading it.
+      setClockError(
+        error.message?.startsWith('Clock-in blocked:')
+          ? error.message
+          : 'Something went wrong clocking in. Please try again.'
+      )
     } else {
       await fetchTodayAndWeek(employee.id)
       if (isCurrentMonth) await fetchMonth(employee.id, viewDate)
@@ -881,7 +1122,41 @@ export default function Attendance() {
     setActionLoading(false)
   }
 
-  async function clockOut() {
+  // When is today supposed to finish? The linked shift's end_at when there is
+  // one, otherwise the company's fixed hours read in the browser's timezone —
+  // the same instant the DB derives from company.timezone.
+  function scheduledEndToday() {
+    const linked = todayRecord?.shifts?.end_at
+    if (linked) return new Date(linked)
+    const [h, m] = String(companyWorkEnd).split(':').map(Number)
+    if (Number.isNaN(h)) return null
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m || 0, 0, 0)
+  }
+
+  // Pressing Clock Out never writes straight away: if the day isn't over yet
+  // the employee is told how short they are and has to confirm.
+  function requestClockOut() {
+    if (role === 'read_only' || !todayRecord) return
+    setClockError('')
+    const end = scheduledEndToday()
+    if (end) {
+      const minutes = Math.ceil((end - new Date()) / 60000)
+      if (minutes > earlyGrace) {
+        const h = Math.floor(minutes / 60)
+        setEarlyPrompt({
+          minutes,
+          label: h > 0 ? `${h}h ${minutes % 60}m` : `${minutes}m`,
+          endLabel: end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          fromShift: !!todayRecord?.shifts?.end_at,
+        })
+        return
+      }
+    }
+    clockOut(null)
+  }
+
+  async function clockOut(earlyReason) {
     if (role === 'read_only') return
     if (!todayRecord) return
     setActionLoading(true)
@@ -895,24 +1170,45 @@ export default function Attendance() {
       lng = coords.longitude
     } catch (err) {
       console.error('[Attendance] clockOut geolocation failed', err)
-      if (requireGpsClockIn) {
+      if (requireGpsClockIn || (enforceGeofence && workLocations.length)) {
         setClockError('Location access is required to clock out. Please enable location permissions for this site and try again.')
         setActionLoading(false)
+        setEarlyPrompt(null)
+        return
+      }
+    }
+
+    if (enforceGeofence) {
+      const near = nearestLocation(lat != null ? { latitude: lat, longitude: lng } : null, workLocations)
+      if (near && !near.within) {
+        setClockError(`You're ${Math.round(near.distance)}m from ${near.location.name}. Clock-out is only accepted within ${near.location.radius_metres}m.`)
+        setActionLoading(false)
+        setEarlyPrompt(null)
         return
       }
     }
 
     const { error } = await supabase
       .from('attendance')
-      .update({ clock_out: new Date().toISOString(), clock_out_lat: lat, clock_out_lng: lng })
+      .update({
+        clock_out: new Date().toISOString(),
+        clock_out_lat: lat,
+        clock_out_lng: lng,
+        early_reason: earlyReason?.trim() || null,
+      })
       .eq('id', todayRecord.id)
     if (error) {
       console.error('[Attendance] clockOut failed', error)
-      setClockError('Something went wrong clocking out. Please try again.')
+      setClockError(
+        error.message?.startsWith('Clock-out blocked:')
+          ? error.message
+          : 'Something went wrong clocking out. Please try again.'
+      )
     } else {
       await fetchTodayAndWeek(employee.id)
       if (isCurrentMonth) await fetchMonth(employee.id, viewDate)
     }
+    setEarlyPrompt(null)
     setActionLoading(false)
   }
 
@@ -941,10 +1237,21 @@ export default function Attendance() {
         fetchMonth(selectedEmpId, viewDate),
         fetchTodayAndWeek(selectedEmpId),
       ])
+      reloadExceptions()
       setEditCell(null)
       showToast('success', 'Attendance record saved')
     }
     setModalSaving(false)
+  }
+
+  // saveOverride writes employee_id: selectedEmpId, so fixing an exception
+  // belonging to someone else has to move the page to that person first —
+  // otherwise the correction would reassign their day to whoever happened to
+  // be selected in the dropdown.
+  function fixException(row) {
+    setSelectedEmpId(row.employee_id)
+    setViewDate(new Date(row.date + 'T00:00:00'))
+    setEditCell({ dateStr: row.date, record: row })
   }
 
   // ── Export (admin only) — all employees' attendance for the viewed month ──
@@ -954,7 +1261,7 @@ export default function Attendance() {
     const mo = viewDate.getMonth()
     const { data, error } = await supabase
       .from('attendance')
-      .select('date, clock_in, clock_out, status, overtime_hours, employees(full_name)')
+      .select('date, clock_in, clock_out, status, overtime_hours, employees!attendance_employee_id_fkey(full_name)')
       .gte('date', localDateStr(new Date(yr, mo, 1)))
       .lte('date', localDateStr(new Date(yr, mo + 1, 0)))
       .order('date')
@@ -1032,7 +1339,7 @@ export default function Attendance() {
 
                 <div className="flex items-center gap-3 flex-wrap">
                   {/* HR/Admin employee dropdown */}
-                  {canAdmin && employees.length > 0 && (
+                  {canViewRoster && employees.length > 0 && (
                     <select
                       value={selectedEmpId ?? ''}
                       onChange={e => setSelectedEmpId(e.target.value)}
@@ -1063,8 +1370,8 @@ export default function Attendance() {
                     </button>
                   </div>
 
-                  {/* Export (admin only) — all employees for the viewed month */}
-                  {canAdmin && (
+                  {/* Export — anyone who may read the roster's attendance */}
+                  {canViewRoster && (
                     <button
                       onClick={handleExportAttendance}
                       disabled={exportingAtt}
@@ -1088,12 +1395,21 @@ export default function Attendance() {
                   actionLoading={actionLoading}
                   error={clockError}
                   onClockIn={clockIn}
-                  onClockOut={clockOut}
+                  onClockOut={requestClockOut}
                   clockInBlocked={canClockInOut && clockInBlocked}
                   clockInBlockedReason={clockInBlockedReason}
                 />
                 <WeeklySummary records={weekRecords} />
               </div>
+
+              {canViewRoster && (
+                <AttendanceExceptions
+                  rows={exceptions}
+                  loading={exceptionsLoading}
+                  canEdit={canAdmin}
+                  onFix={fixException}
+                />
+              )}
 
               {/* ── Monthly Calendar ───────────────────────────────────────── */}
               <CalendarGrid
@@ -1117,6 +1433,16 @@ export default function Attendance() {
           saving={modalSaving}
         />
       )}
+
+      {/* Early-checkout confirmation. Keyed on the shortfall so reopening it
+          after a cancel starts with an empty reason field. */}
+      <EarlyCheckoutModal
+        key={earlyPrompt?.minutes ?? 'none'}
+        prompt={earlyPrompt}
+        saving={actionLoading}
+        onCancel={() => setEarlyPrompt(null)}
+        onConfirm={clockOut}
+      />
 
       <ToastComp toast={toast} />
     </div>

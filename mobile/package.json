@@ -1,0 +1,35 @@
+{
+  "name": "byond-hr-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "doctor": "npx expo-doctor"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@supabase/supabase-js": "^2.108.2",
+    "expo": "^57.0.10",
+    "expo-constants": "^57.0.9",
+    "expo-font": "^57.0.1",
+    "expo-linking": "^57.0.5",
+    "expo-location": "^57.0.7",
+    "expo-router": "^57.0.10",
+    "expo-status-bar": "^57.0.1",
+    "react": "^19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "^5.8.1",
+    "react-native-screens": "^4.26.2",
+    "react-native-svg": "^15.15.5",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "react-dom": "^19.2.8",
+    "react-native-web": "^0.21.2"
+  }
+}

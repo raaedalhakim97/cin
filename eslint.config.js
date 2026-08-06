@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // mobile/ is the Expo app — React Native globals, its own toolchain and its
+  // own bundler. Linting it with browser globals from here only produces noise.
+  globalIgnores(['dist', 'mobile']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

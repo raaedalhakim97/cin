@@ -57,7 +57,7 @@ export default function ManagerDashboard() {
 
     const [{ data: attRows }, { data: leaveRows }, { data: scoreRows }] = await Promise.all([
       supabase.from('attendance').select('employee_id, status').in('employee_id', teamIds).eq('date', today),
-      supabase.from('leave_requests').select('id, employee_id, leave_type, start_date, end_date, created_at, employees(full_name)')
+      supabase.from('leave_requests').select('id, employee_id, leave_type, start_date, end_date, created_at, employees!leave_requests_employee_id_fkey(full_name)')
         .in('employee_id', teamIds).eq('status', 'pending').order('created_at', { ascending: false }),
       supabase.from('kpi_scores').select('employee_id, period_year, period_month, total_score').in('employee_id', teamIds),
     ])
