@@ -1,8 +1,25 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Check, X, Loader2, AlertTriangle, Gauge, History, Users, ShieldAlert,
-  Gift, Trophy, Pencil, Calendar, Filter, Info, Target, Lock,
-  ChevronDown, ChevronUp, AlignLeft,
+  AlertTriangle,
+  AlignLeft,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ClipboardCheck,
+  Filter,
+  Gauge,
+  Gift,
+  History,
+  Info,
+  Loader2,
+  Lock,
+  Pencil,
+  ShieldAlert,
+  Target,
+  Trophy,
+  Users,
+  X,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
@@ -10,6 +27,8 @@ import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import HowCalculatedPopover from '../components/kpi/HowCalculatedPopover'
 import PDPTab from '../components/kpi/PDPTab'
+import ReviewCyclesTab from '../components/kpi/ReviewCyclesTab'
+import SelfReviewCard from '../components/kpi/SelfReviewCard'
 import ToastComp, { useToast } from '../components/Toast'
 import { SkeletonBlock } from '../components/Skeleton'
 
@@ -127,6 +146,15 @@ function computeRating(score) {
 
 const TEAM_ROLES = new Set(['super_admin', 'hr_manager', 'department_manager'])
 const WARN_ROLES = new Set(['super_admin', 'hr_manager'])
+
+// Who proposed this warning. A rule-generated recommendation has
+// recommended_by NULL — attributing it to "manager" would tell HR a human
+// judged this when nothing of the sort happened, and that changes how it
+// should be reviewed.
+function recSource(rec) {
+  if (rec?.source === 'rule') return 'the attendance rules'
+  return rec?.manager?.full_name ?? 'a manager'
+}
 
 // `weight` here is only the label's fallback — the real figure comes from the
 // row's weights_used via weightsFor(). `auto` marks components the system
@@ -418,6 +446,10 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
 
   return (
     <div className="space-y-8 max-w-5xl">
+      {/* The quarterly self-assessment. Renders nothing unless HR has opened a
+          cycle, so it cannot invite a write the database would reject. */}
+      <SelfReviewCard employeeId={employee?.id} showToast={showToast} />
+
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-stretch">
         {/* Gauge card */}
         <div className="p-8 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] flex flex-col items-center justify-center gap-4">
@@ -1402,7 +1434,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
       employeeName: rec.employees?.full_name,
       warningLevel: rec.warning_level,
       reason: rec.reason,
-      managerName: rec.manager?.full_name,
+      managerName: recSource(rec),
       recommendationId: rec.id,
     })
     setShowWarningModal(true)
@@ -1484,7 +1516,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
               <div key={rec.id} className="flex items-center gap-4 px-5 py-3.5">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">
-                    {rec.employees?.full_name ?? 'Unknown'} <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">· Level {rec.warning_level} · from {rec.manager?.full_name ?? 'manager'}</span>
+                    {rec.employees?.full_name ?? 'Unknown'} <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">· Level {rec.warning_level} · from {recSource(rec)}</span>
                   </p>
                   <p className="text-xs text-[#666666] dark:text-[#A0A0A0] truncate" title={rec.reason}>{rec.reason}</p>
                 </div>
@@ -1626,7 +1658,7 @@ function RejectRecommendationModal({ rec, onClose, onConfirm }) {
         <form onSubmit={submit} className="p-6 space-y-4">
           <div className="p-3.5 rounded-xl bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A]">
             <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">{rec.employees?.full_name ?? 'Employee'}</p>
-            <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">Level {rec.warning_level} · from {rec.manager?.full_name ?? 'manager'}</p>
+            <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">Level {rec.warning_level} · from {recSource(rec)}</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-[#1A1A1A] dark:text-white mb-1.5">Note (optional)</label>
@@ -1693,6 +1725,7 @@ export default function KPI() {
     { id: 'history', label: 'History', icon: History },
     ...(canTeam ? [{ id: 'team', label: 'Team KPI', icon: Users }] : []),
     ...(canWarn ? [{ id: 'warnings', label: 'Warnings & Rewards', icon: ShieldAlert }] : []),
+    ...(canWarn ? [{ id: 'reviews', label: 'Review Cycles', icon: ClipboardCheck }] : []),
     { id: 'pdp', label: 'Development Plans', icon: Target },
   ]
 
@@ -1747,6 +1780,9 @@ export default function KPI() {
           )}
           {activeTab === 'warnings' && canWarn && (
             <WarningsRewardsTab companyId={companyId} issuerId={employee?.id} showToast={showToast} />
+          )}
+          {activeTab === 'reviews' && canWarn && (
+            <ReviewCyclesTab showToast={showToast} />
           )}
           {activeTab === 'pdp' && (
             <PDPTab employee={employee} companyId={companyId} canManage={canWarn} showToast={showToast} role={role} />
