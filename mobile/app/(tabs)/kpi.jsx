@@ -61,7 +61,10 @@ function ComponentBar({ label, weight, score, auto }) {
           ) : null}
         </View>
         <Text style={{ ...type.caption, color: c.textMuted }}>
-          {weight}% · <Text style={{ color: c.text, fontWeight: '700' }}>{pct.toFixed(0)}</Text>/100
+          {/* A zero weight is not "0% of your score" — it means this component
+              is measured and shown but does not count toward the total yet. */}
+          {weight > 0 ? `${weight}% · ` : 'not scored · '}
+          <Text style={{ color: c.text, fontWeight: '700' }}>{pct.toFixed(0)}</Text>/100
         </Text>
       </View>
       <View style={{ height: 6, backgroundColor: c.surfaceAlt, borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>

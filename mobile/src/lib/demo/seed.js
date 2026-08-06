@@ -267,7 +267,9 @@ export function buildSeed() {
     },
   ]
 
-  const WEIGHTS = { attendance: 30, behavior: 25, achievement: 20, manager: 15, self: 10 }
+  // reliability is weight 0, matching the shipped default: it is measured and
+  // shown, but does not score until a company chooses to weight it.
+  const WEIGHTS = { attendance: 30, reliability: 0, behavior: 25, achievement: 20, manager: 15, self: 10 }
 
   const ratingFor = (score) => {
     if (score >= 90) return 'Exceptional'
@@ -284,6 +286,7 @@ export function buildSeed() {
     period_year: year,
     period_month: month,
     attendance_score: parts.attendance,
+    reliability_score: parts.reliability ?? null,
     behavior_score: parts.behavior,
     achievement_score: parts.achievement,
     manager_score: parts.manager,
@@ -296,19 +299,19 @@ export function buildSeed() {
   })
 
   const kpi_scores = [
-    kpiRow('e1', YEAR, MONTH, 91, { attendance: 88, behavior: 92, achievement: 95, manager: 90, self: 85 }),
-    kpiRow('e2', YEAR, MONTH, 78, { attendance: 74, behavior: 80, achievement: 82, manager: 76, self: 75 }),
-    kpiRow('e3', YEAR, MONTH, 85, { attendance: 92, behavior: 84, achievement: 80, manager: 82, self: 80 }),
-    kpiRow('e4', YEAR, MONTH, 67, { attendance: 58, behavior: 70, achievement: 72, manager: 68, self: 70 }),
-    kpiRow('e5', YEAR, MONTH, 94, { attendance: 100, behavior: 92, achievement: 90, manager: 94, self: 90 }),
-    kpiRow('e6', YEAR, MONTH, 80, { attendance: 82, behavior: 78, achievement: 80, manager: 80, self: 78 }),
-    kpiRow('e7', YEAR, MONTH, 88, { attendance: 90, behavior: 86, achievement: 88, manager: 88, self: 85 }),
-    kpiRow('e8', YEAR, MONTH, 96, { attendance: 98, behavior: 96, achievement: 96, manager: 95, self: 92 }),
-    kpiRow('e9', YEAR, MONTH, 82, { attendance: 86, behavior: 82, achievement: 80, manager: 80, self: 80 }),
-    kpiRow('e10', YEAR, MONTH, 79, { attendance: 84, behavior: 78, achievement: 76, manager: 78, self: 75 }),
+    kpiRow('e1', YEAR, MONTH, 91, { attendance: 88, behavior: 92, achievement: 95, manager: 90, self: 85, reliability: 90 }),
+    kpiRow('e2', YEAR, MONTH, 78, { attendance: 74, behavior: 80, achievement: 82, manager: 76, self: 75, reliability: 76 }),
+    kpiRow('e3', YEAR, MONTH, 85, { attendance: 92, behavior: 84, achievement: 80, manager: 82, self: 80, reliability: 97 }),
+    kpiRow('e4', YEAR, MONTH, 67, { attendance: 58, behavior: 70, achievement: 72, manager: 68, self: 70, reliability: 62 }),
+    kpiRow('e5', YEAR, MONTH, 94, { attendance: 100, behavior: 92, achievement: 90, manager: 94, self: 90, reliability: 100 }),
+    kpiRow('e6', YEAR, MONTH, 80, { attendance: 82, behavior: 78, achievement: 80, manager: 80, self: 78, reliability: 83 }),
+    kpiRow('e7', YEAR, MONTH, 88, { attendance: 90, behavior: 86, achievement: 88, manager: 88, self: 85, reliability: 90 }),
+    kpiRow('e8', YEAR, MONTH, 96, { attendance: 98, behavior: 96, achievement: 96, manager: 95, self: 92, reliability: 100 }),
+    kpiRow('e9', YEAR, MONTH, 82, { attendance: 86, behavior: 82, achievement: 80, manager: 80, self: 80, reliability: 90 }),
+    kpiRow('e10', YEAR, MONTH, 79, { attendance: 84, behavior: 78, achievement: 76, manager: 78, self: 75, reliability: 90 }),
     // Sarah's previous months, for the history list.
-    kpiRow('e1', YEAR, MONTH === 1 ? 12 : MONTH - 1, 88, { attendance: 85, behavior: 90, achievement: 92, manager: 86, self: 82 }),
-    kpiRow('e1', YEAR, MONTH <= 2 ? 11 : MONTH - 2, 82, { attendance: 80, behavior: 84, achievement: 85, manager: 80, self: 78 }),
+    kpiRow('e1', YEAR, MONTH === 1 ? 12 : MONTH - 1, 88, { attendance: 85, behavior: 90, achievement: 92, manager: 86, self: 82, reliability: 90 }),
+    kpiRow('e1', YEAR, MONTH <= 2 ? 11 : MONTH - 2, 82, { attendance: 80, behavior: 84, achievement: 85, manager: 80, self: 78, reliability: 83 }),
   ]
 
   const payrollRow = (employeeId, monthsBack, status) => {

@@ -132,8 +132,10 @@ const WARN_ROLES = new Set(['super_admin', 'hr_manager'])
 // row's weights_used via weightsFor(). `auto` marks components the system
 // derives from attendance rather than a person scoring them.
 const COMPONENTS = [
-  { key: 'attendance_score',  label: 'Attendance',          weight: 30, auto: true },
-  { key: 'reliability_score', label: 'Hours Completed',     weight: 0,  auto: true },
+  { key: 'attendance_score',  label: 'Attendance',          weight: 30, auto: true,
+    note: 'Auto-calculated from attendance' },
+  { key: 'reliability_score', label: 'Hours Completed',     weight: 0,  auto: true,
+    note: 'Auto-calculated: time worked vs time scheduled' },
   { key: 'behavior_score',    label: 'Behavior',            weight: 25 },
   { key: 'achievement_score', label: 'Achievement',         weight: 20 },
   { key: 'manager_score',     label: 'Manager Evaluation',  weight: 15 },
@@ -273,21 +275,28 @@ function AttendanceScoreTooltip() {
   )
 }
 
-function ComponentBar({ label, weight, value, auto = false }) {
+// `note` is the one-line explanation under an auto-derived component, and
+// `tooltip` its optional detail popover. They are per-component because the
+// attendance point table explains attendance only — showing it against
+// reliability would describe the wrong calculation.
+function ComponentBar({ label, weight, value, auto = false, note, tooltip }) {
   const pct = Math.max(0, Math.min(100, num(value)))
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5 text-sm">
         <div className="flex items-center gap-1.5">
           <span className="font-semibold text-[#1A1A1A] dark:text-white">{label}</span>
-          {auto && <AttendanceScoreTooltip />}
+          {tooltip}
         </div>
         <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">
-          {weight}% weight · <span className="font-semibold text-[#1A1A1A] dark:text-white">{pct.toFixed(0)}</span>/100
+          {/* A zero weight is not "0% of your score" — it means the component is
+              measured and shown but does not count toward the total yet. */}
+          {weight > 0 ? `${weight}% weight · ` : 'not scored · '}
+          <span className="font-semibold text-[#1A1A1A] dark:text-white">{pct.toFixed(0)}</span>/100
         </span>
       </div>
-      {auto && (
-        <p className="text-[11px] text-[#00D4A0] mb-1.5">Auto-calculated from attendance</p>
+      {auto && note && (
+        <p className="text-[11px] text-[#00D4A0] mb-1.5">{note}</p>
       )}
       <div className="h-2.5 bg-[#F0F0F0] dark:bg-[#2A2A2A] rounded-full overflow-hidden">
         <div className="h-full bg-[#00D4A0] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
@@ -442,6 +451,8 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
               return (
                 <ComponentBar
                   key={c.key} label={c.label} weight={w} value={row?.[c.key]} auto={c.auto}
+                  note={c.note}
+                  tooltip={c.key === 'attendance_score' ? <AttendanceScoreTooltip /> : null}
                 />
               )
             })}
