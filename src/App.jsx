@@ -91,6 +91,19 @@ function App() {
   const attemptedOnboardRef = useRef(false)
   const attemptedInviteRef = useRef(false)
 
+  // The theme class belongs on <html>, not on a div inside #root.
+  //
+  // It used to live on a wrapper div, which meant html and body were never
+  // given a background at all. A div only paints its own box, so any pixel
+  // outside it fell back to browser white — visible as a white band down the
+  // right of any page wide enough to scroll horizontally, and on the
+  // rubber-band overscroll area. Setting it here lets index.css colour the
+  // whole canvas. color-scheme comes along for free, which is what makes the
+  // scrollbars and native form controls dark instead of light.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark)
+  }, [isDark])
+
   useEffect(() => {
     let subscription
     init().then((sub) => { subscription = sub })
@@ -153,7 +166,7 @@ function App() {
   }, [loading, session, role, loadProfile])
 
   return (
-    <div className={isDark ? 'dark' : ''}>
+    <div>
       {loading || onboarding || acceptingInvite ? (
         <div className="min-h-screen flex items-center justify-center bg-[#F5F5F0] dark:bg-[#0F0F0F]">
           <Loader2 size={28} className="animate-spin text-[#00D4A0]" />

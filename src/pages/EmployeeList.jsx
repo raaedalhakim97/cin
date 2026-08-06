@@ -280,7 +280,10 @@ export default function EmployeeList() {
                 {total} total {total === 1 ? 'employee' : 'employees'}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            {/* flex-wrap, because three text buttons in a row are wider than a
+                phone. Without it the row forced the whole document wider than
+                the viewport, which is what exposed the unpainted canvas. */}
+            <div className="flex flex-wrap items-center gap-3">
               {/* Export dropdown */}
               <div className="relative">
                 <button
