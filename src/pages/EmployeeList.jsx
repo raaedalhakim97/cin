@@ -267,7 +267,7 @@ export default function EmployeeList() {
     <div className="flex min-h-screen bg-[#F5F5F0] dark:bg-[#0F0F0F]">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-60">
+      <div className="flex-1 min-w-0 flex flex-col lg:ml-60">
         <Header />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -280,7 +280,10 @@ export default function EmployeeList() {
                 {total} total {total === 1 ? 'employee' : 'employees'}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            {/* flex-wrap, because three text buttons in a row are wider than a
+                phone. Without it the row forced the whole document wider than
+                the viewport, which is what exposed the unpainted canvas. */}
+            <div className="flex flex-wrap items-center gap-3">
               {/* Export dropdown */}
               <div className="relative">
                 <button

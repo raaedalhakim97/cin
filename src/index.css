@@ -11,8 +11,29 @@
   box-sizing: border-box;
 }
 
+/* Paint the canvas itself, not just the page containers.
+ *
+ * Every page renders a `min-h-screen bg-…` div, which covers the viewport but
+ * nothing beyond it. When a page overflows horizontally the extra width was
+ * unpainted, so it showed browser white next to a dark app. Same for the
+ * overscroll area on iOS. html carries the theme class (set in App.jsx), so
+ * colouring it here means there is no such thing as an unpainted pixel.
+ *
+ * color-scheme is what tells the browser to render scrollbars, date pickers
+ * and other native controls in the matching theme. */
+html {
+  background-color: #F5F5F0;
+  color-scheme: light;
+}
+
+html.dark {
+  background-color: #0F0F0F;
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
+  background-color: inherit;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

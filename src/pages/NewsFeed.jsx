@@ -817,7 +817,7 @@ export default function NewsFeed() {
     return (
       <div className="flex min-h-screen bg-[#F5F5F0] dark:bg-[#0F0F0F]">
         <Sidebar />
-        <div className="flex-1 flex flex-col lg:ml-60">
+        <div className="flex-1 min-w-0 flex flex-col lg:ml-60">
           <Header />
           <main className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="flex items-start gap-3 p-5 rounded-xl bg-[#FF8C42]/10 border border-[#FF8C42]/20 max-w-lg">
@@ -845,7 +845,7 @@ export default function NewsFeed() {
     <div className="flex min-h-screen bg-[#F5F5F0] dark:bg-[#0F0F0F]">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-60">
+      <div className="flex-1 min-w-0 flex flex-col lg:ml-60">
         <Header />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto w-full">

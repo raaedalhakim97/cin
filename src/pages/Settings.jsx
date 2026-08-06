@@ -513,7 +513,7 @@ export default function Settings() {
     <div className="flex min-h-screen bg-[#F5F5F0] dark:bg-[#0F0F0F]">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-60">
+      <div className="flex-1 min-w-0 flex flex-col lg:ml-60">
         <Header />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -525,7 +525,7 @@ export default function Settings() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit mb-8 overflow-x-auto">
+          <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit max-w-full mb-8 overflow-x-auto">
             {visibleTabs.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}

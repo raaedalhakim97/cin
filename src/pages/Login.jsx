@@ -9,6 +9,39 @@ import Logo from '../components/Logo'
 
 const MAX_CONCURRENT_SESSIONS = 2
 
+// Never show the user a raw error body.
+//
+// supabase-js builds its message as msg || message || error_description ||
+// error || JSON.stringify(body). When the auth service failed on accounts whose
+// token columns were NULL, none of those keys were present, so the login form
+// displayed the literal string "{}" — which tells the person signing in
+// nothing, and told us nothing either until we read the database directly.
+//
+// Known causes get a plain sentence. Anything unrecognised says so honestly
+// rather than pretending the credentials were wrong, because "wrong password"
+// on a server fault sends people chasing the one thing that is not broken.
+function loginErrorMessage(error) {
+  const raw = (error?.message ?? '').trim()
+
+  if (/invalid login credentials/i.test(raw)) return 'Email or password is incorrect.'
+  if (/email not confirmed/i.test(raw))       return 'Confirm your email address before signing in.'
+  if (/email logins are disabled/i.test(raw)) return 'Email sign-in is turned off for this workspace.'
+  if (/rate limit|too many requests/i.test(raw)) {
+    return 'Too many attempts. Wait a minute and try again.'
+  }
+  if (/failed to fetch|networkerror|load failed/i.test(raw)) {
+    return 'Could not reach the server. Check your connection and try again.'
+  }
+
+  // Empty, or a JSON blob rather than a sentence.
+  if (!raw || raw.startsWith('{') || raw.startsWith('[')) {
+    return 'Sign-in failed on the server, not because of your password. ' +
+           'Please try again, and tell your administrator if it keeps happening.'
+  }
+
+  return raw
+}
+
 export default function Login() {
   const navigate = useNavigate()
   const registerSession = useAuthStore((s) => s.registerSession)
@@ -29,7 +62,9 @@ export default function Login() {
     await logLoginAttempt(email, !error)
 
     if (error) {
-      setServerError(error.message)
+      // Keep the unmapped original in the console for whoever debugs it.
+      console.error('[Login] sign-in failed', error)
+      setServerError(loginErrorMessage(error))
       setLoading(false)
       return
     }
