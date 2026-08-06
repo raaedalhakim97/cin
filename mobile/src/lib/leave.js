@@ -35,29 +35,12 @@ export function dayCount(startDate, endDate) {
   return Math.round((b - a) / 86400000) + 1
 }
 
-// Adjusts leave_balances.used_days by `delta`. The web app does this inline in
-// two places with the same read-then-write shape; centralised here.
-//
-// NOTE: this is a non-atomic read-modify-write, inherited from the web
-// implementation. Two requests submitted at once can lose one increment. The
-// correct fix is a single SQL statement or an RPC doing
-// `used_days = used_days + $1`; flagged rather than silently diverging from the
-// behaviour the web app already has.
-async function adjustBalance({ employeeId, leaveType, year, delta }) {
-  const { data: bal } = await supabase
-    .from('leave_balances')
-    .select('id, used_days')
-    .eq('employee_id', employeeId)
-    .eq('leave_type', leaveType)
-    .eq('year', year)
-    .maybeSingle()
-
-  if (!bal) return
-  await supabase
-    .from('leave_balances')
-    .update({ used_days: Math.max(0, Number(bal.used_days || 0) + delta) })
-    .eq('id', bal.id)
-}
+// leave_balances.used_days is maintained by the ab_maintain_leave_balance
+// trigger, which moves it inside the same statement that writes the request.
+// The read-then-write this file used to do (and the web still did) lost an
+// increment when two requests landed together, and let anyone with write
+// access to leave_balances hand themselves days back. Neither client touches
+// the column any more.
 
 export async function submitRequest({ employeeId, companyId, leaveType, startDate, endDate, reason }) {
   const days = dayCount(startDate, endDate)
@@ -76,16 +59,15 @@ export async function submitRequest({ employeeId, companyId, leaveType, startDat
 
   if (error) {
     console.error('[leave] submitRequest failed', error)
-    return { error: 'Something went wrong submitting your request. Please try again.' }
+    // aa_check_leave_entitlement raises P0001 with the numbers already in the
+    // message — how many days were asked for and how many are left — so it's
+    // shown as written rather than replaced with a generic line.
+    return {
+      error: error.message?.startsWith('Not enough ')
+        ? error.message
+        : 'Something went wrong submitting your request. Please try again.',
+    }
   }
-
-  // Balance reflects pending requests, same as the web.
-  await adjustBalance({
-    employeeId,
-    leaveType,
-    year: new Date(`${startDate}T00:00:00`).getFullYear(),
-    delta: days,
-  })
 
   return { error: null, days }
 }
@@ -116,13 +98,7 @@ export async function rejectRequest({ request, reason }) {
     return { error: error.message }
   }
 
-  // Give the days back — the submit deducted them up front.
-  await adjustBalance({
-    employeeId: request.employee_id,
-    leaveType: request.leave_type,
-    year: new Date(`${request.start_date}T00:00:00`).getFullYear(),
-    delta: -Number(request.days_requested || 0),
-  })
-
+  // The days go back automatically — ab_maintain_leave_balance releases them
+  // on the transition out of a live status.
   return { error: null }
 }

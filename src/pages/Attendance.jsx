@@ -83,6 +83,32 @@ function getGpsPosition(timeout = 10000) {
   })
 }
 
+// Haversine, metres. Mirrors public.distance_metres() in the database. The
+// trigger is the authority — it re-measures every punch and can reject it —
+// but checking here first means the error names a distance the person can act
+// on instead of a failed request.
+function distanceMetres(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 6371000 * 2 * Math.asin(Math.sqrt(a))
+}
+
+// Nearest active work location to a fix. Null when the company hasn't defined
+// any — no locations means no fence, in the browser and in the trigger alike.
+function nearestLocation(coords, locations) {
+  if (!coords || !locations?.length) return null
+  let best = null
+  for (const l of locations) {
+    const d = distanceMetres(coords.latitude, coords.longitude, l.latitude, l.longitude)
+    if (!best || d < best.distance) best = { location: l, distance: d, within: d <= l.radius_metres }
+  }
+  return best
+}
+
 // Late/present classification, shared by the shift-linked and fixed-time
 // fallback paths in clockIn() below — only the expected start instant and
 // grace period differ between the two.
@@ -281,6 +307,71 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
           )}
         </>
       )}
+    </div>
+  )
+}
+
+// ─── Early-checkout confirmation ──────────────────────────────────────────────
+// Clocking out before the scheduled end is allowed — people leave early for
+// good reasons — but it is never silent. The shortfall lands in
+// attendance.early_minutes either way; the reason typed here is what makes it
+// legible to whoever reads the record later.
+function EarlyCheckoutModal({ prompt, saving, onCancel, onConfirm }) {
+  const [reason, setReason] = useState('')
+  if (!prompt) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+      <div
+        className="w-full max-w-md bg-white dark:bg-[#1E1E1E] rounded-2xl border border-[#E8E8E8] dark:border-[#2A2A2A] shadow-2xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-[#FF8C42]/10 flex items-center justify-center shrink-0">
+            <AlertTriangle size={16} className="text-[#FF8C42]" />
+          </div>
+          <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white">
+            Leaving {prompt.label} early
+          </h2>
+        </div>
+
+        <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mb-4">
+          {prompt.fromShift ? 'Your shift' : 'Your working day'} ends at {prompt.endLabel}. Clocking out now
+          records the day as {prompt.label} short of the scheduled end.
+        </p>
+
+        <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1.5">
+          Reason <span className="font-normal text-[#AAAAAA] dark:text-[#555555]">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={300}
+          placeholder="e.g. medical appointment"
+          className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors"
+        />
+
+        <div className="flex gap-3 mt-5">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#1A1A1A] dark:text-white border border-[#E8E8E8] dark:border-[#2A2A2A] hover:border-[#00D4A0]/40 disabled:opacity-60 transition-colors"
+          >
+            Stay clocked in
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(reason)}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF8C42] hover:bg-[#E87A34] disabled:opacity-60 transition-colors"
+          >
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            Clock out anyway
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -674,6 +765,8 @@ export default function Attendance() {
   const [todayLoading,   setTodayLoading]   = useState(true)
   const [actionLoading,  setActionLoading]  = useState(false)
   const [clockError,     setClockError]     = useState('')
+  // Non-null while the early-checkout confirmation is on screen.
+  const [earlyPrompt,    setEarlyPrompt]    = useState(null)
 
   const [editCell,    setEditCell]    = useState(null)
   const [modalSaving, setModalSaving] = useState(false)
@@ -695,21 +788,32 @@ export default function Attendance() {
   // off, the app still attempts GPS (for the map-pin display below) but
   // proceeds without it on failure.
   const [requireGpsClockIn, setRequireGpsClockIn] = useState(true)
+  // Geofence (work_locations + shift_settings.enforce_geofence). With no
+  // locations defined the fence is inert everywhere, which is the default.
+  const [workLocations, setWorkLocations] = useState([])
+  const [enforceGeofence, setEnforceGeofence] = useState(false)
+  const [earlyGrace, setEarlyGrace] = useState(5)
+  const [companyWorkEnd, setCompanyWorkEnd] = useState('17:00:00')
 
   useEffect(() => {
     if (!companyId) return
     Promise.all([
-      supabase.from('shift_settings').select('late_grace_minutes, require_shift_to_clock_in, require_gps_clock_in').eq('company_id', companyId).maybeSingle(),
+      supabase.from('shift_settings').select('late_grace_minutes, require_shift_to_clock_in, require_gps_clock_in, enforce_geofence, early_checkout_grace_minutes').eq('company_id', companyId).maybeSingle(),
       supabase.from('kpi_settings').select('late_grace_minutes').eq('company_id', companyId).maybeSingle(),
-      supabase.from('company').select('work_start_time').eq('id', companyId).maybeSingle(),
-    ]).then(([shiftRes, kpiRes, companyRes]) => {
+      supabase.from('company').select('work_start_time, work_end_time').eq('id', companyId).maybeSingle(),
+      supabase.from('work_locations').select('id, name, latitude, longitude, radius_metres').eq('company_id', companyId).eq('active', true),
+    ]).then(([shiftRes, kpiRes, companyRes, locRes]) => {
       if (shiftRes.data) {
         setShiftLateGrace(shiftRes.data.late_grace_minutes)
         setRequireShiftToClockIn(!!shiftRes.data.require_shift_to_clock_in)
         setRequireGpsClockIn(!!shiftRes.data.require_gps_clock_in)
+        setEnforceGeofence(!!shiftRes.data.enforce_geofence)
+        setEarlyGrace(shiftRes.data.early_checkout_grace_minutes ?? 5)
       }
       if (kpiRes.data) setKpiLateGrace(kpiRes.data.late_grace_minutes)
       if (companyRes.data?.work_start_time) setCompanyWorkStart(companyRes.data.work_start_time)
+      if (companyRes.data?.work_end_time) setCompanyWorkEnd(companyRes.data.work_end_time)
+      setWorkLocations(locRes.data ?? [])
     })
   }, [companyId])
 
@@ -826,8 +930,19 @@ export default function Attendance() {
       lng = coords.longitude
     } catch (err) {
       console.error('[Attendance] clockIn geolocation failed', err)
-      if (requireGpsClockIn) {
+      // Enforcing the fence makes a fix mandatory whatever require_gps says —
+      // otherwise "block location" would be the way around the fence.
+      if (requireGpsClockIn || (enforceGeofence && workLocations.length)) {
         setClockError('Location access is required to clock in. Please enable location permissions for this site and try again.')
+        setActionLoading(false)
+        return
+      }
+    }
+
+    if (enforceGeofence) {
+      const near = nearestLocation(lat != null ? { latitude: lat, longitude: lng } : null, workLocations)
+      if (near && !near.within) {
+        setClockError(`You're ${Math.round(near.distance)}m from ${near.location.name}. Clock-in is only accepted within ${near.location.radius_metres}m.`)
         setActionLoading(false)
         return
       }
@@ -873,7 +988,13 @@ export default function Attendance() {
     })
     if (error) {
       console.error('[Attendance] clockIn failed', error)
-      setClockError('Something went wrong clocking in. Please try again.')
+      // The attendance_guard trigger raises geofence refusals as P0001 with
+      // text already written for the person reading it.
+      setClockError(
+        error.message?.startsWith('Clock-in blocked:')
+          ? error.message
+          : 'Something went wrong clocking in. Please try again.'
+      )
     } else {
       await fetchTodayAndWeek(employee.id)
       if (isCurrentMonth) await fetchMonth(employee.id, viewDate)
@@ -881,7 +1002,41 @@ export default function Attendance() {
     setActionLoading(false)
   }
 
-  async function clockOut() {
+  // When is today supposed to finish? The linked shift's end_at when there is
+  // one, otherwise the company's fixed hours read in the browser's timezone —
+  // the same instant the DB derives from company.timezone.
+  function scheduledEndToday() {
+    const linked = todayRecord?.shifts?.end_at
+    if (linked) return new Date(linked)
+    const [h, m] = String(companyWorkEnd).split(':').map(Number)
+    if (Number.isNaN(h)) return null
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m || 0, 0, 0)
+  }
+
+  // Pressing Clock Out never writes straight away: if the day isn't over yet
+  // the employee is told how short they are and has to confirm.
+  function requestClockOut() {
+    if (role === 'read_only' || !todayRecord) return
+    setClockError('')
+    const end = scheduledEndToday()
+    if (end) {
+      const minutes = Math.ceil((end - new Date()) / 60000)
+      if (minutes > earlyGrace) {
+        const h = Math.floor(minutes / 60)
+        setEarlyPrompt({
+          minutes,
+          label: h > 0 ? `${h}h ${minutes % 60}m` : `${minutes}m`,
+          endLabel: end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          fromShift: !!todayRecord?.shifts?.end_at,
+        })
+        return
+      }
+    }
+    clockOut(null)
+  }
+
+  async function clockOut(earlyReason) {
     if (role === 'read_only') return
     if (!todayRecord) return
     setActionLoading(true)
@@ -895,24 +1050,45 @@ export default function Attendance() {
       lng = coords.longitude
     } catch (err) {
       console.error('[Attendance] clockOut geolocation failed', err)
-      if (requireGpsClockIn) {
+      if (requireGpsClockIn || (enforceGeofence && workLocations.length)) {
         setClockError('Location access is required to clock out. Please enable location permissions for this site and try again.')
         setActionLoading(false)
+        setEarlyPrompt(null)
+        return
+      }
+    }
+
+    if (enforceGeofence) {
+      const near = nearestLocation(lat != null ? { latitude: lat, longitude: lng } : null, workLocations)
+      if (near && !near.within) {
+        setClockError(`You're ${Math.round(near.distance)}m from ${near.location.name}. Clock-out is only accepted within ${near.location.radius_metres}m.`)
+        setActionLoading(false)
+        setEarlyPrompt(null)
         return
       }
     }
 
     const { error } = await supabase
       .from('attendance')
-      .update({ clock_out: new Date().toISOString(), clock_out_lat: lat, clock_out_lng: lng })
+      .update({
+        clock_out: new Date().toISOString(),
+        clock_out_lat: lat,
+        clock_out_lng: lng,
+        early_reason: earlyReason?.trim() || null,
+      })
       .eq('id', todayRecord.id)
     if (error) {
       console.error('[Attendance] clockOut failed', error)
-      setClockError('Something went wrong clocking out. Please try again.')
+      setClockError(
+        error.message?.startsWith('Clock-out blocked:')
+          ? error.message
+          : 'Something went wrong clocking out. Please try again.'
+      )
     } else {
       await fetchTodayAndWeek(employee.id)
       if (isCurrentMonth) await fetchMonth(employee.id, viewDate)
     }
+    setEarlyPrompt(null)
     setActionLoading(false)
   }
 
@@ -1088,7 +1264,7 @@ export default function Attendance() {
                   actionLoading={actionLoading}
                   error={clockError}
                   onClockIn={clockIn}
-                  onClockOut={clockOut}
+                  onClockOut={requestClockOut}
                   clockInBlocked={canClockInOut && clockInBlocked}
                   clockInBlockedReason={clockInBlockedReason}
                 />
@@ -1117,6 +1293,16 @@ export default function Attendance() {
           saving={modalSaving}
         />
       )}
+
+      {/* Early-checkout confirmation. Keyed on the shortfall so reopening it
+          after a cancel starts with an empty reason field. */}
+      <EarlyCheckoutModal
+        key={earlyPrompt?.minutes ?? 'none'}
+        prompt={earlyPrompt}
+        saving={actionLoading}
+        onCancel={() => setEarlyPrompt(null)}
+        onConfirm={clockOut}
+      />
 
       <ToastComp toast={toast} />
     </div>

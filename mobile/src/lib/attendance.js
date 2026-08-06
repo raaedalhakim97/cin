@@ -16,15 +16,48 @@ export function classifyClockIn(now, expectedStart, graceMinutes) {
   return 'late_major'
 }
 
+// Haversine, metres. Mirrors public.distance_metres() in the database — the
+// database is the authority (it re-measures and can reject), this copy exists
+// so the screen can tell you you're too far *before* you press the button.
+export function distanceMetres(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 6371000 * 2 * Math.asin(Math.sqrt(a))
+}
+
+// Nearest active work location to a fix, with whether it's inside the radius.
+// Returns null when the company hasn't defined any — a tenant with no
+// locations is never fenced, on the client or in the trigger.
+export function nearestLocation(coords, locations) {
+  if (!coords || !locations?.length) return null
+  let best = null
+  for (const l of locations) {
+    const d = distanceMetres(coords.latitude, coords.longitude, l.latitude, l.longitude)
+    if (!best || d < best.distance) best = { location: l, distance: d, within: d <= l.radius_metres }
+  }
+  return best
+}
+
 export async function loadClockSettings(companyId) {
-  const [shiftRes, kpiRes, companyRes] = await Promise.all([
+  const [shiftRes, kpiRes, companyRes, locRes] = await Promise.all([
     supabase
       .from('shift_settings')
-      .select('late_grace_minutes, require_shift_to_clock_in, require_gps_clock_in')
+      .select(
+        'late_grace_minutes, require_shift_to_clock_in, require_gps_clock_in, enforce_geofence, early_checkout_grace_minutes'
+      )
       .eq('company_id', companyId)
       .maybeSingle(),
     supabase.from('kpi_settings').select('late_grace_minutes').eq('company_id', companyId).maybeSingle(),
-    supabase.from('company').select('work_start_time').eq('id', companyId).maybeSingle(),
+    supabase.from('company').select('work_start_time, work_end_time').eq('id', companyId).maybeSingle(),
+    supabase
+      .from('work_locations')
+      .select('id, name, latitude, longitude, radius_metres')
+      .eq('company_id', companyId)
+      .eq('active', true),
   ])
 
   return {
@@ -33,7 +66,11 @@ export async function loadClockSettings(companyId) {
     requireShift: !!shiftRes.data?.require_shift_to_clock_in,
     // Defaults to on, matching the web app — GPS-off is the deliberate opt-out.
     requireGps: shiftRes.data?.require_gps_clock_in ?? true,
+    enforceGeofence: !!shiftRes.data?.enforce_geofence,
+    earlyGrace: shiftRes.data?.early_checkout_grace_minutes ?? 5,
     workStart: companyRes.data?.work_start_time ?? '08:00',
+    workEnd: companyRes.data?.work_end_time ?? '17:00',
+    locations: locRes.data ?? [],
   }
 }
 
@@ -51,43 +88,102 @@ async function getPosition() {
 }
 
 // GPS first, same required/optional split as the web: when require_gps_clock_in
-// is on, a failed lookup blocks the punch; when off, we still try (so the screen
-// can show a pin) but never block on it.
-async function resolveCoords(requireGps) {
+// (or the geofence, which cannot work without a fix) is on, a failed lookup
+// blocks the punch; when off, we still try (so the screen can show a pin) but
+// never block on it.
+async function resolveCoords(settings) {
+  const mustHave = settings.requireGps || (settings.enforceGeofence && settings.locations.length > 0)
   try {
     return { coords: await getPosition(), error: null }
   } catch (err) {
-    if (requireGps) return { coords: null, error: err }
+    if (mustHave) return { coords: null, error: err }
     return { coords: null, error: null }
   }
 }
 
-export async function clockIn({ employeeId, companyId, settings }) {
-  const { coords, error: gpsError } = await resolveCoords(settings.requireGps)
-  if (gpsError) {
-    return {
-      error:
-        gpsError.code === 'PERMISSION_DENIED'
-          ? 'Location permission is required to clock in. Enable it for BYOND HR in your device settings.'
-          : "Couldn't get your location. Move somewhere with a clearer signal and try again.",
-    }
+function gpsFailureMessage(err, verb) {
+  return err.code === 'PERMISSION_DENIED'
+    ? `Location permission is required to clock ${verb}. Enable it for BYOND HR in your device settings.`
+    : "Couldn't get your location. Move somewhere with a clearer signal and try again."
+}
+
+// The trigger raises these as P0001 with text already written for the person
+// reading it, so they're shown as-is rather than replaced with a generic line.
+function dbMessage(error, fallback) {
+  if (error?.message?.startsWith('Clock-in blocked:') || error?.message?.startsWith('Clock-out blocked:')) {
+    return error.message
   }
+  return fallback
+}
 
-  const today = localDateStr()
-
-  // Read-only lookahead that mirrors the DB's aa_autolink_shift trigger
-  // (same-day, work, published/completed, earliest start) so the status we send
-  // matches the shift the trigger will attach afterwards.
-  const { data: todayShift } = await supabase
+// Today's published work shift, looked up the same way aa_autolink_shift does
+// (same-day, work, published/completed, earliest start) so the status we send
+// matches the shift the trigger will attach afterwards.
+async function todayShiftFor(employeeId, date) {
+  const { data } = await supabase
     .from('shifts')
-    .select('id, start_at')
+    .select('id, start_at, end_at')
     .eq('employee_id', employeeId)
-    .eq('shift_date', today)
+    .eq('shift_date', date)
     .eq('shift_type', 'work')
     .in('status', ['published', 'completed'])
     .order('start_at')
     .limit(1)
     .maybeSingle()
+  return data ?? null
+}
+
+// When is this person supposed to finish today? The linked shift's end_at if
+// there is one, otherwise the company's fixed hours read in the phone's own
+// timezone — which is the same instant the DB computes from company.timezone
+// for anyone actually working in the country they're employed in.
+export function scheduledEnd({ shift, settings, date = new Date() }) {
+  if (shift?.end_at) return new Date(shift.end_at)
+  const [h, m] = String(settings.workEnd).split(':').map(Number)
+  if (Number.isNaN(h)) return null
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m || 0, 0, 0)
+}
+
+// The early-checkout check the screen runs *before* writing anything, so the
+// employee gets a question rather than a surprise. Returns null when they're
+// finishing on time or late.
+export async function checkEarlyCheckout({ employeeId, settings, now = new Date() }) {
+  const shift = await todayShiftFor(employeeId, localDateStr(now))
+  const end = scheduledEnd({ shift, settings, date: now })
+  if (!end) return null
+
+  const minutes = Math.ceil((end - now) / 60000)
+  if (minutes <= settings.earlyGrace) return null
+
+  const hours = Math.floor(minutes / 60)
+  const rem = minutes % 60
+  return {
+    minutes,
+    endsAt: end,
+    label: hours > 0 ? `${hours}h ${rem}m` : `${rem}m`,
+    endLabel: end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    fromShift: !!shift?.end_at,
+  }
+}
+
+export async function clockIn({ employeeId, companyId, settings }) {
+  const { coords, error: gpsError } = await resolveCoords(settings)
+  if (gpsError) return { error: gpsFailureMessage(gpsError, 'in') }
+
+  const today = localDateStr()
+
+  // Fence check before the round trip, so the message names the distance the
+  // employee can actually act on. The trigger re-checks server-side.
+  if (settings.enforceGeofence) {
+    const near = nearestLocation(coords, settings.locations)
+    if (near && !near.within) {
+      return {
+        error: `You're ${Math.round(near.distance)}m from ${near.location.name}. Clock-in is only accepted within ${near.location.radius_metres}m.`,
+      }
+    }
+  }
+
+  const todayShift = await todayShiftFor(employeeId, today)
 
   if (settings.requireShift && !todayShift) {
     return { error: 'You have no published shift today, and your company requires one to clock in.' }
@@ -117,19 +213,24 @@ export async function clockIn({ employeeId, companyId, settings }) {
 
   if (error) {
     console.error('[attendance] clockIn failed', error)
-    return { error: 'Something went wrong clocking in. Please try again.' }
+    return { error: dbMessage(error, 'Something went wrong clocking in. Please try again.') }
   }
   return { error: null }
 }
 
-export async function clockOut({ recordId, settings }) {
-  const { coords, error: gpsError } = await resolveCoords(settings.requireGps)
-  if (gpsError) {
-    return {
-      error:
-        gpsError.code === 'PERMISSION_DENIED'
-          ? 'Location permission is required to clock out. Enable it for BYOND HR in your device settings.'
-          : "Couldn't get your location. Move somewhere with a clearer signal and try again.",
+// `reason` is whatever the employee typed when they confirmed an early
+// checkout; it is stored so the shortfall is explained in the record rather
+// than only visible as a number on someone's report.
+export async function clockOut({ recordId, settings, reason = null }) {
+  const { coords, error: gpsError } = await resolveCoords(settings)
+  if (gpsError) return { error: gpsFailureMessage(gpsError, 'out') }
+
+  if (settings.enforceGeofence) {
+    const near = nearestLocation(coords, settings.locations)
+    if (near && !near.within) {
+      return {
+        error: `You're ${Math.round(near.distance)}m from ${near.location.name}. Clock-out is only accepted within ${near.location.radius_metres}m.`,
+      }
     }
   }
 
@@ -139,21 +240,26 @@ export async function clockOut({ recordId, settings }) {
       clock_out: new Date().toISOString(),
       clock_out_lat: coords?.latitude ?? null,
       clock_out_lng: coords?.longitude ?? null,
+      early_reason: reason?.trim() || null,
     })
     .eq('id', recordId)
 
   if (error) {
     console.error('[attendance] clockOut failed', error)
-    return { error: 'Something went wrong clocking out. Please try again.' }
+    return { error: dbMessage(error, 'Something went wrong clocking out. Please try again.') }
   }
   return { error: null }
 }
 
+// Keys match the attendance_status_check constraint exactly. 'absent' and
+// 'on_leave' were in this map but are not values the column can hold — an
+// approved leave day is stored as absent_approved by the attendance_guard
+// trigger.
 export const STATUS_LABEL = {
   present: 'Present',
   late_minor: 'Late — minor',
   late_moderate: 'Late — moderate',
   late_major: 'Late — major',
-  absent: 'Absent',
-  on_leave: 'On leave',
+  absent_approved: 'Approved absence',
+  absent_unauthorized: 'Unauthorised absence',
 }

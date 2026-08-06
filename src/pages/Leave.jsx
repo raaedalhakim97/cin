@@ -854,28 +854,18 @@ export default function Leave() {
 
     if (reqErr) {
       console.error('[Leave] submitRequest failed', reqErr)
-      showToast('error', 'Something went wrong submitting your request. Please try again.')
+      // aa_check_leave_entitlement raises P0001 already carrying the numbers —
+      // days asked for, days left — so it is shown as written.
+      showToast('error', reqErr.message?.startsWith('Not enough ')
+        ? reqErr.message
+        : 'Something went wrong submitting your request. Please try again.')
       setRequestSaving(false)
       return
     }
 
-    // Deduct days from balance so balance reflects pending requests
-    const reqYear = new Date(form.start_date + 'T00:00:00').getFullYear()
-    const { data: balRow } = await supabase
-      .from('leave_balances')
-      .select('id, used_days')
-      .eq('employee_id', employee.id)
-      .eq('leave_type', form.leave_type)
-      .eq('year', reqYear)
-      .maybeSingle()
-
-    if (balRow) {
-      await supabase
-        .from('leave_balances')
-        .update({ used_days: balRow.used_days + days })
-        .eq('id', balRow.id)
-    }
-
+    // used_days is moved by the ab_maintain_leave_balance trigger inside the
+    // same statement as the insert — see 03_leave_balance_integrity.sql for
+    // why this is no longer done from the browser.
     await Promise.all([fetchMyRequests(), fetchBalances()])
     setShowRequestModal(false)
     setRequestSaving(false)
@@ -926,23 +916,8 @@ export default function Leave() {
       .eq('id', req.id)
 
     if (!error) {
-      // Revert the balance deduction made when the request was submitted
-      const reqYear = new Date(req.start_date + 'T00:00:00').getFullYear()
-      const { data: balRow } = await supabase
-        .from('leave_balances')
-        .select('id, used_days')
-        .eq('employee_id', req.employee_id)
-        .eq('leave_type', req.leave_type)
-        .eq('year', reqYear)
-        .maybeSingle()
-
-      if (balRow) {
-        await supabase
-          .from('leave_balances')
-          .update({ used_days: Math.max(0, balRow.used_days - req.days_requested) })
-          .eq('id', balRow.id)
-      }
-
+      // The days are released by ab_maintain_leave_balance on the transition
+      // out of a live status — nothing to revert from here.
       await fetchTeamRequests()
       setRejectTarget(null)
       showToast('success', `${req.employees?.full_name ?? 'Request'} rejected`)
@@ -981,22 +956,7 @@ export default function Leave() {
       console.error('[Leave] cancelRequest matched no rows — RLS likely blocked it for role', role)
       showToast('error', 'Could not cancel this request. Please contact HR.')
     } else {
-      const reqYear = new Date(req.start_date + 'T00:00:00').getFullYear()
-      const { data: balRow } = await supabase
-        .from('leave_balances')
-        .select('id, used_days')
-        .eq('employee_id', req.employee_id)
-        .eq('leave_type', req.leave_type)
-        .eq('year', reqYear)
-        .maybeSingle()
-
-      if (balRow) {
-        await supabase
-          .from('leave_balances')
-          .update({ used_days: Math.max(0, balRow.used_days - req.days_requested) })
-          .eq('id', balRow.id)
-      }
-
+      // Days released by ab_maintain_leave_balance, same as rejection.
       await Promise.all([fetchMyRequests(), fetchBalances()])
       showToast('success', 'Leave request cancelled')
     }
