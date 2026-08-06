@@ -11,6 +11,25 @@
   box-sizing: border-box;
 }
 
+/* Honour the OS-level "reduce motion" setting.
+ *
+ * The marketing page animates a great deal — scroll reveals, counting numbers,
+ * a drawing trend line, filling bars. For a visitor with a vestibular disorder
+ * that is not decoration, it is a reason to close the tab. JavaScript-driven
+ * motion is handled at the source (see Landing.jsx); this covers everything
+ * driven by CSS transitions and keyframes, across the whole app.
+ *
+ * Near-zero rather than `none` so transitionend still fires and nothing that
+ * waits on it hangs. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Paint the canvas itself, not just the page containers.
  *
  * Every page renders a `min-h-screen bg-…` div, which covers the viewport but
@@ -46,6 +65,41 @@ h1, h2, h3, h4, h5, h6 {
 
 p {
   margin: 0;
+}
+
+/* Long-form document typography, for /privacy and /terms.
+ *
+ * This lives in CSS rather than as `[&_h2]:mt-11` utilities on the wrapper,
+ * because the heading and paragraph resets directly above are unlayered — and
+ * unlayered rules beat everything in Tailwind's utilities layer no matter how
+ * specific the utility is. Those margins measured 0px in the browser before
+ * this existed. A descendant selector here sits at the same layer with higher
+ * specificity, so it wins honestly, without !important. */
+.legal-prose h2 {
+  margin-top: 2.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.legal-prose h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.legal-prose p {
+  margin-top: 0.875rem;
+}
+
+.legal-prose ul {
+  margin-top: 0.875rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legal-prose li::marker {
+  color: #00d4a0;
 }
 
 #root {

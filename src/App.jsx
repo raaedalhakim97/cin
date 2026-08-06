@@ -12,6 +12,8 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Demo from './pages/Demo'
+import Privacy from './pages/legal/Privacy'
+import Terms from './pages/legal/Terms'
 import AcceptInvite from './pages/AcceptInvite'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
@@ -185,6 +187,10 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/demo" element={<Demo />} />
+            {/* Reachable signed out and signed in alike: a privacy notice
+                nobody can read without an account is not a privacy notice. */}
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/invite/:token" element={<AcceptInvite />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
 
