@@ -10,10 +10,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# One job, not two.
+#
+# The first version split web and mobile into parallel jobs, which asks GitHub
+# for two runners at once. On the first real run both sat unscheduled and were
+# killed after 20 and 15 minutes — runner_id 0, no logs at all, nothing billed.
+# Not a test failure: nothing ever executed. The actual work here is about four
+# minutes, so parallelism buys almost nothing and doubles the exposure to
+# runner scarcity.
 jobs:
-  web:
-    name: Web — lint and build
+  ci:
+    name: Lint, build and compile
     runs-on: ubuntu-latest
+    # A hung step should fail loudly and quickly, not burn the default six hours.
+    timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +33,9 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - run: npm ci
+      # ── Web ────────────────────────────────────────────────────────────────
+      - name: Install web dependencies
+        run: npm ci
 
       - name: Lint (ratchet)
         # `npm run lint` exits 1 today: the repo carries 68 pre-existing
@@ -33,10 +46,9 @@ jobs:
 
       - name: Build
         # The real gate: a broken import, bad JSX or a missing export fails here.
-        # Every fix this session was verified with a green build.
         run: npm run build
         env:
-          # Build-time only. The app reads these at runtime from the host's
+          # Build-time only. The deployed app reads these from the host's
           # environment; these placeholders just satisfy the bundler.
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder
@@ -55,69 +67,19 @@ jobs:
       - name: Fail if a credential got committed
         run: ./scripts/check-secrets.sh
 
-  mobile:
-    name: Mobile — compile
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: mobile/package-lock.json
-
-      - run: npm ci
+      # ── Mobile ─────────────────────────────────────────────────────────────
+      - name: Install mobile dependencies
+        run: npm ci
         working-directory: mobile
 
       - name: Compile every screen and library
-        # There is no bundler step cheap enough for CI here, but Babel will
-        # reject a syntax error or bad JSX in any file, which is the failure
-        # class that actually happens.
+        # No bundler step is cheap enough for CI here, but Babel rejects a
+        # syntax error or bad JSX in any file, which is the failure class that
+        # actually happens. Extracted to a script so it can be run locally with
+        # the same code CI runs, rather than living as YAML-escaped JavaScript.
         working-directory: mobile
-        run: |
-          node -e "
-            const babel = require('@babel/core');
-            const fs = require('fs'), path = require('path');
-            const preset = require.resolve('babel-preset-expo');
-            let checked = 0, failed = 0;
-            const walk = (d) => {
-              for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-                const p = path.join(d, e.name);
-                if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p); continue; }
-                if (!/\.(js|jsx)$/.test(e.name)) continue;
-                checked++;
-                try {
-                  babel.transformSync(fs.readFileSync(p, 'utf8'),
-                    { filename: p, presets: [preset], babelrc: false, configFile: false });
-                } catch (err) {
-                  failed++;
-                  console.error('FAIL ' + p + ': ' + err.message.split('\n')[0]);
-                }
-              }
-            };
-            walk('app'); walk('src');
-            console.log(checked + ' files checked, ' + failed + ' failed');
-            process.exit(failed ? 1 : 0);
-          "
+        run: node ../scripts/compile-check.mjs
 
       - name: Validate app and build config
         working-directory: mobile
-        run: |
-          node -e "
-            const app = require('./app.json').expo;
-            const eas = require('./eas.json');
-            const need = ['ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION'];
-            const have = app.android.permissions || [];
-            const missing = need.filter(p => !have.includes(p));
-            if (missing.length) {
-              console.error('::error::android permissions missing: ' + missing.join(', ') +
-                            ' — clock-in needs GPS and will fail silently without them');
-              process.exit(1);
-            }
-            if (eas.build.preview.android.buildType !== 'apk') {
-              console.error('::error::the preview profile must build an apk, not an aab');
-              process.exit(1);
-            }
-            console.log('app.json permissions ok; preview profile builds an apk');
-          "
+        run: node ../scripts/check-mobile-config.mjs
