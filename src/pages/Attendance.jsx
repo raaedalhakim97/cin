@@ -311,6 +311,66 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
   )
 }
 
+// ─── Attendance exceptions ────────────────────────────────────────────────────
+// Records that can't be trusted as they stand. Before this existed they were
+// invisible: a clock-in with no clock-out just sat in the table, counted by
+// calculate_attendance_score as a normal present day, and nobody had a screen
+// that would show it. Read for anyone who may read the roster; the Fix link
+// only appears for the roles that may actually correct a record.
+function AttendanceExceptions({ rows, loading, canEdit, onFix }) {
+  if (loading) return <SkeletonBlock className="h-32 mb-6" />
+  if (!rows.length) {
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl mb-6 bg-[#00D4A0]/10 border border-[#00D4A0]/20">
+        <CheckCircle2 size={15} className="text-[#00D4A0] shrink-0" />
+        <p className="text-sm text-[#1A1A1A] dark:text-white">
+          No attendance exceptions this month — every record has a clock-in and a clock-out.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#FF8C42]/30 overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 bg-[#FF8C42]/10 border-b border-[#FF8C42]/20">
+        <AlertTriangle size={15} className="text-[#FF8C42] shrink-0" />
+        <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">
+          {rows.length} attendance {rows.length === 1 ? 'exception' : 'exceptions'} this month
+        </p>
+      </div>
+      <div className="divide-y divide-[#E8E8E8] dark:divide-[#2A2A2A] max-h-72 overflow-y-auto">
+        {rows.map((r) => (
+          <div key={r.id} className="flex items-center gap-3 px-5 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">
+                {r.employees?.full_name ?? 'Unknown'}
+              </p>
+              <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
+                {new Date(r.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {' · '}{r.problem}
+              </p>
+            </div>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => onFix(r)}
+                className="shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold text-[#00D4A0] border border-[#00D4A0]/30 hover:bg-[#00D4A0]/10 transition-colors"
+              >
+                Fix
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      {!canEdit && (
+        <p className="px-5 py-3 text-xs text-[#666666] dark:text-[#A0A0A0] border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
+          Your role can see these but not correct them — send them to HR.
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Early-checkout confirmation ──────────────────────────────────────────────
 // Clocking out before the scheduled end is allowed — people leave early for
 // good reasons — but it is never silent. The shortfall lands in
@@ -746,7 +806,19 @@ export default function Attendance() {
   const role      = useAuthStore(s => s.role)
   const companyId = useAuthStore(s => s.companyId)
 
+  // Two different questions, previously answered by one flag.
+  //
+  // canAdmin is the *write* capability: correcting someone else's record.
+  // §4.3 keeps that with HR — "the person who builds the schedule should
+  // never also be able to falsify the clock-in it produces".
+  //
+  // canViewRoster is the *read* capability: looking up anyone's history and
+  // exporting it. att_select / attendance_admin_select already grant that to
+  // admin, department_manager and read_only in the database; the page just
+  // never offered it, so operations could see today and nothing else.
   const canAdmin = role === 'super_admin' || role === 'hr_manager'
+  const canViewRoster =
+    canAdmin || role === 'admin' || role === 'department_manager' || role === 'read_only'
 
   // Which month is the calendar showing
   const now = new Date()
@@ -767,6 +839,8 @@ export default function Attendance() {
   const [clockError,     setClockError]     = useState('')
   // Non-null while the early-checkout confirmation is on screen.
   const [earlyPrompt,    setEarlyPrompt]    = useState(null)
+  const [exceptions,     setExceptions]     = useState([])
+  const [exceptionsLoading, setExceptionsLoading] = useState(true)
 
   const [editCell,    setEditCell]    = useState(null)
   const [modalSaving, setModalSaving] = useState(false)
@@ -858,13 +932,59 @@ export default function Attendance() {
 
   // Load employee list for HR dropdown
   useEffect(() => {
-    if (!canAdmin) return
+    if (!canViewRoster) return
     supabase
       .from('employees')
       .select('id, full_name')
       .order('full_name')
       .then(({ data }) => setEmployees(data ?? []))
-  }, [canAdmin])
+  }, [canViewRoster])
+
+  // Company-wide exceptions for the viewed month. A row is an exception when
+  // it cannot be read as a finished day: a clock-in on a past date that was
+  // never closed, or a record with no clock-in at all but a status that
+  // calculate_attendance_score will happily average in.
+  // Bumped after a correction lands, to re-run the query below.
+  const [exceptionsKey, setExceptionsKey] = useState(0)
+  const reloadExceptions = () => setExceptionsKey((k) => k + 1)
+
+  useEffect(() => {
+    // The panel isn't rendered for roles that can't read the roster, so the
+    // loading flag it would set is never observed.
+    if (!canViewRoster) return undefined
+    let cancelled = false
+    async function load() {
+      const yr = viewDate.getFullYear()
+      const mo = viewDate.getMonth()
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('id, date, clock_in, clock_out, status, employee_id, employees!attendance_employee_id_fkey(full_name)')
+        .gte('date', localDateStr(new Date(yr, mo, 1)))
+        .lte('date', localDateStr(new Date(yr, mo + 1, 0)))
+        .order('date', { ascending: false })
+      if (cancelled) return
+
+      if (error) {
+        console.error('[Attendance] exceptions query failed', error)
+        setExceptions([])
+        setExceptionsLoading(false)
+        return
+      }
+
+      const today = localDateStr(new Date())
+      setExceptions(
+        (data ?? []).flatMap((r) => {
+          if (!r.clock_in) return [{ ...r, problem: 'No clock-in recorded, but the day has a status' }]
+          // Today's open record is just someone still at work.
+          if (!r.clock_out && r.date < today) return [{ ...r, problem: 'Clocked in but never clocked out' }]
+          return []
+        })
+      )
+      setExceptionsLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [viewDate, canViewRoster, exceptionsKey])
 
   // Fetch month records when calendar month or employee changes
   const fetchMonth = useCallback(async (empId, vd) => {
@@ -1117,10 +1237,21 @@ export default function Attendance() {
         fetchMonth(selectedEmpId, viewDate),
         fetchTodayAndWeek(selectedEmpId),
       ])
+      reloadExceptions()
       setEditCell(null)
       showToast('success', 'Attendance record saved')
     }
     setModalSaving(false)
+  }
+
+  // saveOverride writes employee_id: selectedEmpId, so fixing an exception
+  // belonging to someone else has to move the page to that person first —
+  // otherwise the correction would reassign their day to whoever happened to
+  // be selected in the dropdown.
+  function fixException(row) {
+    setSelectedEmpId(row.employee_id)
+    setViewDate(new Date(row.date + 'T00:00:00'))
+    setEditCell({ dateStr: row.date, record: row })
   }
 
   // ── Export (admin only) — all employees' attendance for the viewed month ──
@@ -1208,7 +1339,7 @@ export default function Attendance() {
 
                 <div className="flex items-center gap-3 flex-wrap">
                   {/* HR/Admin employee dropdown */}
-                  {canAdmin && employees.length > 0 && (
+                  {canViewRoster && employees.length > 0 && (
                     <select
                       value={selectedEmpId ?? ''}
                       onChange={e => setSelectedEmpId(e.target.value)}
@@ -1239,8 +1370,8 @@ export default function Attendance() {
                     </button>
                   </div>
 
-                  {/* Export (admin only) — all employees for the viewed month */}
-                  {canAdmin && (
+                  {/* Export — anyone who may read the roster's attendance */}
+                  {canViewRoster && (
                     <button
                       onClick={handleExportAttendance}
                       disabled={exportingAtt}
@@ -1270,6 +1401,15 @@ export default function Attendance() {
                 />
                 <WeeklySummary records={weekRecords} />
               </div>
+
+              {canViewRoster && (
+                <AttendanceExceptions
+                  rows={exceptions}
+                  loading={exceptionsLoading}
+                  canEdit={canAdmin}
+                  onFix={fixException}
+                />
+              )}
 
               {/* ── Monthly Calendar ───────────────────────────────────────── */}
               <CalendarGrid

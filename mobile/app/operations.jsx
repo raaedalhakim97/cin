@@ -30,14 +30,20 @@ export default function Operations() {
   const [team, setTeam] = useState([])
   const [docs, setDocs] = useState([])
   const [upcomingLeave, setUpcomingLeave] = useState([])
+  const [openRecords, setOpenRecords] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     const today = localDateStr()
-    const [shiftRows, attendanceRows, docRows, leaveRows] = await Promise.all([
+    // 30 days back is enough to catch a forgotten clock-out inside the payroll
+    // cycle it would otherwise be paid on.
+    const from = localDateStr(new Date(Date.now() - 30 * 86400000))
+    const [shiftRows, attendanceRows, docRows, leaveRows, openRows] = await Promise.all([
       supabase
         .from('shifts')
         .select('id, employee_id, shift_date, shift_type, status, start_at, end_at')
+        // Day-off markers are also 'shifts'; they are not work to schedule around.
+        .eq('shift_type', 'work')
         .gte('shift_date', today)
         .order('shift_date')
         .limit(30),
@@ -59,12 +65,25 @@ export default function Operations() {
         .gte('end_date', today)
         .order('start_date')
         .limit(15),
+      // Clocked in on a past day and never clocked out. These read as normal
+      // present days to the KPI and carry no hours to payroll, and nothing on
+      // this screen used to show them.
+      supabase
+        .from('attendance')
+        .select('id, date, clock_in, employees!attendance_employee_id_fkey(full_name)')
+        .is('clock_out', null)
+        .not('clock_in', 'is', null)
+        .gte('date', from)
+        .lt('date', today)
+        .order('date', { ascending: false })
+        .limit(25),
     ])
 
     setShifts(shiftRows.data ?? [])
     setTeam(attendanceRows.data ?? [])
     setDocs(docRows.data ?? [])
     setUpcomingLeave(leaveRows.data ?? [])
+    setOpenRecords(openRows.data ?? [])
     setLoading(false)
   }, [])
 
@@ -96,6 +115,44 @@ export default function Operations() {
         <StatTile value={clockedIn} label="On shift" hint={`of ${team.length}`} color={c.success} />
         <StatTile value={docs.length} label="Docs" hint="Need action" color={docs.length ? c.warning : undefined} />
       </View>
+
+      {openRecords.length > 0 ? (
+        <>
+          <SectionTitle>Unclosed clock-ins</SectionTitle>
+          <Card style={{ padding: 0, borderColor: c.warning + '55', borderWidth: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1), padding: space(1.5) }}>
+              <Ionicons name="alert-circle-outline" size={17} color={c.warning} />
+              <Text style={{ ...type.caption, color: c.warning, flex: 1 }}>
+                {openRecords.length} {openRecords.length === 1 ? 'day' : 'days'} in the last 30 with a clock-in and no
+                clock-out. HR has to close these.
+              </Text>
+            </View>
+            {openRecords.slice(0, 6).map((r) => (
+              <View
+                key={r.id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: space(1.5),
+                  padding: space(1.5),
+                  borderTopWidth: 1,
+                  borderTopColor: c.border,
+                }}
+              >
+                <Avatar name={r.employees?.full_name} size={32} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ ...type.body, color: c.text }} numberOfLines={1}>
+                    {r.employees?.full_name ?? 'Unknown'}
+                  </Text>
+                  <Text style={{ ...type.caption, color: c.textMuted }}>
+                    {shortDate(r.date)} · in at {timeOfDay(r.clock_in)}, never out
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </Card>
+        </>
+      ) : null}
 
       <SectionTitle>Upcoming shifts</SectionTitle>
       {loading ? (
