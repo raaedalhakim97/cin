@@ -4,9 +4,18 @@
 // on warm neutrals. This is the brand the web app uses, and the two surfaces
 // should not disagree about what the product looks like.
 //
-// What IS borrowed from hr_design_final.pdf is structure, not palette: the dark
-// chrome bar, the grouped drawer, the 8pt spacing grid, skeleton on every fetch,
-// an empty state for every empty list, and a bottom nav capped at five items.
+// What IS borrowed from hr_design_final.pdf is structure, not palette: the
+// grouped drawer, the 8pt spacing grid, skeleton on every fetch, an empty state
+// for every empty list, and a bottom nav capped at five items. The chrome was
+// borrowed too and is no longer — it followed the reference app in staying dark
+// in both themes, which put a black bar on the phone where the browser has a
+// white one. Chrome now tracks the theme, as the web's header and sidebar do.
+//
+// One value is deliberately NOT matched to the web: light.surfaceAlt. The web
+// fills inputs with #F5F5F0 inside a white card. Several mobile screens — login
+// above all — place inputs straight onto the page, which is itself #F5F5F0, so
+// the same value would erase the fill. #F9F9F7 is the half-step that keeps it
+// readable. Matching a hex is not the goal; matching what a person sees is.
 //
 // `cyan`/`onCyan` are kept as aliases onto mint so component code that refers to
 // them keeps working — there is one accent, and it is mint.
@@ -19,12 +28,17 @@ export const light = {
   text: '#1A1A1A',
   textMuted: '#666666',
   textFaint: '#AAAAAA',
-  // Chrome — the top bar and drawer stay dark in both themes, which is what
-  // frames the light content surfaces.
-  chrome: '#1A1A1A',
-  chromeAlt: '#2A2A2A',
-  chromeText: '#FFFFFF',
-  chromeMuted: '#A0A0A0',
+  // Chrome — the top bar and drawer. These follow the theme, matching the web
+  // app's header and sidebar exactly (`bg-white dark:bg-[#1A1A1A]`).
+  //
+  // They used to be dark in both themes, borrowed from the reference app's
+  // structure. That gave the phone a black bar where the browser has a white
+  // one, so the two surfaces disagreed about what the product looks like in
+  // light mode — the first thing you notice putting them side by side.
+  chrome: '#FFFFFF',
+  chromeAlt: '#F5F5F0',
+  chromeText: '#1A1A1A',
+  chromeMuted: '#666666',
   accentSoft: '#E6FBF6',
 }
 
@@ -36,8 +50,11 @@ export const dark = {
   text: '#FFFFFF',
   textMuted: '#A0A0A0',
   textFaint: '#555555',
-  chrome: '#0A0A0A',
-  chromeAlt: '#1E1E1E',
+  // #1A1A1A, not #0A0A0A: the web's dark header and sidebar are #1A1A1A, one
+  // step lighter than the #0F0F0F page behind them. #0A0A0A made the phone's
+  // bar darker than its own background, inverting that relationship.
+  chrome: '#1A1A1A',
+  chromeAlt: '#252525',
   chromeText: '#FFFFFF',
   chromeMuted: '#A0A0A0',
   // Mint at low opacity on a dark ground; the light tint would glare here.

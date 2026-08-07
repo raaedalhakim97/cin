@@ -4,16 +4,25 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from './ui'
 import { radius, space, type } from '../theme'
 
-// Dark chrome bar with the title centred, a hamburger on the left and help plus
-// notifications on the right — the layout from the reference app. The bar is
-// dark in both themes, which is what keeps the light content surfaces feeling
-// framed rather than washed out.
+// Chrome bar with the title centred, a hamburger on the left and help plus
+// notifications on the right.
+//
+// Colours follow the theme, matching the web header exactly. The hairline below
+// is what the web gets from `border-b border-[#E8E8E8]` — in light mode the bar
+// is white on a #F5F5F0 page, so without it there is no edge between the two.
 export default function TopBar({ title, onMenu, notifications = 0, onNotifications, onHelp }) {
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
 
   return (
-    <View style={{ backgroundColor: c.chrome, paddingTop: insets.top }}>
+    <View
+      style={{
+        backgroundColor: c.chrome,
+        paddingTop: insets.top,
+        borderBottomWidth: 1,
+        borderBottomColor: c.border,
+      }}
+    >
       <View
         style={{
           height: space(7),

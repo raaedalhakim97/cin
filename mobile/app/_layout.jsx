@@ -36,6 +36,7 @@ function Gate({ children }) {
 export default function RootLayout() {
   const init = useAuthStore((s) => s.init)
   const hydrateTheme = useThemeStore((s) => s.hydrate)
+  const isDark = useThemeStore((s) => s.isDark)
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -55,9 +56,11 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      {/* The top bar is dark in both themes, so the status bar text is always
-          light — it sits on the chrome, not on the content surface. */}
-      <StatusBar style="light" />
+      {/* The status bar sits on the chrome, and the chrome now follows the
+          theme to match the web. So this has to follow it too: it was pinned
+          to "light", which was correct while the bar was always dark and would
+          otherwise paint white text onto the white light-mode bar. */}
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Gate>
         <Stack
           screenOptions={{
