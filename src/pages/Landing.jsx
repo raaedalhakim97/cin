@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import Logo from '../components/Logo'
+import PeopleSlides from '../components/marketing/PeopleSlides'
 
 // Ported from "BYOND Website.dc.html" (Claude Design export) — the public
 // marketing site. Renders with no Supabase session and never touches the DB.
@@ -319,14 +320,8 @@ function Hero() {
       <div className="absolute top-16 -right-24 lg:-right-36 w-[420px] h-[420px] lg:w-[620px] lg:h-[620px] rounded-full bg-[radial-gradient(circle,rgba(0,212,160,.14),transparent_62%)] pointer-events-none" />
       <div className="relative grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
         <div>
-          <Reveal>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#00D4A0]/10 border border-[#00D4A0]/25 text-[13px] font-semibold text-[#00D4A0] whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00D4A0] animate-pulse" />
-              Performance, made human
-            </div>
-          </Reveal>
           <Reveal delay={80}>
-            <h1 className="text-[clamp(38px,5.4vw,72px)] font-extrabold tracking-tight leading-[1.02] mt-6">
+            <h1 className="text-[clamp(38px,5.4vw,72px)] font-extrabold tracking-tight leading-[1.02]">
               See how your team performs.<br />
               Then help them go <span className="text-[#00D4A0]">beyond</span>.
             </h1>
@@ -1113,6 +1108,9 @@ export default function Landing() {
       <Features />
       <HowItWorks />
       <MobileSection />
+      {/* People, after the two sections that explain what the product does —
+          a face means something once the reader knows whose face it is. */}
+      <PeopleSlides />
       <Acronym />
       <Showcase />
       <Principle />
