@@ -649,16 +649,28 @@ function UAESection() {
 }
 
 const CHECKS = [
-  'Real-time KPI tracking, zero manual entry',
-  'Per-person and per-pod trend lines',
-  'Early-warning alerts on performance dips',
+  'Attendance scores itself — 30% of the result needs no one to fill it in',
+  'Approved leave costs nothing; an unassessed month is not a zero',
+  'Every weight is yours to change, and the model is visible to the person being scored',
 ]
 
+// The real scoring model, with the real weights — these are the components and
+// percentages in KPI.jsx, not invented ones.
+//
+// It previously read Delivery 94 / Quality 88 / Collaboration 81 / Response
+// time 46: plausible, generic, and matching nothing in the product. That is the
+// same flaw as a competitor's stock screenshot, and the first thing a prospect
+// notices in a demo is that the homepage showed a different application.
+//
+// Showing the weights is also the better pitch. Every HR tool claims to score
+// performance; almost none will tell you how, and "attendance is 30% and it
+// calculates itself" is a more concrete promise than any adjective.
 const BARS = [
-  { label: 'Delivery', val: '94%', widthClass: 'w-[94%]', delayClass: 'delay-[500ms]' },
-  { label: 'Quality', val: '88%', widthClass: 'w-[88%]', delayClass: 'delay-[650ms]' },
-  { label: 'Collaboration', val: '81%', widthClass: 'w-[81%]', delayClass: 'delay-[800ms]' },
-  { label: 'Response time', val: '46%', widthClass: 'w-[46%]', delayClass: 'delay-[950ms]', colorClass: 'bg-[#FF4D4D]' },
+  { label: 'Attendance', val: '30%', widthClass: 'w-[30%]', delayClass: 'delay-[500ms]', auto: true },
+  { label: 'Behavior', val: '25%', widthClass: 'w-[25%]', delayClass: 'delay-[620ms]' },
+  { label: 'Achievement', val: '20%', widthClass: 'w-[20%]', delayClass: 'delay-[740ms]' },
+  { label: 'Manager evaluation', val: '15%', widthClass: 'w-[15%]', delayClass: 'delay-[860ms]' },
+  { label: 'Self evaluation', val: '10%', widthClass: 'w-[10%]', delayClass: 'delay-[980ms]' },
 ]
 
 function Showcase() {
@@ -672,11 +684,12 @@ function Showcase() {
               Performance dashboards
             </div>
             <h2 className="text-[clamp(28px,3.6vw,44px)] font-extrabold tracking-tight leading-[1.08] mt-4">
-              One graph tells you who&apos;s thriving — and who needs a hand.
+              A score anyone can argue with — because they can see how it was built.
             </h2>
             <p className="text-[17px] leading-relaxed text-[#B5B5B5] mt-5">
-              Every person and pod gets a living performance line. Automatic KPI tracking means the numbers are
-              always current, and smart alerts surface a dip before it becomes a problem.
+              This is the actual model, with the actual weights. Attendance is measured, not entered. The rest
+              comes from a manager and from the employee themselves, each in their own turn, and every weight is
+              yours to change.
             </p>
             <ul className="flex flex-col gap-3.5 mt-7 list-none p-0">
               {CHECKS.map((c) => (
@@ -691,27 +704,41 @@ function Showcase() {
           </Reveal>
           <Reveal delay={160}>
             <div className="bg-[#111] border border-[#242424] rounded-2xl p-8">
-              <div className="flex items-center gap-7">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-7">
                 <Ring pct={87} />
-                <div className="flex-1 flex flex-col gap-4">
+                <div className="flex-1 w-full flex flex-col gap-3.5">
                   {BARS.map((b) => (
                     <div key={b.label}>
-                      <div className="flex justify-between text-[13px] mb-1.5">
-                        <span className="text-[#C9C9C9]">{b.label}</span>
-                        <span className="text-[#8A8A8A]">{b.val}</span>
+                      <div className="flex justify-between items-center text-[13px] mb-1.5 gap-3">
+                        <span className="text-[#C9C9C9] flex items-center gap-2 min-w-0">
+                          <span className="truncate">{b.label}</span>
+                          {/* Marking which components need no human input is the
+                              whole argument — it is what "automatic" means here. */}
+                          {b.auto && (
+                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-[#00D4A0]/15 text-[#00D4A0]">
+                              Auto
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[#8A8A8A] shrink-0">{b.val}</span>
                       </div>
                       <Bar targetWidthClass={b.widthClass} delayClass={b.delayClass} colorClass={b.colorClass} />
                     </div>
                   ))}
+                  <p className="text-[11px] text-[#6E6E6E] mt-1">Default weights. Every one is configurable.</p>
                 </div>
               </div>
               <div className="mt-6 pt-5 border-t border-[#1e1e1e] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#00D4A0]/10 flex items-center justify-center shrink-0">
                   <TrendingUp size={18} className="text-[#00D4A0]" />
                 </div>
+                {/* An actual rule from the engine: code perfect_attendance_quarter,
+                    metric perfect_attendance, window quarter, which issues the
+                    perfect_attendance_q award. "Coaching prompt" was invented
+                    terminology for a feature that does not go by that name. */}
                 <div className="text-sm text-[#C9C9C9]">
-                  <span className="text-[#00D4A0] font-semibold">Coaching prompt:</span> Recognise Layla — 3 weeks
-                  of consistent gains.
+                  <span className="text-[#00D4A0] font-semibold">Rule fired:</span> perfect attendance for the
+                  quarter — award issued, no one had to notice.
                 </div>
               </div>
             </div>
