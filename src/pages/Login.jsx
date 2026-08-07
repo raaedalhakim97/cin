@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import supabase from '../services/supabase'
@@ -100,8 +100,9 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex justify-center mb-4">
-            <Logo size="md" variant="light" className="dark:hidden" />
-            <Logo size="md" variant="dark" className="hidden dark:inline-flex" />
+            <Link to="/" aria-label="BYOND home">
+              <Logo size="md" />
+            </Link>
           </div>
           <h1 className="text-2xl font-bold text-[#1A1A1A] dark:text-white">
             Welcome back

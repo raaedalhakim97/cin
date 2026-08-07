@@ -9,6 +9,14 @@ import {
   AlertTriangle,
   Target,
   HeartHandshake,
+  Banknote,
+  ScrollText,
+  IdCard,
+  Scale,
+  MapPin,
+  ChevronDown,
+  Menu,
+  X,
 } from 'lucide-react'
 import Logo from '../components/Logo'
 
@@ -207,14 +215,37 @@ function HeroChart() {
   )
 }
 
+const NAV_LINKS = [
+  { href: '#uae', label: 'For the UAE' },
+  { href: '#features', label: 'Platform' },
+  { href: '#mobile', label: 'Mobile' },
+  { href: '#pricing', label: 'Pricing' },
+  { href: '#faq', label: 'FAQ' },
+]
+
 function Nav() {
   const [scrolled, setScrolled] = useState(false)
+  // On a phone the nav offered only Log in and Start free trial, so every
+  // section of the page was unreachable except by scrolling past it. Most of
+  // this site's traffic will be on a phone.
+  const [menuOpen, setMenuOpen] = useState(false)
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // A menu that stays open behind a page you have navigated to is a trap on a
+  // phone: the anchor jumps, the panel still covers the content.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const close = () => setMenuOpen(false)
+    window.addEventListener('hashchange', close)
+    return () => window.removeEventListener('hashchange', close)
+  }, [menuOpen])
+
   return (
     <nav
       className={`fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 sm:px-8 lg:px-10 border-b transition-[background-color,padding,border-color] duration-300 ${
@@ -224,26 +255,57 @@ function Nav() {
       <a href="#top">
         <Logo size="lg" variant="dark" />
       </a>
-      <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#B5B5B5]">
-        <a href="#features" className="hover:text-[#F5F5F5] transition-colors">Platform</a>
-        <a href="#how" className="hover:text-[#F5F5F5] transition-colors">How it works</a>
-        <a href="#showcase" className="hover:text-[#F5F5F5] transition-colors">Dashboards</a>
+      <div className="hidden md:flex items-center gap-7 text-sm font-medium text-[#B5B5B5]">
+        {NAV_LINKS.map((l) => (
+          <a key={l.href} href={l.href} className="hover:text-[#F5F5F5] transition-colors">{l.label}</a>
+        ))}
         <Link to="/login" className="hover:text-[#F5F5F5] transition-colors">Log in</Link>
         <Link
           to={SIGNUP_HREF}
           className="px-4 py-2 rounded-lg bg-[#00D4A0] hover:bg-[#12e6b0] text-[#062b22] font-bold transition-colors"
         >
-          Start free trial
+          Start free
         </Link>
       </div>
-      <div className="md:hidden flex items-center gap-3">
-        <Link to="/login" className="text-sm font-medium text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">
-          Log in
-        </Link>
+
+      <div className="md:hidden flex items-center gap-2.5">
         <Link to={SIGNUP_HREF} className="px-4 py-2 rounded-lg bg-[#00D4A0] text-[#062b22] text-sm font-bold whitespace-nowrap">
-          Start free trial
+          Start free
         </Link>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          className="w-10 h-10 -mr-2 flex items-center justify-center text-[#F5F5F5]"
+        >
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
+
+      {menuOpen && (
+        <div className="md:hidden absolute top-full inset-x-0 bg-black/95 backdrop-blur-md border-b border-[#1a1a1a]">
+          <div className="flex flex-col px-6 py-3">
+            {NAV_LINKS.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setMenuOpen(false)}
+                className="py-3.5 text-base font-medium text-[#B5B5B5] hover:text-[#F5F5F5] border-b border-[#161616] transition-colors"
+              >
+                {l.label}
+              </a>
+            ))}
+            <Link
+              to="/login"
+              onClick={() => setMenuOpen(false)}
+              className="py-3.5 text-base font-medium text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors"
+            >
+              Log in
+            </Link>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
@@ -282,7 +344,7 @@ function Hero() {
                 to={SIGNUP_HREF}
                 className="inline-flex items-center gap-2.5 px-7 py-4 rounded-xl bg-[#00D4A0] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-12px_rgba(0,212,160,.5)] text-[#062b22] text-base font-bold transition-all"
               >
-                Start free trial <ArrowRight size={16} strokeWidth={2.6} />
+                Start your free quarter <ArrowRight size={16} strokeWidth={2.6} />
               </Link>
               <Link
                 to={DEMO_HREF}
@@ -294,7 +356,7 @@ function Hero() {
           </Reveal>
           <Reveal delay={320}>
             {/* Every figure here is a fact about the product, not a claim about
-                results we have not measured. 14 days is what
+                results we have not measured. 3 months is what
                 self_onboard_company actually sets; the two zeros are literally
                 true because there is nothing to integrate or import. */}
             {/* Stacked on a phone, in a row from sm up.
@@ -304,21 +366,21 @@ function Hero() {
                 only exist in the layout that has something on both sides. */}
             <div className="flex flex-col sm:flex-row gap-5 sm:gap-8 mt-12">
               <div>
-                <div className="text-[34px] font-extrabold tracking-tight text-[#00D4A0]">
-                  <CountUp to={14} suffix=" days" />
+                <div className="text-[34px] font-extrabold tracking-tight text-[#00D4A0] whitespace-nowrap">
+                  <CountUp to={3} suffix=" months" />
                 </div>
                 <div className="text-[13px] text-[#8A8A8A] mt-0.5">free, no card required</div>
               </div>
               <div className="hidden sm:block w-px bg-[#222] self-stretch" />
               <div>
-                <div className="text-[34px] font-extrabold tracking-tight text-white">
+                <div className="text-[34px] font-extrabold tracking-tight text-white whitespace-nowrap">
                   <CountUp to={0} />
                 </div>
                 <div className="text-[13px] text-[#8A8A8A] mt-0.5">imports or connectors</div>
               </div>
               <div className="hidden sm:block w-px bg-[#222] self-stretch" />
               <div>
-                <div className="text-[34px] font-extrabold tracking-tight text-white">
+                <div className="text-[34px] font-extrabold tracking-tight text-white whitespace-nowrap">
                   <CountUp to={100} suffix="%" />
                 </div>
                 <div className="text-[13px] text-[#8A8A8A] mt-0.5">of attendance scored automatically</div>
@@ -527,6 +589,70 @@ function Acronym() {
   )
 }
 
+// The market position, stated once and properly.
+//
+// Every item is something the product does today. "MOHRE-aware" claims a shape
+// of contract and a set of fields, not certification by anyone; "PDPL" claims
+// the region is disclosed and the rights are supported, which the privacy page
+// sets out in full. Both are deliberately narrower than they could be — this is
+// the section a buyer's HR lead will read hardest, and an overstatement here is
+// found in the first demo.
+const UAE_POINTS = [
+  {
+    icon: Banknote,
+    title: 'WPS files, generated',
+    body: 'Payroll produces the SIF your bank expects, from the salaries and IBANs already on file. No re-keying into a template each month.',
+  },
+  {
+    icon: ScrollText,
+    title: 'Built around UAE labour law',
+    body: 'Contract types, probation, gratuity-relevant dates and leave entitlement follow the rules your HR team already works to — not a US template with the wording changed.',
+  },
+  {
+    icon: IdCard,
+    title: 'Emirates ID and labour cards',
+    body: 'Held as first-class fields with expiry tracking, because in the Gulf a lapsed document is an operational problem, not a data-entry detail.',
+  },
+  {
+    icon: Scale,
+    title: 'Discipline stays human',
+    body: 'The system proposes a warning; it never issues one. Article 21.2 grants a hearing, so software that fired the warning itself would put you on the wrong side of the law.',
+  },
+]
+
+function UAESection() {
+  return (
+    <section id="uae" className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6">
+      <Reveal className="max-w-[680px]">
+        <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">Built for the UAE</div>
+        <h2 className="text-[clamp(30px,4vw,50px)] font-extrabold tracking-tight leading-[1.06] mt-4">
+          HR software that already speaks your labour law.
+        </h2>
+        <p className="text-lg leading-relaxed text-[#B5B5B5] mt-5">
+          Most HR platforms are built elsewhere and localised later — you find the gaps at month-end, in the
+          WPS file. BYOND starts here.
+        </p>
+      </Reveal>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-14">
+        {UAE_POINTS.map((p, i) => (
+          <Reveal key={p.title} delay={[0, 80, 160, 240][i]}>
+            <div className="h-full flex gap-4 bg-[linear-gradient(160deg,#151515,#111)] border border-[#232323] hover:border-[#00D4A0] rounded-[18px] p-7 transition-colors duration-300">
+              <div className="w-[42px] h-[42px] shrink-0 rounded-xl bg-[#00D4A0]/10 flex items-center justify-center">
+                <p.icon size={20} className="text-[#00D4A0]" strokeWidth={2.2} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold tracking-tight">{p.title}</h3>
+                <p className="text-[15px] leading-relaxed text-[#9A9A9A] mt-2">{p.body}</p>
+              </div>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 const CHECKS = [
   'Real-time KPI tracking, zero manual entry',
   'Per-person and per-pod trend lines',
@@ -610,6 +736,81 @@ function Showcase() {
 // Replaced with a first-party statement. It is framed and attributed as the
 // company speaking, so nobody can mistake it for social proof we have not
 // earned. When a real customer says something worth quoting, it goes here.
+const PHONE_POINTS = [
+  'Clock in and out from the work site, with the location checked against it',
+  'Request leave and see the balance that is actually left',
+  'Their own KPI score, and the quarterly self-assessment',
+  'Payslips and documents, without asking HR for a copy',
+]
+
+// Attendance is a phone job — a warehouse coordinator is not opening a laptop
+// to clock in. The app existed and the site never mentioned it, which left the
+// geofencing story hanging: a reader could reasonably wonder how a fence around
+// a work site is supposed to work in a browser.
+function MobileSection() {
+  return (
+    <section id="mobile" className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 lg:gap-16 items-center">
+        <Reveal>
+          <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">On the floor</div>
+          <h2 className="text-[clamp(28px,3.6vw,44px)] font-extrabold tracking-tight leading-[1.08] mt-4">
+            Your team never opens a laptop. Neither should attendance.
+          </h2>
+          <p className="text-[17px] leading-relaxed text-[#B5B5B5] mt-5">
+            BYOND ships an app for the people being managed, not just the people managing. Clock-in checks the
+            distance to the assigned site, so the record is worth something without anyone standing at a door
+            with a clipboard.
+          </p>
+          <ul className="flex flex-col gap-3.5 mt-7 list-none p-0">
+            {PHONE_POINTS.map((p) => (
+              <li key={p} className="flex items-start gap-3 text-base text-[#E5E5E5]">
+                <span className="w-6 h-6 mt-0.5 rounded-full bg-[#00D4A0]/15 flex items-center justify-center shrink-0">
+                  <Check size={12} strokeWidth={3} className="text-[#00D4A0]" />
+                </span>
+                {p}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+
+        {/* A drawn phone rather than a screenshot: the app is not on a store
+            yet, and a mock captioned "coming to Android and iOS" is honest in a
+            way a fabricated App Store badge would not be. */}
+        <Reveal delay={160}>
+          <div className="flex justify-center lg:justify-end">
+            <div className="w-[260px] rounded-[34px] border-[6px] border-[#232323] bg-[#0F0F0F] p-4 shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]">
+              <div className="h-1.5 w-16 mx-auto rounded-full bg-[#232323] mb-5" />
+              <div className="text-[11px] tracking-widest uppercase text-[#6E6E6E] font-semibold">Today</div>
+              <div className="text-2xl font-extrabold tracking-tight mt-1">Clocked in</div>
+              <div className="text-[13px] text-[#8A8A8A] mt-0.5">07:58 · Dubai HQ</div>
+
+              <div className="mt-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#00D4A0]/10">
+                <MapPin size={14} className="text-[#00D4A0] shrink-0" />
+                <span className="text-xs font-semibold text-[#00D4A0]">42m from site — inside the fence</span>
+              </div>
+
+              <div className="mt-4 rounded-xl bg-[#1a1a1a] p-3.5">
+                <div className="flex justify-between text-[11px] text-[#8A8A8A]">
+                  <span>This month</span><span>Attendance</span>
+                </div>
+                <div className="text-[26px] font-extrabold tracking-tight mt-1">96%</div>
+                <div className="mt-2.5"><Bar targetWidthClass="w-[96%]" delayClass="delay-[500ms]" /></div>
+              </div>
+
+              <div className="mt-3 rounded-xl bg-[#1a1a1a] p-3.5">
+                <div className="text-[11px] text-[#8A8A8A]">Annual leave left</div>
+                <div className="text-lg font-bold tracking-tight mt-0.5">16 of 21 days</div>
+              </div>
+
+              <div className="mt-4 text-center text-[11px] text-[#6E6E6E]">Coming to Android and iOS</div>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
 function Principle() {
   return (
     <Reveal className="max-w-[900px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6 text-center">
@@ -620,6 +821,159 @@ function Principle() {
       </div>
       <div className="mt-7 text-[13px] text-[#8A8A8A]">BYOND by SERVA · Dubai</div>
     </Reveal>
+  )
+}
+
+const PRICING_INCLUDED = [
+  'Every feature — nothing held back for a higher tier',
+  'Unlimited employees during the trial quarter',
+  'Web app and mobile app',
+  'WPS payroll export and document tracking',
+  'Automatic KPI scoring and quarterly review cycles',
+]
+
+// No number on the page, deliberately, because there is not an honest one yet.
+//
+// A made-up price is the same class of mistake as a made-up customer: it is
+// discovered in the first real conversation. What can be stated is the shape of
+// the offer — a full quarter free, then a figure quoted against the actual
+// headcount — and that is a complete answer to "what does it cost", even
+// without a number in it.
+function Pricing() {
+  return (
+    <section id="pricing" className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6">
+      <Reveal className="text-center max-w-[620px] mx-auto">
+        <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">Pricing</div>
+        <h2 className="text-[clamp(30px,4vw,50px)] font-extrabold tracking-tight leading-[1.06] mt-4">
+          A full quarter free. Then a price that fits your headcount.
+        </h2>
+        <p className="text-lg leading-relaxed text-[#B5B5B5] mt-5">
+          A fortnight is not long enough to judge an HR system. Three months is — long enough to run payroll,
+          close a leave cycle, and see a complete quarterly review from self-assessment to published score.
+        </p>
+      </Reveal>
+
+      <Reveal delay={120}>
+        <div className="max-w-[760px] mx-auto mt-14 rounded-[26px] border border-[#00D4A0]/30 bg-[linear-gradient(150deg,rgba(0,212,160,.10),rgba(0,212,160,.02))] p-8 sm:p-11">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <div className="text-[13px] tracking-[.16em] uppercase text-[#00D4A0] font-semibold">
+                Your first quarter
+              </div>
+              <div className="text-[clamp(38px,6vw,60px)] font-extrabold tracking-tight leading-none mt-2">
+                Free
+              </div>
+              <p className="text-[15px] text-[#B5B5B5] mt-2">No card. No commitment. Cancel by doing nothing.</p>
+            </div>
+            <Link
+              to={SIGNUP_HREF}
+              className="inline-flex items-center gap-2.5 px-7 py-4 rounded-xl bg-[#00D4A0] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-12px_rgba(0,212,160,.5)] text-[#062b22] text-base font-bold transition-all"
+            >
+              Start free <ArrowRight size={16} strokeWidth={2.6} />
+            </Link>
+          </div>
+
+          <div className="h-px bg-[#00D4A0]/20 my-8" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5">
+            {PRICING_INCLUDED.map((item) => (
+              <div key={item} className="flex items-start gap-3 text-[15px] text-[#E5E5E5]">
+                <span className="w-5 h-5 mt-0.5 rounded-full bg-[#00D4A0]/15 flex items-center justify-center shrink-0">
+                  <Check size={11} strokeWidth={3} className="text-[#00D4A0]" />
+                </span>
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Reveal>
+
+      <Reveal delay={200}>
+        <div className="max-w-[760px] mx-auto mt-5 rounded-[22px] border border-[#232323] bg-[linear-gradient(160deg,#151515,#111)] p-7 sm:p-9 flex flex-wrap items-center justify-between gap-5">
+          <div className="max-w-[440px]">
+            <h3 className="text-xl font-bold tracking-tight">After the quarter</h3>
+            <p className="text-[15px] leading-relaxed text-[#9A9A9A] mt-2">
+              We quote against your actual headcount and what you use. Twelve people and four hundred are not the
+              same product, and pretending otherwise means one of you is overpaying.
+            </p>
+          </div>
+          <Link
+            to={DEMO_HREF}
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-[#2C2C2C] hover:border-[#00D4A0] text-base font-semibold text-[#F5F5F5] transition-colors"
+          >
+            Get a quote
+          </Link>
+        </div>
+      </Reveal>
+    </section>
+  )
+}
+
+const FAQS = [
+  {
+    q: 'Where is our data stored?',
+    a: 'On managed infrastructure, in a single region we name in our Privacy Policy rather than leaving vague — an employer holding Emirates ID numbers and salaries needs to know it to meet their own obligations. Access is enforced in the database itself, not only in the app, so a person can read only what their role permits.',
+  },
+  {
+    q: 'We run everything on spreadsheets. How hard is moving?',
+    a: 'There is nothing to integrate and nothing to import to get started — you add your team and BYOND begins recording from that day. Historical records can be brought over, but you do not need them in place before the system is useful.',
+  },
+  {
+    q: 'What happens when the free quarter ends?',
+    a: 'We quote you a price. If you do not go ahead, the workspace is suspended rather than deleted, and you can export your data. Nothing is charged automatically, because we never took a card.',
+  },
+  {
+    q: 'Can the system discipline an employee automatically?',
+    a: 'No, and it is built so it cannot. Recognition is issued automatically; a warning is only ever proposed to your HR team for a person to decide on. UAE labour law grants an employee the right to be heard, and software that skipped that would put you on the wrong side of it.',
+  },
+  {
+    q: 'Does location tracking follow staff around?',
+    a: 'No. A coordinate is recorded at the moment someone clocks in or out — not continuously, not in the background, not outside working hours. Whether it is enforced at all is your choice, per site.',
+  },
+  {
+    q: 'Is BYOND certified for MOHRE or WPS?',
+    a: 'BYOND generates the WPS SIF file your bank accepts and structures employment records around UAE labour law. It is not a government-certified system and we do not claim to be one — the filing remains yours, and the file is built to be accepted when you make it.',
+  },
+]
+
+function FAQ() {
+  const [open, setOpen] = useState(0)
+  return (
+    <section id="faq" className="max-w-[860px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6">
+      <Reveal className="text-center">
+        <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">Questions</div>
+        <h2 className="text-[clamp(30px,4vw,50px)] font-extrabold tracking-tight leading-[1.06] mt-4">
+          The things people ask before they commit.
+        </h2>
+      </Reveal>
+
+      <div className="mt-12 flex flex-col gap-3">
+        {FAQS.map((f, i) => {
+          const isOpen = open === i
+          return (
+            <Reveal key={f.q} delay={i < 3 ? i * 80 : 0}>
+              <div className="rounded-[18px] border border-[#232323] bg-[linear-gradient(160deg,#151515,#111)] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? -1 : i)}
+                  aria-expanded={isOpen}
+                  className="w-full flex items-center justify-between gap-4 text-left px-6 py-5 hover:bg-white/[0.02] transition-colors"
+                >
+                  <span className="text-[17px] font-bold tracking-tight">{f.q}</span>
+                  <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-[#00D4A0] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isOpen && (
+                  <p className="px-6 pb-6 -mt-1 text-[15px] leading-relaxed text-[#9A9A9A]">{f.a}</p>
+                )}
+              </div>
+            </Reveal>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -645,14 +999,14 @@ function CTASection() {
               Ready to see your team go beyond?
             </h2>
             <p className="text-lg text-[#C9C9C9] mt-5 max-w-[480px] mx-auto">
-              Start your 14-day free trial in minutes, or book a 20-minute demo and we&apos;ll map your KPIs live.
+              Start a free quarter in minutes, or book a 20-minute demo and we&apos;ll map your KPIs live.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 mt-9">
               <Link
                 to={SIGNUP_HREF}
                 className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl bg-[#00D4A0] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-12px_rgba(0,212,160,.5)] text-[#062b22] text-base font-bold transition-all"
               >
-                Start free trial <ArrowRight size={17} strokeWidth={2.6} />
+                Start your free quarter <ArrowRight size={17} strokeWidth={2.6} />
               </Link>
               <Link
                 to={DEMO_HREF}
@@ -690,7 +1044,7 @@ function Footer() {
               nowhere. Dropped rather than faked; they come back when the pages do. */}
           <div className="flex flex-col gap-3">
             <span className="text-xs tracking-[.14em] uppercase text-[#6E6E6E] font-semibold">Get started</span>
-            <Link to={SIGNUP_HREF} className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Start free trial</Link>
+            <Link to={SIGNUP_HREF} className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Start free quarter</Link>
             <Link to={DEMO_HREF} className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Book a demo</Link>
             <Link to="/login" className="text-sm text-[#B5B5B5] hover:text-[#F5F5F5] transition-colors">Log in</Link>
           </div>
@@ -714,19 +1068,62 @@ function Footer() {
   )
 }
 
+// A CTA that comes back once the hero's own buttons have scrolled away, on
+// phones only — on a desktop the nav button is always visible, so a second
+// fixed bar would just cover content for no gain.
+function StickyCTA() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 700)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  return (
+    <div
+      className={`md:hidden fixed bottom-0 inset-x-0 z-40 px-4 pb-4 pt-3 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/95 to-transparent transition-transform duration-300 ${
+        show ? 'translate-y-0' : 'translate-y-full'
+      }`}
+      // Hidden from assistive tech while off-screen, so a screen reader does
+      // not announce a button the sighted page has not offered yet.
+      aria-hidden={!show}
+    >
+      <Link
+        to={SIGNUP_HREF}
+        tabIndex={show ? 0 : -1}
+        className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-[#00D4A0] text-[#062b22] text-base font-bold shadow-[0_12px_30px_-10px_rgba(0,212,160,.6)]"
+      >
+        Start your free quarter <ArrowRight size={16} strokeWidth={2.6} />
+      </Link>
+    </div>
+  )
+}
+
 export default function Landing() {
   return (
     <div className="bg-[#0A0A0A] text-[#F5F5F5] overflow-x-hidden min-h-screen selection:bg-[#00D4A0] selection:text-[#062b22]">
       <Nav />
       <Hero />
       <LogoStrip />
+      {/* The UAE section sits directly after the hero: it is the reason to
+          choose this over a cheaper generic HR tool, so it should not be
+          four scrolls down behind a feature grid anyone could claim. */}
+      <UAESection />
       <Features />
       <HowItWorks />
+      <MobileSection />
       <Acronym />
       <Showcase />
       <Principle />
+      <Pricing />
+      <FAQ />
       <CTASection />
       <Footer />
+      {/* pb on the footer's container keeps the sticky bar from covering the
+          last line of the page on a phone. */}
+      <div className="md:hidden h-20" aria-hidden="true" />
+      <StickyCTA />
     </div>
   )
 }

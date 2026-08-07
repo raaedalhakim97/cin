@@ -3,7 +3,7 @@ import LegalPage from './LegalPage'
 // Terms for the SaaS subscription itself — the agreement between BYOND and the
 // employer who signs up. Employee-facing data questions belong in Privacy.
 //
-// Written against what the product actually does today: a 14-day trial created
+// Written against what the product actually does today: a one-quarter trial created
 // by self_onboard_company, no billing integration yet, no uptime guarantee, and
 // backups not yet installed. Where a commitment has not been built, this says
 // so rather than promising it.
@@ -38,9 +38,9 @@ export default function Terms() {
 
       <h2>2. Free trial</h2>
       <p>
-        New workspaces created through self-signup begin a <strong>14-day free trial</strong>. No payment card
-        is required to start it. At the end of the trial you may subscribe to continue; if you do not, access to
-        the workspace is suspended.
+        New workspaces created through self-signup begin a <strong>three-month free trial</strong> — one full
+        quarter. No payment card is required to start it. At the end of the trial you may subscribe to continue;
+        if you do not, access to the workspace is suspended.
       </p>
       <p>
         Suspension is not deletion. Contact us before your data is removed if you need to export it.

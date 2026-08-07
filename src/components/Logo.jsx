@@ -2,7 +2,22 @@
 // dark rounded-square chip + mint upward arrow, paired with the "BY[O]ND"
 // wordmark (the O is always mint). The chip is self-contained (its own dark
 // fill) so it reads correctly on both light and dark page backgrounds;
-// `variant` only controls the wordmark text color.
+// `variant` only controls the wordmark text colour.
+//
+// `auto` is the default and is what almost every caller wants: the wordmark
+// follows the theme in CSS, one element, no JavaScript.
+//
+// It exists because the alternative was rendering the logo TWICE and hiding one
+// with `dark:hidden` / `hidden dark:inline-flex` — which silently did not work.
+// The root span below sets `inline-flex`, and `hidden` is a display utility
+// too. Tailwind emits display utilities in a fixed order with `inline-flex`
+// after `hidden`, so the base class won and BOTH logos rendered: the light one,
+// and beside it a white wordmark on a white page, invisible unless you
+// selected the text. Class-attribute order cannot fix that; not needing the
+// second element can.
+//
+// Pass `light` or `dark` only to force a colour regardless of theme — the
+// marketing site and the legal pages are always dark, so they force `dark`.
 const SIZES = {
   sm: { icon: 22, text: 'text-base' },   // sidebar header
   md: { icon: 32, text: 'text-xl' },     // login screen
@@ -10,7 +25,13 @@ const SIZES = {
   xl: { icon: 44, text: 'text-3xl' },    // hero / CTA sections
 }
 
-export default function Logo({ size = 'md', variant = 'dark', showWordmark = true, className = '' }) {
+const WORDMARK_COLOR = {
+  auto:  'text-[#1A1A1A] dark:text-white',
+  light: 'text-[#1A1A1A]', // dark ink, for a light background
+  dark:  'text-white',     // light ink, for a dark background
+}
+
+export default function Logo({ size = 'md', variant = 'auto', showWordmark = true, className = '' }) {
   const { icon, text } = SIZES[size] ?? SIZES.md
   const height = Math.round(icon * 1.16)
 
@@ -38,7 +59,7 @@ export default function Logo({ size = 'md', variant = 'dark', showWordmark = tru
       {showWordmark && (
         <span
           className={`font-extrabold tracking-tight ${text} ${
-            variant === 'light' ? 'text-[#1A1A1A]' : 'text-white'
+            WORDMARK_COLOR[variant] ?? WORDMARK_COLOR.auto
           }`}
         >
           BY<span className="text-[#00D4A0]">O</span>ND

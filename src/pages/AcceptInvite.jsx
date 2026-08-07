@@ -19,8 +19,9 @@ function Shell({ children }) {
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
           <div className="inline-flex justify-center mb-4">
-            <Logo size="md" variant="light" className="dark:hidden" />
-            <Logo size="md" variant="dark" className="hidden dark:inline-flex" />
+            <Link to="/" aria-label="BYOND home">
+              <Logo size="md" />
+            </Link>
           </div>
         </div>
         {children}

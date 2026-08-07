@@ -82,8 +82,9 @@ export default function Signup() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F5F0] dark:bg-[#0F0F0F]">
         <div className="w-full max-w-sm text-center">
           <div className="inline-flex justify-center mb-4">
-            <Logo size="md" variant="light" className="dark:hidden" />
-            <Logo size="md" variant="dark" className="hidden dark:inline-flex" />
+            <Link to="/" aria-label="BYOND home">
+              <Logo size="md" />
+            </Link>
           </div>
           <div className="rounded-xl p-8 bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
             <div className="w-12 h-12 rounded-xl bg-[#00D4A0]/10 flex items-center justify-center mx-auto mb-4">
@@ -92,7 +93,7 @@ export default function Signup() {
             <h1 className="text-xl font-bold text-[#1A1A1A] dark:text-white">Check your email to activate</h1>
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-2">
               We sent a confirmation link to <span className="font-medium text-[#1A1A1A] dark:text-white">{submittedEmail}</span>.
-              Your 14-day trial and company workspace will be set up as soon as you confirm and log in.
+              Your free quarter and company workspace will be set up as soon as you confirm and log in.
             </p>
             <Link
               to="/login"
@@ -113,8 +114,9 @@ export default function Signup() {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex justify-center mb-4">
-            <Logo size="md" variant="light" className="dark:hidden" />
-            <Logo size="md" variant="dark" className="hidden dark:inline-flex" />
+            <Link to="/" aria-label="BYOND home">
+              <Logo size="md" />
+            </Link>
           </div>
           <h1 className="text-2xl font-bold text-[#1A1A1A] dark:text-white">
             Create your workspace
@@ -124,7 +126,7 @@ export default function Signup() {
           </p>
           <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full bg-[#00D4A0]/10 text-xs font-semibold text-[#00D4A0]">
             <Sparkles size={13} />
-            14-day free trial — no credit card required
+            One full quarter free — no credit card required
           </div>
         </div>
 
