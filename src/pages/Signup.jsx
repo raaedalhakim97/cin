@@ -92,7 +92,7 @@ export default function Signup() {
             <h1 className="text-xl font-bold text-[#1A1A1A] dark:text-white">Check your email to activate</h1>
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-2">
               We sent a confirmation link to <span className="font-medium text-[#1A1A1A] dark:text-white">{submittedEmail}</span>.
-              Your 14-day trial and company workspace will be set up as soon as you confirm and log in.
+              Your free quarter and company workspace will be set up as soon as you confirm and log in.
             </p>
             <Link
               to="/login"
@@ -124,7 +124,7 @@ export default function Signup() {
           </p>
           <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full bg-[#00D4A0]/10 text-xs font-semibold text-[#00D4A0]">
             <Sparkles size={13} />
-            14-day free trial — no credit card required
+            One full quarter free — no credit card required
           </div>
         </div>
 
