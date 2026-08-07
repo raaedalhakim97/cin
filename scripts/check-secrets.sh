@@ -35,5 +35,23 @@ if git grep -nIE 'postgres(ql)?://[^:]+:[^@[:space:]]{8,}@' -- . ':!*.md' ':!ops
   fail=1
 fi
 
-[[ $fail -eq 0 ]] && echo "no tracked .env, no keys or connection strings in source"
+# An account password written into a tracked file.
+#
+# Every check above matches a machine-generated key format. None of them caught
+# `ByondTest#2026` — a working super_admin password for the live database —
+# sitting in docs/deployment.md while this repository was public.
+#
+# Passwords people invent have no distinctive shape, so this matches on context
+# instead: the word "password" on the same line as a quoted literal that has the
+# character mix a password has. The two lookaheads require an uppercase letter
+# and a digit inside the literal, which is what keeps it off ordinary code like
+# register('password', …) and prose like "Password is required".
+PW_RE='(?i)password.{0,60}[`'"'"'"](?=[^`'"'"'"]*[A-Z])(?=[^`'"'"'"]*[0-9])[A-Za-z0-9@#$%^&*_+.!?-]{8,}[`'"'"'"]'
+if git grep -nIP "$PW_RE" -- . ':!scripts/check-secrets.sh' >/dev/null 2>&1; then
+  echo "::error::an account password appears in tracked source — rotate it, then remove it"
+  git grep -nIP "$PW_RE" -- . ':!scripts/check-secrets.sh'
+  fail=1
+fi
+
+[[ $fail -eq 0 ]] && echo "no tracked .env, no keys, connection strings or passwords in source"
 exit $fail

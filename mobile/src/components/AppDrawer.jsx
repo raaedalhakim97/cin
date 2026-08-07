@@ -154,6 +154,10 @@ export default function AppDrawer({ pendingApprovals = 0 }) {
         style={{
           width: PANEL_WIDTH,
           backgroundColor: c.chrome,
+          // Matches the web sidebar's `border-r`. Now that the drawer is white
+          // in light mode it needs an edge against the dimmed content behind it.
+          borderRightWidth: 1,
+          borderRightColor: c.border,
           paddingTop: insets.top + space(1),
           transform: [
             {

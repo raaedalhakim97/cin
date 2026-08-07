@@ -52,9 +52,16 @@ setup. Either move to Pro (daily backups included) or schedule your own
 
 ### 5. Delete the test accounts
 
-Six accounts with the password `ByondTest#2026` exist for role testing
+Six `@byond-test.com` accounts exist for role testing — one per role
 (`super_admin`, `hr_manager`, `admin`, `department_manager`, `employee`,
-`read_only`). Remove or rotate them before a real customer touches the system.
+`read_only`). Remove them before a real customer touches the system.
+
+**Never write their password in this repository.** An earlier revision of this
+file printed it here, and the repository was public at the time, which
+published a working `super_admin` credential for the live database. It was
+rotated on 6 August 2026 and the old value is dead; the login history showed no
+use of it by anyone but the owner. Keep the current password in a password
+manager, not in git.
 
 ---
 

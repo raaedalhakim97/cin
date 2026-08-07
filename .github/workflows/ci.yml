@@ -5,6 +5,16 @@ on:
     branches: ['**']
   pull_request:
 
+# Least privilege for the automatic GITHUB_TOKEN.
+#
+# Without this block the token is issued with write access to contents, issues,
+# packages, deployments and more — on every run, including runs triggered by a
+# pull request. This job only needs to read the code out. A compromised
+# dependency in `npm ci` (postinstall scripts run with the workspace's
+# environment) would otherwise be handed a credential that can push commits.
+permissions:
+  contents: read
+
 # A second push to the same branch makes the first run pointless.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

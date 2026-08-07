@@ -28,5 +28,29 @@ if (eas.build?.preview?.android?.buildType !== 'apk') {
   failed = true
 }
 
-if (!failed) console.log('app.json permissions ok; preview profile builds an apk')
+// expo-updates is installed but does nothing until `updates.url` points at an
+// EAS project. Half-configured is the worst state: the app ships believing it
+// can be updated over the air, and the first time you need to change the
+// Supabase URL you discover it cannot. `eas update:configure` fills this in
+// once the Expo project exists — which needs a terminal, so it is a warning
+// here rather than a failure.
+const hasUpdates = Object.prototype.hasOwnProperty.call(app, 'updates')
+if (hasUpdates && !app.updates?.url) {
+  console.warn('::warning::expo-updates is configured but updates.url is not set — over-the-air updates will not reach the app. Run `eas update:configure` in mobile/.')
+}
+if (hasUpdates && !app.runtimeVersion) {
+  console.error('::error::updates are enabled without a runtimeVersion — EAS cannot decide which builds an update is compatible with')
+  failed = true
+}
+
+// A build profile without a channel cannot receive updates, which is the same
+// silent dead end as above.
+for (const profile of ['preview', 'production']) {
+  if (hasUpdates && !eas.build?.[profile]?.channel) {
+    console.error(`::error::build profile "${profile}" has no channel — builds from it can never receive an over-the-air update`)
+    failed = true
+  }
+}
+
+if (!failed) console.log('app.json permissions ok; preview profile builds an apk; update channels set')
 process.exit(failed ? 1 : 0)

@@ -51,25 +51,50 @@ BEGIN
 END $f$;
 
 -- ── Resolve fixtures ────────────────────────────────────────────────────────
+-- Pick the COMPANY first, then both people from inside it.
+--
+-- The first version selected the employee and the hr_manager independently with
+-- two LIMIT 1 subqueries. On a database with more than one tenant that quietly
+-- returns people from different companies — here, an employee in "BYOND Test
+-- Co" and an HR manager in "BYOND". Assertion 18 then has HR open a review
+-- cycle for their own company and looks for the employee's row in it, which
+-- cannot exist. It reported "no review row" and looked exactly like a broken
+-- review guard. Multi-tenancy is the thing this product is, so a fixture that
+-- straddles two tenants is the wrong shape of test.
 CREATE TEMP TABLE fx AS
+WITH candidate AS (
+  SELECT e.company_id
+  FROM employees e
+  JOIN user_roles ur ON ur.user_id = e.user_id
+  WHERE e.status = 'active'
+  GROUP BY e.company_id
+  HAVING count(*) FILTER (WHERE ur.role = 'employee')   > 0
+     AND count(*) FILTER (WHERE ur.role = 'hr_manager') > 0
+  ORDER BY e.company_id
+  LIMIT 1
+)
 SELECT
-  (SELECT e.company_id FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
-    WHERE ur.role = 'employee' AND e.status = 'active' LIMIT 1)          AS company_id,
+  c.company_id,
   (SELECT e.id      FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
-    WHERE ur.role = 'employee' AND e.status = 'active' LIMIT 1)          AS emp_id,
+    WHERE ur.role = 'employee' AND e.status = 'active'
+      AND e.company_id = c.company_id LIMIT 1)                           AS emp_id,
   (SELECT e.user_id FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
-    WHERE ur.role = 'employee' AND e.status = 'active' LIMIT 1)          AS emp_uid,
+    WHERE ur.role = 'employee' AND e.status = 'active'
+      AND e.company_id = c.company_id LIMIT 1)                           AS emp_uid,
   (SELECT e.user_id FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
-    WHERE ur.role = 'hr_manager' LIMIT 1)                               AS hr_uid,
+    WHERE ur.role = 'hr_manager' AND e.status = 'active'
+      AND e.company_id = c.company_id LIMIT 1)                           AS hr_uid,
   (SELECT e.id      FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
-    WHERE ur.role = 'hr_manager' LIMIT 1)                               AS hr_emp_id;
+    WHERE ur.role = 'hr_manager' AND e.status = 'active'
+      AND e.company_id = c.company_id LIMIT 1)                           AS hr_emp_id
+FROM candidate c;
 
 DO $$
 DECLARE f record;
 BEGIN
   SELECT * INTO f FROM fx;
   IF f.emp_id IS NULL OR f.hr_uid IS NULL THEN
-    RAISE EXCEPTION 'FIXTURES MISSING: need one active `employee` and one `hr_manager` in the same database. Suite cannot run.';
+    RAISE EXCEPTION 'FIXTURES MISSING: need an active `employee` and an active `hr_manager` belonging to the SAME company. Suite cannot run.';
   END IF;
 END $$;
 
@@ -314,6 +339,62 @@ SELECT pg_temp.chk(21,'automation','no rule issues a warning directly as an adju
 SELECT pg_temp.chk(22,'automation','monthly rules job scheduled and active','0 2 1 * *|true',
   coalesce((SELECT schedule||'|'||active::text FROM cron.job WHERE jobname='monthly-kpi-rules'),
            'not scheduled'));
+
+-- ═══ 7. Geofence coherence — migration 11 ══════════════════════════════════
+-- Enforcement with no work locations accepts every punch unchecked, because
+-- there is no nearest location to be out of range of. The setting then reports
+-- protection that does not exist, which is worse than being plainly off. The
+-- invalid combination is made unreachable from both directions.
+--
+-- These run last: they add a work location, which changes what the attendance
+-- guard does, and the assertions above expect a database without one.
+
+DO $$
+DECLARE f record; v_loc uuid; v_uid uuid;
+BEGIN
+  SELECT * INTO f FROM fx;
+
+  BEGIN
+    UPDATE shift_settings SET enforce_geofence = true WHERE company_id = f.company_id;
+    INSERT INTO t VALUES (23,'geofence','cannot enforce with zero work locations','refused','ALLOWED');
+  EXCEPTION WHEN others THEN
+    INSERT INTO t VALUES (23,'geofence','cannot enforce with zero work locations','refused','refused');
+  END;
+
+  INSERT INTO work_locations (company_id, name, latitude, longitude, radius_metres)
+  VALUES (f.company_id, 'Suite probe HQ', 25.2048, 55.2708, 200) RETURNING id INTO v_loc;
+  UPDATE shift_settings SET enforce_geofence = true WHERE company_id = f.company_id;
+
+  -- Enforcement applies to someone clocking THEMSELVES in. An HR backfill is
+  -- deliberately exempt, so this must impersonate the employee or it proves
+  -- nothing — a service-role insert is accepted from anywhere by design.
+  SELECT e.user_id INTO v_uid FROM employees e WHERE e.id = f.emp_id;
+  PERFORM pg_temp.as_user(v_uid);
+  BEGIN
+    INSERT INTO attendance (company_id, employee_id, date, clock_in, clock_in_lat, clock_in_lng, status)
+    VALUES (f.company_id, f.emp_id, '2026-05-12', '2026-05-12T05:00:00Z', 25.2450, 55.2500, 'present');
+    PERFORM pg_temp.as_nobody();
+    INSERT INTO t VALUES (24,'geofence','employee punch 4.9km outside the fence refused','refused','ACCEPTED');
+  EXCEPTION WHEN others THEN
+    PERFORM pg_temp.as_nobody();
+    INSERT INTO t VALUES (24,'geofence','employee punch 4.9km outside the fence refused','refused','refused');
+  END;
+
+  BEGIN
+    DELETE FROM work_locations WHERE id = v_loc;
+    INSERT INTO t VALUES (25,'geofence','cannot remove the last location while enforcing','refused','ALLOWED');
+  EXCEPTION WHEN others THEN
+    INSERT INTO t VALUES (25,'geofence','cannot remove the last location while enforcing','refused','refused');
+  END;
+
+  -- The guard must not over-reach: an ordinary edit is not a removal.
+  BEGIN
+    UPDATE work_locations SET name = 'Suite probe HQ (L3)' WHERE id = v_loc;
+    INSERT INTO t VALUES (26,'geofence','renaming a location while enforcing still allowed','allowed','allowed');
+  EXCEPTION WHEN others THEN
+    INSERT INTO t VALUES (26,'geofence','renaming a location while enforcing still allowed','allowed','REFUSED: '||SQLERRM);
+  END;
+END $$;
 
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
