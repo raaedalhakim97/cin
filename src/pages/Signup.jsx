@@ -82,8 +82,9 @@ export default function Signup() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F5F0] dark:bg-[#0F0F0F]">
         <div className="w-full max-w-sm text-center">
           <div className="inline-flex justify-center mb-4">
-            <Logo size="md" variant="light" className="dark:hidden" />
-            <Logo size="md" variant="dark" className="hidden dark:inline-flex" />
+            <Link to="/" aria-label="BYOND home">
+              <Logo size="md" />
+            </Link>
           </div>
           <div className="rounded-xl p-8 bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
             <div className="w-12 h-12 rounded-xl bg-[#00D4A0]/10 flex items-center justify-center mx-auto mb-4">
@@ -113,8 +114,9 @@ export default function Signup() {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex justify-center mb-4">
-            <Logo size="md" variant="light" className="dark:hidden" />
-            <Logo size="md" variant="dark" className="hidden dark:inline-flex" />
+            <Link to="/" aria-label="BYOND home">
+              <Logo size="md" />
+            </Link>
           </div>
           <h1 className="text-2xl font-bold text-[#1A1A1A] dark:text-white">
             Create your workspace

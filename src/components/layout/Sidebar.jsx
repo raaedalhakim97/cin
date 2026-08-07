@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { NAV } from '../../data/vocabulary'
-import useThemeStore from '../../store/themeStore'
 import useUiStore from '../../store/uiStore'
 import Logo from '../Logo'
 
@@ -60,7 +59,6 @@ export default function Sidebar() {
   const location = useLocation()
   const signOut = useAuthStore(s => s.signOut)
   const role = useAuthStore(s => s.role)
-  const isDark = useThemeStore(s => s.isDark)
   const mobileNavOpen = useUiStore(s => s.mobileNavOpen)
   const closeMobileNav = useUiStore(s => s.closeMobileNav)
 
@@ -85,7 +83,9 @@ export default function Sidebar() {
 
         {/* Logo */}
         <div className="px-6 py-5 border-b border-[#E8E8E8] dark:border-[#2A2A2A] flex items-center justify-between">
-          <Logo size="sm" variant={isDark ? 'dark' : 'light'} />
+          {/* Default variant follows the theme in CSS, so the sidebar no longer
+              needs to read the theme store just to colour a wordmark. */}
+          <Logo size="sm" />
           <button
             onClick={closeMobileNav}
             className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-[#666666] dark:text-[#A0A0A0] hover:bg-[#F5F5F0] dark:hover:bg-[#252525]"
