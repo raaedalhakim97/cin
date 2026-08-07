@@ -28,6 +28,7 @@ import Header from '../components/layout/Header'
 import HowCalculatedPopover from '../components/kpi/HowCalculatedPopover'
 import PDPTab from '../components/kpi/PDPTab'
 import ReviewCyclesTab from '../components/kpi/ReviewCyclesTab'
+import ManagerReviewTab from '../components/kpi/ManagerReviewTab'
 import SelfReviewCard from '../components/kpi/SelfReviewCard'
 import ToastComp, { useToast } from '../components/Toast'
 import { SkeletonBlock } from '../components/Skeleton'
@@ -1724,6 +1725,10 @@ export default function KPI() {
     { id: 'my-kpi', label: 'My KPI', icon: Gauge },
     { id: 'history', label: 'History', icon: History },
     ...(canTeam ? [{ id: 'team', label: 'Team KPI', icon: Users }] : []),
+    // Scoring the team is canTeam, not canWarn: a department_manager is the
+    // person the manager_review stage exists for. Gating this behind HR is what
+    // left the cycle with no way out of that stage.
+    ...(canTeam ? [{ id: 'team-review', label: 'Team Review', icon: ClipboardCheck }] : []),
     ...(canWarn ? [{ id: 'warnings', label: 'Warnings & Rewards', icon: ShieldAlert }] : []),
     ...(canWarn ? [{ id: 'reviews', label: 'Review Cycles', icon: ClipboardCheck }] : []),
     { id: 'pdp', label: 'Development Plans', icon: Target },
@@ -1780,6 +1785,9 @@ export default function KPI() {
           )}
           {activeTab === 'warnings' && canWarn && (
             <WarningsRewardsTab companyId={companyId} issuerId={employee?.id} showToast={showToast} />
+          )}
+          {activeTab === 'team-review' && canTeam && (
+            <ManagerReviewTab role={role} showToast={showToast} />
           )}
           {activeTab === 'reviews' && canWarn && (
             <ReviewCyclesTab showToast={showToast} />
