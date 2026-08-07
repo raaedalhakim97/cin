@@ -15,6 +15,28 @@ const eas = require(join(process.cwd(), 'eas.json'))
 
 let failed = false
 
+// Every dependency must be present in the lockfile.
+//
+// `npm ci` refuses to install when package.json and package-lock.json disagree,
+// and it fails on the runner rather than locally — adding expo-updates to
+// package.json without regenerating the lock broke CI on main with
+// "Missing: expo-updates@57.0.12 from lock file". Nothing local caught it,
+// because compile-check runs against whatever node_modules already exists and
+// is perfectly happy with a stale tree.
+//
+// This is the offline half of that check: no network, no install, just the two
+// files agreeing. It runs in a second and would have caught it.
+const lock = require(join(process.cwd(), 'package-lock.json'))
+const pkg = require(join(process.cwd(), 'package.json'))
+const locked = lock.packages ?? {}
+const unlocked = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })
+  .filter((name) => !locked[`node_modules/${name}`])
+
+if (unlocked.length) {
+  console.error(`::error::package-lock.json is out of sync with package.json — missing ${unlocked.join(', ')}. Run \`npm install --package-lock-only\` in mobile/ and commit the lockfile, or \`npm ci\` will fail on the runner.`)
+  failed = true
+}
+
 const need = ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION']
 const have = app.android?.permissions ?? []
 const missing = need.filter((p) => !have.includes(p))
