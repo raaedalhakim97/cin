@@ -58,13 +58,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
+/* These resets belong in the base layer, not outside it.
+ *
+ * Unlayered CSS beats every layered rule regardless of specificity, and
+ * Tailwind's utilities are layered. Written at the top level, `margin: 0` here
+ * silently defeated every mt-* and mb-* on a heading or a paragraph anywhere in
+ * the app. Measured before this change: 28 of 28 paragraphs on the landing page
+ * that asked for a top margin computed to 0px. Not one of them had ever worked.
+ *
+ * It is a nasty failure because nothing errors — the class is in the markup,
+ * the CSS is generated and shipped, devtools shows the rule, and it simply
+ * loses. The legal pages needed a whole separate `.legal-prose` block to work
+ * around it.
+ *
+ * Inside @layer base, utilities win as they are meant to, and the reset still
+ * does its job of clearing the browser defaults. */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
 
-p {
-  margin: 0;
+  p {
+    margin: 0;
+  }
 }
 
 /* Long-form document typography, for /privacy and /terms.

@@ -311,6 +311,116 @@ function Nav() {
   )
 }
 
+// The product, drawn rather than photographed.
+//
+// The hero used to show a floating card labelled "Q3 · Growth pod" — an
+// abstract chart that could belong to any analytics product, using a word this
+// product does not use anywhere. It showed nothing about BYOND.
+//
+// This is a recreation of the real application: the sidebar is the actual
+// navigation from src/data/vocabulary.js, in order, with Payroll in it. That
+// last detail matters more than it looks — every design mockup produced for
+// this site so far dropped Payroll and added a Recruitment section that does
+// not exist, which quietly swapped the UAE differentiator for a generic HR
+// tool. Anyone editing this should keep it matching the real app; a homepage
+// that shows a different product than the demo is a credibility problem, not a
+// design one.
+//
+// Drawn in markup rather than shipped as a screenshot so it stays sharp on any
+// display, weighs nothing, and can be corrected in a diff when the app changes.
+const FRAME_NAV = [
+  { label: 'Home', active: true },
+  { label: 'Employees' },
+  { label: 'Attendance' },
+  { label: 'Leave' },
+  { label: 'Payroll' },
+  { label: 'KPI' },
+  { label: 'Documents' },
+]
+
+const FRAME_STATS = [
+  { label: 'Employees', value: '248' },
+  { label: 'On leave', value: '14' },
+  { label: 'In today', value: '196' },
+]
+
+function ProductFrame() {
+  return (
+    <div className="relative">
+      <div className="rounded-[22px] overflow-hidden bg-[linear-gradient(160deg,#181818,#121212)] border border-[#262626] shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]">
+        {/* Window bar — enough to read as an application, no fake browser URL. */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#232323]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#2e2e2e]" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#2e2e2e]" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#2e2e2e]" />
+          <span className="ml-2 text-[11px] text-[#6E6E6E]">BYOND HR</span>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#00D4A0]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00D4A0] animate-pulse" />
+            Live
+          </span>
+        </div>
+
+        <div className="flex">
+          {/* Real navigation, real order. Hidden on the narrowest screens where
+              it would compress the content into unreadability. */}
+          <div className="hidden sm:flex w-[124px] shrink-0 flex-col gap-0.5 p-2.5 border-r border-[#232323]">
+            {FRAME_NAV.map((n) => (
+              <div
+                key={n.label}
+                className={`px-2.5 py-[7px] rounded-md text-[11px] font-medium ${
+                  n.active ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'text-[#7A7A7A]'
+                }`}
+              >
+                {n.label}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex-1 min-w-0 p-4 sm:p-5">
+            <div className="grid grid-cols-3 gap-2.5 mb-4">
+              {FRAME_STATS.map((s) => (
+                <div key={s.label} className="bg-[#1a1a1a] rounded-xl px-3 py-2.5">
+                  <div className="text-[10px] text-[#8A8A8A] truncate">{s.label}</div>
+                  <div className="text-[20px] font-bold tracking-tight mt-0.5">{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-[11px] text-[#8A8A8A] mb-2">Team KPI · rolling</div>
+            <HeroChart />
+          </div>
+        </div>
+      </div>
+
+      {/* Two callouts for the two things that are genuinely unusual here:
+          a punch checked against the site, and an award nobody had to notice. */}
+      <div className="hidden sm:block absolute -bottom-6 -left-7">
+        <div className="flex items-center gap-2.5 bg-[#151515] border border-[#2a2a2a] rounded-2xl px-4 py-3.5 shadow-[0_20px_50px_-20px_rgba(0,0,0,.9)]">
+          <div className="w-9 h-9 rounded-lg bg-[#00D4A0]/10 flex items-center justify-center shrink-0">
+            <MapPin size={16} className="text-[#00D4A0]" />
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold">Clocked in · 42m from site</div>
+            <div className="text-xs text-[#8A8A8A]">Checked against Dubai HQ</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden lg:block absolute -top-5 -right-6">
+        <div className="flex items-center gap-2.5 bg-[#151515] border border-[#2a2a2a] rounded-2xl px-4 py-3 shadow-[0_20px_50px_-20px_rgba(0,0,0,.9)]">
+          <div className="w-8 h-8 rounded-lg bg-[#00D4A0]/10 flex items-center justify-center shrink-0">
+            <TrendingUp size={15} className="text-[#00D4A0]" />
+          </div>
+          <div>
+            <div className="text-[12px] font-semibold">Award issued</div>
+            <div className="text-[11px] text-[#8A8A8A]">Perfect attendance, Q3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Hero() {
   return (
     <header
@@ -321,13 +431,13 @@ function Hero() {
       <div className="relative grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
         <div>
           <Reveal delay={80}>
-            <h1 className="text-[clamp(38px,5.4vw,72px)] font-extrabold tracking-tight leading-[1.02]">
+            <h1 className="text-[clamp(38px,5.4vw,72px)] font-extrabold tracking-tight leading-[1.06] pb-1">
               See how your team performs.<br />
               Then help them go <span className="text-[#00D4A0]">beyond</span>.
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="text-lg leading-relaxed text-[#B5B5B5] mt-6 max-w-[500px]">
+            <p className="text-lg leading-relaxed text-[#B5B5B5] mt-7 max-w-[500px]">
               Attendance scores itself from the moment your team clocks in. Reviews, goals and manager input sit
               alongside it in one living performance graph — so managers coach with clarity, and no one gets lost
               in a spreadsheet.
@@ -385,55 +495,7 @@ function Hero() {
         </div>
 
         <Reveal delay={200}>
-          <div className="relative">
-            <div className="rounded-[22px] p-6 bg-[linear-gradient(160deg,#181818,#121212)] border border-[#262626] shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <div className="text-[13px] text-[#8A8A8A]">Team performance</div>
-                  <div className="text-xl font-bold tracking-tight mt-0.5">Q3 · Growth pod</div>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00D4A0]/10 text-xs font-semibold text-[#00D4A0]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00D4A0] animate-pulse" />
-                  Live
-                </div>
-              </div>
-              <HeroChart />
-              <div className="grid grid-cols-3 gap-3 mt-5">
-                <div className="bg-[#1a1a1a] rounded-xl p-3.5">
-                  <div className="text-xs text-[#8A8A8A]">Goals met</div>
-                  <div className="text-[22px] font-bold mt-1">92%</div>
-                  <div className="mt-2.5">
-                    <Bar targetWidthClass="w-[92%]" delayClass="delay-[600ms]" />
-                  </div>
-                </div>
-                <div className="bg-[#1a1a1a] rounded-xl p-3.5">
-                  <div className="text-xs text-[#8A8A8A]">On track</div>
-                  <div className="text-[22px] font-bold mt-1">14/16</div>
-                  <div className="mt-2.5">
-                    <Bar targetWidthClass="w-[88%]" delayClass="delay-[750ms]" />
-                  </div>
-                </div>
-                <div className="bg-[#1a1a1a] rounded-xl p-3.5">
-                  <div className="text-xs text-[#8A8A8A]">Needs support</div>
-                  <div className="text-[22px] font-bold mt-1 text-[#FF4D4D]">2</div>
-                  <div className="mt-2.5">
-                    <Bar targetWidthClass="w-[18%]" colorClass="bg-[#FF4D4D]" delayClass="delay-[900ms]" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="hidden sm:block absolute -bottom-6 -left-7">
-              <div className="flex items-center gap-2.5 bg-[#151515] border border-[#2a2a2a] rounded-2xl px-4 py-3.5 shadow-[0_20px_50px_-20px_rgba(0,0,0,.9)]">
-                <div className="w-9 h-9 rounded-lg bg-[#FF4D4D]/10 flex items-center justify-center shrink-0">
-                  <AlertTriangle size={16} className="text-[#FF4D4D]" />
-                </div>
-                <div>
-                  <div className="text-[13px] font-semibold">KPI dip detected</div>
-                  <div className="text-xs text-[#8A8A8A]">Support pod · response time</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProductFrame />
         </Reveal>
       </div>
     </header>
@@ -649,16 +711,28 @@ function UAESection() {
 }
 
 const CHECKS = [
-  'Real-time KPI tracking, zero manual entry',
-  'Per-person and per-pod trend lines',
-  'Early-warning alerts on performance dips',
+  'Attendance scores itself — 30% of the result needs no one to fill it in',
+  'Approved leave costs nothing; an unassessed month is not a zero',
+  'Every weight is yours to change, and the model is visible to the person being scored',
 ]
 
+// The real scoring model, with the real weights — these are the components and
+// percentages in KPI.jsx, not invented ones.
+//
+// It previously read Delivery 94 / Quality 88 / Collaboration 81 / Response
+// time 46: plausible, generic, and matching nothing in the product. That is the
+// same flaw as a competitor's stock screenshot, and the first thing a prospect
+// notices in a demo is that the homepage showed a different application.
+//
+// Showing the weights is also the better pitch. Every HR tool claims to score
+// performance; almost none will tell you how, and "attendance is 30% and it
+// calculates itself" is a more concrete promise than any adjective.
 const BARS = [
-  { label: 'Delivery', val: '94%', widthClass: 'w-[94%]', delayClass: 'delay-[500ms]' },
-  { label: 'Quality', val: '88%', widthClass: 'w-[88%]', delayClass: 'delay-[650ms]' },
-  { label: 'Collaboration', val: '81%', widthClass: 'w-[81%]', delayClass: 'delay-[800ms]' },
-  { label: 'Response time', val: '46%', widthClass: 'w-[46%]', delayClass: 'delay-[950ms]', colorClass: 'bg-[#FF4D4D]' },
+  { label: 'Attendance', val: '30%', widthClass: 'w-[30%]', delayClass: 'delay-[500ms]', auto: true },
+  { label: 'Behavior', val: '25%', widthClass: 'w-[25%]', delayClass: 'delay-[620ms]' },
+  { label: 'Achievement', val: '20%', widthClass: 'w-[20%]', delayClass: 'delay-[740ms]' },
+  { label: 'Manager evaluation', val: '15%', widthClass: 'w-[15%]', delayClass: 'delay-[860ms]' },
+  { label: 'Self evaluation', val: '10%', widthClass: 'w-[10%]', delayClass: 'delay-[980ms]' },
 ]
 
 function Showcase() {
@@ -672,11 +746,12 @@ function Showcase() {
               Performance dashboards
             </div>
             <h2 className="text-[clamp(28px,3.6vw,44px)] font-extrabold tracking-tight leading-[1.08] mt-4">
-              One graph tells you who&apos;s thriving — and who needs a hand.
+              A score anyone can argue with — because they can see how it was built.
             </h2>
             <p className="text-[17px] leading-relaxed text-[#B5B5B5] mt-5">
-              Every person and pod gets a living performance line. Automatic KPI tracking means the numbers are
-              always current, and smart alerts surface a dip before it becomes a problem.
+              This is the actual model, with the actual weights. Attendance is measured, not entered. The rest
+              comes from a manager and from the employee themselves, each in their own turn, and every weight is
+              yours to change.
             </p>
             <ul className="flex flex-col gap-3.5 mt-7 list-none p-0">
               {CHECKS.map((c) => (
@@ -691,27 +766,41 @@ function Showcase() {
           </Reveal>
           <Reveal delay={160}>
             <div className="bg-[#111] border border-[#242424] rounded-2xl p-8">
-              <div className="flex items-center gap-7">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-7">
                 <Ring pct={87} />
-                <div className="flex-1 flex flex-col gap-4">
+                <div className="flex-1 w-full flex flex-col gap-3.5">
                   {BARS.map((b) => (
                     <div key={b.label}>
-                      <div className="flex justify-between text-[13px] mb-1.5">
-                        <span className="text-[#C9C9C9]">{b.label}</span>
-                        <span className="text-[#8A8A8A]">{b.val}</span>
+                      <div className="flex justify-between items-center text-[13px] mb-1.5 gap-3">
+                        <span className="text-[#C9C9C9] flex items-center gap-2 min-w-0">
+                          <span className="truncate">{b.label}</span>
+                          {/* Marking which components need no human input is the
+                              whole argument — it is what "automatic" means here. */}
+                          {b.auto && (
+                            <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase bg-[#00D4A0]/15 text-[#00D4A0]">
+                              Auto
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[#8A8A8A] shrink-0">{b.val}</span>
                       </div>
                       <Bar targetWidthClass={b.widthClass} delayClass={b.delayClass} colorClass={b.colorClass} />
                     </div>
                   ))}
+                  <p className="text-[11px] text-[#6E6E6E] mt-1">Default weights. Every one is configurable.</p>
                 </div>
               </div>
               <div className="mt-6 pt-5 border-t border-[#1e1e1e] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#00D4A0]/10 flex items-center justify-center shrink-0">
                   <TrendingUp size={18} className="text-[#00D4A0]" />
                 </div>
+                {/* An actual rule from the engine: code perfect_attendance_quarter,
+                    metric perfect_attendance, window quarter, which issues the
+                    perfect_attendance_q award. "Coaching prompt" was invented
+                    terminology for a feature that does not go by that name. */}
                 <div className="text-sm text-[#C9C9C9]">
-                  <span className="text-[#00D4A0] font-semibold">Coaching prompt:</span> Recognise Layla — 3 weeks
-                  of consistent gains.
+                  <span className="text-[#00D4A0] font-semibold">Rule fired:</span> perfect attendance for the
+                  quarter — award issued, no one had to notice.
                 </div>
               </div>
             </div>
