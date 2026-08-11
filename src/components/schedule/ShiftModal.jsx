@@ -21,6 +21,35 @@ function isKnownValidationError(message) {
   return KNOWN_DB_ERROR_PREFIXES.some((p) => message?.startsWith(p))
 }
 
+// Turn a check-constraint violation into a sentence.
+//
+// "Add Day Off" failed for every user with "Something went wrong saving this
+// shift. Please try again." — advice that could not possibly work, because the
+// database was refusing the row on shifts_duration_sane and would refuse it
+// again forever. The real cause only surfaced by replaying the insert by hand.
+//
+// A constraint name is not a user-facing string, but it is a fact, and mapping
+// the ones we own to plain language means the next one of these is diagnosed
+// from the screenshot rather than from a database session.
+const CONSTRAINT_MESSAGES = {
+  shifts_duration_sane:
+    'A work shift cannot be longer than 16 hours. Check the start and end times — an end time earlier than the start becomes an overnight shift.',
+  shifts_off_within_one_day:
+    'A day off has to sit inside a single day. Add one per day rather than a range.',
+  shifts_end_after_start:
+    'End time must be after start time.',
+  shifts_notes_len:
+    'Notes are limited to 1000 characters.',
+  shifts_shift_type_check:
+    'A shift must be either a work shift or a day off.',
+}
+
+function constraintMessage(error) {
+  const haystack = `${error?.message ?? ''} ${error?.details ?? ''}`
+  const hit = Object.keys(CONSTRAINT_MESSAGES).find((name) => haystack.includes(name))
+  return hit ? CONSTRAINT_MESSAGES[hit] : null
+}
+
 function localDateStr(d) {
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
 }
@@ -197,11 +226,18 @@ export default function ShiftModal({
 
     setSaving(false)
     if (error) {
+      // Always log the unmapped original — the friendly text is for the user,
+      // the console entry is for whoever has to explain it.
+      console.error('[ShiftModal] save failed', error)
       if (isKnownValidationError(error.message)) {
         setFormError(error.message)
       } else {
-        console.error('[ShiftModal] save failed', error)
-        setFormError('Something went wrong saving this shift. Please try again.')
+        // "Try again" is the wrong advice for a constraint violation: the same
+        // row will be refused every time.
+        setFormError(
+          constraintMessage(error) ??
+          'Something went wrong saving this shift. Please try again.'
+        )
       }
       return
     }
