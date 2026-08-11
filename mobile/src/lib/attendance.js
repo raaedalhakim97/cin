@@ -201,6 +201,16 @@ export async function clockIn({ employeeId, companyId, settings }) {
     grace = settings.kpiLateGrace
   }
 
+  // clock_in and status are both sent, and the server overrides both for a
+  // self-punch: attendance_guard stamps the time from its own clock and grades
+  // the lateness itself (migration 14). Before that it stored whatever arrived,
+  // so an edited client could clock in three hours late and record 'present'.
+  //
+  // They are still sent because the row is read back immediately after this
+  // insert, and keeping the shapes identical means the optimistic value and the
+  // stored one agree for every honest punch. Do not start relying on them: the
+  // stored values are the server's, and if these two ever disagree with it, the
+  // server is right.
   const { error } = await supabase.from('attendance').insert({
     company_id: companyId,
     employee_id: employeeId,

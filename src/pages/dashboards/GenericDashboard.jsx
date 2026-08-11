@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Clock,
   Timer,
   CheckCircle2,
-  AlertTriangle,
   Briefcase,
   Building2,
   CalendarDays,
-  Loader2,
   MapPin,
 } from 'lucide-react'
 import supabase from '../../services/supabase'
-import useAuthStore from '../../store/authStore'
 import { localDateStr } from '../../utils/exportHelpers'
 import StatCard from '../../components/dashboard/StatCard'
 import LatestNewsWidget from '../../components/dashboard/LatestNewsWidget'
@@ -56,65 +54,49 @@ function calcDuration(inIso, outIso) {
 }
 
 // ─── Attendance Card ──────────────────────────────────────────────────────────
-// `canClockInOut` — migration 46 (make_read_only_role_truly_read_only):
-// read_only can still view today's attendance but must not clock in/out.
-// Frontend-only gate, mirroring Attendance.jsx's own treatment of this role.
+// This card shows today's punch and sends you to the Attendance page to make
+// one. It used to clock in and out inline, and that duplicate was wrong in
+// ways that were invisible until the server started checking:
+//
+//   * it sent no coordinates, so once require_gps_clock_in was enforced in the
+//     database (migration 14) every clock-in from here would be refused;
+//   * it hardcoded status 'present', so nobody clocking in from the dashboard
+//     was ever recorded as late;
+//   * it never looked for today's shift, so the punch was not measured against
+//     one, and require_shift_to_clock_in was not applied;
+//   * it had no geofence handling and no early-checkout reason prompt.
+//
+// The Attendance page does all of that already. Rather than grow a second
+// implementation that has to be kept in step with it, this links there — which
+// is what the mobile home screen has always done. One clock-in path, one place
+// for the rules to live.
+//
+// `canClockInOut` no longer excludes read_only: that role describes what someone
+// may see, not whether they work a shift.
 function AttendanceCard({ employee, canClockInOut }) {
-  const companyId = useAuthStore(s => s.companyId)
-
-  const [attendance,       setAttendance]       = useState(null)
-  const [loadingRecord,    setLoadingRecord]    = useState(true)
-  const [actionLoading,    setActionLoading]    = useState(false)
-  const [error,            setError]            = useState('')
+  const [attendance,    setAttendance]    = useState(null)
+  const [loadingRecord, setLoadingRecord] = useState(true)
 
   const today = localDateStr()
 
-  useEffect(() => { fetchToday() }, [employee])
-
-  async function fetchToday() {
-    setLoadingRecord(true)
-    const { data } = await supabase
+  // Read-only now, so there is nothing to refetch after — which lets the query
+  // live inside the effect instead of in a function the effect reaches upwards
+  // for. `cancelled` covers the employee changing while a request is in flight.
+  useEffect(() => {
+    let cancelled = false
+    supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', employee.id)
       .eq('date', today)
       .maybeSingle()
-    setAttendance(data)
-    setLoadingRecord(false)
-  }
-
-  async function clockIn() {
-    if (!canClockInOut) return
-    setActionLoading(true)
-    setError('')
-    const { error: err } = await supabase.from('attendance').insert({
-      employee_id: employee.id,
-      company_id:  companyId,
-      date:        today,
-      clock_in:    new Date().toISOString(),
-      status:      'present',
-    })
-    if (err) {
-      console.error('[GenericDashboard] clockIn failed', err)
-      setError('Something went wrong clocking in. Please try again.')
-    } else await fetchToday()
-    setActionLoading(false)
-  }
-
-  async function clockOut() {
-    if (!canClockInOut) return
-    setActionLoading(true)
-    setError('')
-    const { error: err } = await supabase
-      .from('attendance')
-      .update({ clock_out: new Date().toISOString() })
-      .eq('id', attendance.id)
-    if (err) {
-      console.error('[GenericDashboard] clockOut failed', err)
-      setError('Something went wrong clocking out. Please try again.')
-    } else await fetchToday()
-    setActionLoading(false)
-  }
+      .then(({ data }) => {
+        if (cancelled) return
+        setAttendance(data)
+        setLoadingRecord(false)
+      })
+    return () => { cancelled = true }
+  }, [employee.id, today])
 
   const clockedIn  = !!attendance?.clock_in
   const clockedOut = !!attendance?.clock_out
@@ -177,39 +159,25 @@ function AttendanceCard({ employee, canClockInOut }) {
             </div>
           )}
 
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
-              <AlertTriangle size={14} className="shrink-0" />
-              {error}
-            </div>
-          )}
-
-          {/* Action button — hidden for read_only (view-only, no write access) */}
+          {/* The button goes to the Attendance page, where the clock-in flow
+              lives — location, today's shift and the geofence are all handled
+              there, and doing it in two places is what broke this card. */}
           {canClockInOut && !clockedIn && (
-            <button
-              onClick={clockIn}
-              disabled={actionLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            <Link
+              to="/attendance"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
             >
-              {actionLoading
-                ? <><Loader2 size={15} className="animate-spin" /> Clocking in…</>
-                : <><Clock size={15} /> Clock In</>
-              }
-            </button>
+              <Clock size={15} /> Clock In
+            </Link>
           )}
 
           {canClockInOut && clockedIn && !clockedOut && (
-            <button
-              onClick={clockOut}
-              disabled={actionLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-60 transition-colors"
+            <Link
+              to="/attendance"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] transition-colors"
             >
-              {actionLoading
-                ? <><Loader2 size={15} className="animate-spin" /> Clocking out…</>
-                : <><Timer size={15} /> Clock Out</>
-              }
-            </button>
+              <Timer size={15} /> Clock Out
+            </Link>
           )}
 
           {clockedIn && clockedOut && (
@@ -225,13 +193,13 @@ function AttendanceCard({ employee, canClockInOut }) {
 }
 
 // ─── Dashboard Body ───────────────────────────────────────────────────────────
-export default function GenericDashboard({ employee, role }) {
+export default function GenericDashboard({ employee }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
       {/* Left column */}
       <div className="lg:col-span-1 space-y-6">
-        <AttendanceCard employee={employee} canClockInOut={role !== 'read_only'} />
+        <AttendanceCard employee={employee} canClockInOut />
 
         {/* Profile card */}
         <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">

@@ -838,7 +838,6 @@ export default function Leave() {
   // ── Actions ─────────────────────────────────────────────────────────────────
 
   async function submitRequest(form, days) {
-    if (role === 'read_only') return
     setRequestSaving(true)
 
     const { error: reqErr } = await supabase.from('leave_requests').insert({
@@ -939,7 +938,6 @@ export default function Leave() {
   // being 'pending' between page load and click), not because RLS is
   // expected to reject a normal employee's own cancel.
   async function cancelRequest(req) {
-    if (role === 'read_only') return
     setCancelLoadingId(req.id)
 
     const { data, error } = await supabase
@@ -1021,15 +1019,13 @@ export default function Leave() {
                 Track balances, request leave, and manage team approvals
               </p>
             </div>
-            {role !== 'read_only' && (
-              <button
-                onClick={() => setShowRequestModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors shadow-sm"
-              >
-                <Plus size={15} />
-                Request Leave
-              </button>
-            )}
+            <button
+              onClick={() => setShowRequestModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors shadow-sm"
+            >
+              <Plus size={15} />
+              Request Leave
+            </button>
           </div>
 
           {/* Tab bar */}
@@ -1064,7 +1060,7 @@ export default function Leave() {
               onRequestLeave={() => setShowRequestModal(true)}
               onCancel={cancelRequest}
               cancelLoadingId={cancelLoadingId}
-              canWrite={role !== 'read_only'}
+              canWrite
             />
           )}
 
