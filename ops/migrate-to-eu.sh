@@ -13,10 +13,15 @@
 # If it fails halfway, the old project is untouched and still serving traffic.
 #
 # Why the Supabase CLI and not plain pg_dump: the CLI runs pg_dump inside the
-# Supabase Postgres image and filters the output — it drops internal schemas,
-# strips reserved roles, and adds IF NOT EXISTS. A raw pg_dump includes Supabase
-# internals and fails on permission errors partway through the restore. It also
-# means the dump does not care that your local psql is older than the server.
+# Supabase Postgres image and filters the output — it drops internal schemas and
+# adds IF NOT EXISTS. A raw pg_dump includes Supabase internals and fails on
+# permission errors partway through the restore. It also means the dump does not
+# care that your local psql is older than the server.
+#
+# It does NOT fully strip reserved roles, which this script used to claim. It omits
+# CREATE ROLE for them but still emits `ALTER ROLE supabase_admin SET ...`, and the
+# postgres role on Supabase is not a superuser, so that line cannot be executed by
+# anyone running this. See the roles restore below for how it is handled.
 #
 # ── Before running ──────────────────────────────────────────────────────────
 #
@@ -175,14 +180,55 @@ echo
 read -r -p "Restore these into the NEW Frankfurt project? [yes/NO] " reply || reply=""
 [[ "$reply" == "yes" ]] || { echo "Stopped. Dumps are in $OUT; nothing was written."; exit 0; }
 
+# roles.sql restores on its own, and tolerantly. This is not fussiness:
+#
+#   psql: roles.sql:13: ERROR:  "supabase_admin" is a reserved role,
+#                              only superusers can modify it
+#   exit code: 3
+#
+# `supabase db dump --role-only` emits ALTER ROLE for supabase_admin, and the
+# postgres role on Supabase is not a superuser, so psql cannot execute that line —
+# ever, on any Supabase project. Bundled into the same --single-transaction with
+# ON_ERROR_STOP=1 as the schema and data, that one unexecutable line aborted the
+# entire restore of a 1.8 MB database and rolled it all back. The rollback worked
+# perfectly; the problem is that the restore could never have succeeded.
+#
+# (The header of this script used to claim the CLI strips reserved roles. It
+# strips CREATE ROLE, not ALTER ROLE ... SET.)
+#
+# What the file actually carries is statement_timeout and lock_timeout settings for
+# anon, authenticated, authenticator and supabase_admin. On a freshly provisioned
+# project the first three are already identical, so they are no-ops — but they are
+# not guaranteed to be on some future project, which is why this still runs rather
+# than being skipped.
+#
+# Tolerant means: apply what we can, then insist that every failure was a reserved
+# role. Anything else is a real problem and aborts before the schema is touched.
+echo "==> Restoring roles (reserved-role settings cannot be applied as postgres)"
+ROLES_LOG="$OUT/roles-restore.log"
+set +e
+psql --variable ON_ERROR_STOP=0 --file "$OUT/roles.sql" --dbname "$NEW_DB_URL" \
+  >"$ROLES_LOG" 2>&1
+set -e
+
+if grep -qE 'ERROR:' "$ROLES_LOG"; then
+  echo "    refused (expected for platform-reserved roles):"
+  grep -E 'ERROR:' "$ROLES_LOG" | sed 's/^/      /'
+  if grep -E 'ERROR:' "$ROLES_LOG" | grep -qvE 'is a reserved role, only superusers can modify it'; then
+    echo
+    echo "One of those is NOT a reserved-role refusal. Stopping before the schema is"
+    echo "touched — the full log is at $ROLES_LOG"
+    exit 1
+  fi
+fi
+
 # session_replication_role = replica disables triggers for the data load. Without
 # it every INSERT fires the attendance, leave and KPI guards we added, which
 # would rewrite the very values being restored.
-echo "==> Restoring"
+echo "==> Restoring schema and data"
 psql \
   --single-transaction \
   --variable ON_ERROR_STOP=1 \
-  --file "$OUT/roles.sql" \
   --file "$OUT/schema.sql" \
   --command 'SET session_replication_role = replica' \
   --file "$OUT/data.sql" \
