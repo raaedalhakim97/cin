@@ -70,16 +70,37 @@ set -euo pipefail
 : "${OLD_DB_URL:?set OLD_DB_URL — see the header of this script}"
 : "${NEW_DB_URL:?set NEW_DB_URL — see the header of this script}"
 
-OUT="${OUT:-./migration-$(date +%Y%m%d-%H%M%S)}"
-mkdir -p "$OUT"
+# Default OUTSIDE the repository, deliberately.
+#
+# This used to default to ./migration-<timestamp>, inside the working tree and not
+# covered by .gitignore. data.sql holds every employee row, every salary and the
+# whole audit log for both tenants, so one `git add -A` mid-migration would have
+# published the entire HR database. Caught during the real migration, before any
+# commit, by the session running it.
+#
+# .gitignore covers the old path and check-secrets.sh refuses a tracked dump, but
+# the fix that does not depend on remembering anything is to not write it there.
+OUT="${OUT:-$HOME/byond-migration-dumps/migration-$(date +%Y%m%d-%H%M%S)}"
 
 # Direction checks run FIRST, before anything else can fail for a boring reason.
 # Getting these two variables the wrong way round is the only mistake here that
 # destroys the live database, so it must be caught even on a machine that has
-# neither psql nor Docker installed.
+# neither psql nor Docker installed — and before any later guard can mask it with
+# a complaint of its own.
 [[ "$OLD_DB_URL" == "$NEW_DB_URL" ]] && { echo "OLD_DB_URL and NEW_DB_URL are identical"; exit 1; }
 [[ "$OLD_DB_URL" == *ududaetdwoqtchkvqewv* ]] && { echo "OLD_DB_URL points at the NEW project — check your variables"; exit 1; }
 [[ "$NEW_DB_URL" == *rxkgnbvjywiqkgbbypfs* ]] && { echo "NEW_DB_URL points at the OLD project — refusing to overwrite it"; exit 1; }
+
+# Refuse to write the dumps anywhere inside the working tree, however OUT was set.
+REPO_ROOT="$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel 2>/dev/null || true)"
+mkdir -p "$OUT"
+chmod 700 "$OUT"
+OUT_ABS="$(cd "$OUT" && pwd -P)"
+if [[ -n "$REPO_ROOT" && ( "$OUT_ABS" == "$REPO_ROOT" || "$OUT_ABS" == "$REPO_ROOT"/* ) ]]; then
+  echo "OUT is inside the git working tree: $OUT_ABS"
+  echo "These dumps hold every salary and the full audit log. Point OUT outside the repo."
+  exit 1
+fi
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "missing: $1"; exit 1; }; }
 need psql
