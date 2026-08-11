@@ -28,12 +28,42 @@
 #
 # ── Running ─────────────────────────────────────────────────────────────────
 #
-#   export OLD_DB_URL='postgresql://postgres.rxkgnbvjywiqkgbbypfs:PASSWORD@aws-0-ap-south-1.pooler.supabase.com:5432/postgres'
-#   export NEW_DB_URL='postgresql://postgres.ududaetdwoqtchkvqewv:PASSWORD@aws-0-eu-central-1.pooler.supabase.com:5432/postgres'
+#   export OLD_DB_URL='<Mumbai session pooler URI>'
+#   export NEW_DB_URL='<Frankfurt session pooler URI>'
 #   ./ops/migrate-to-eu.sh
+#
+# COPY BOTH FROM THE DASHBOARD — do not build them from a template, including the
+# one that used to be printed here. Dashboard → Connect → Session pooler.
+#
+# This example used to read `aws-0-ap-south-1` for Mumbai. That is wrong, and it
+# was found the hard way: the two projects sit behind DIFFERENT pooler prefixes.
+#
+#     Mumbai      aws-1-ap-south-1.pooler.supabase.com:5432
+#     Frankfurt   aws-0-eu-central-1.pooler.supabase.com:5432
+#
+# The prefix is assigned per project and cannot be derived from the region or the
+# project ref. Getting it wrong gives "Tenant or user not found", which reads like
+# a bad password and sends you off resetting credentials that were fine.
+#
+# Two other things that look like connection problems and are not:
+#
+#   * The direct host db.<ref>.supabase.co has no A record — it is IPv6-only. On a
+#     machine with no global IPv6 both projects fail with "Network is
+#     unreachable". That is not a firewall or a wrong password; use the pooler.
+#   * Port 6543 is the TRANSACTION pooler. pg_dump cannot run through it. Session
+#     mode is 5432. To prove which one you are actually on, create a temp table
+#     and read it back in a second statement — it survives in session mode and
+#     vanishes through the transaction pooler.
 #
 # Wrap both in SINGLE quotes. Passwords routinely contain characters the shell
 # would otherwise interpret, and a mangled URL fails in confusing ways.
+#
+# One more that wastes a whole cycle: the Supabase CLI still requires Docker as of
+# v2.113.0 — `supabase db dump` shells out to it. Docker Desktop running on
+# Windows is NOT enough. WSL integration has to be enabled for the specific
+# distro (Settings → Resources → WSL integration → tick the distro by name), and
+# that only works if the distro is WSL 2. `wsl -l -v` shows the version, and
+# `wsl --set-version <distro> 2` converts it.
 
 set -euo pipefail
 

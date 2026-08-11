@@ -71,9 +71,15 @@ pooler.** The transaction pooler (port **6543**) does not support the prepared
 statements `pg_dump` relies on, and the dump will fail in a confusing way.
 
 - Direct: `postgresql://postgres:PASSWORD@db.<ref>.supabase.co:5432/postgres`
-  — needs IPv6, which Hetzner provides by default. Try this first.
-- Session pooler: `...@aws-0-<region>.pooler.supabase.com:5432/postgres` with
-  username `postgres.<ref>` — use this if direct will not connect.
+  — that host is **IPv6-only**, it has no A record at all. It works from a server
+  with IPv6 (Hetzner provides it by default) and fails with "Network is
+  unreachable" from anything without it, including a typical Windows/WSL laptop.
+- Session pooler: username `postgres.<ref>`, port 5432. **Copy the whole URI from
+  the dashboard — Connect → Session pooler — rather than assembling it.** The
+  host prefix is assigned per project and is not derivable: our two projects came
+  out as `aws-1-ap-south-1` and `aws-0-eu-central-1` respectively. A wrong prefix
+  returns "Tenant or user not found", which reads like a bad password and sends
+  you off resetting credentials that were never the problem.
 
 Test before scheduling anything:
 
