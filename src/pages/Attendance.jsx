@@ -1096,6 +1096,15 @@ export default function Attendance() {
     }
     const status = classifyClockIn(clockInAt, expectedStart, graceMinutes)
 
+    // The server decides both of these for a self-punch. attendance_guard
+    // stamps clock_in from its own clock and derives status itself (migration
+    // 14) — before that it stored whatever arrived, so anyone with a session
+    // could clock in three hours late and record 'present'. Verified against
+    // the live database: a claimed 08:00 'present' stored as 12:59 late_major.
+    //
+    // Both are still sent so the optimistic value matches what comes back on
+    // the refetch below for an honest punch. Where they disagree with the
+    // stored row, the stored row is the truth.
     const { error } = await supabase.from('attendance').insert({
       company_id:  companyId,
       employee_id: employee.id,

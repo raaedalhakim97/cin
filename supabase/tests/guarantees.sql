@@ -396,6 +396,115 @@ BEGIN
   END;
 END $$;
 
+-- ── Attendance is established by the server, not reported by the client ─────
+--
+-- Before migration 14 the lateness grade and both punch timestamps were
+-- whatever the browser sent. An employee could clock in at 11:11 against an
+-- 08:00 start and store 'present', and could move their own clock_out to the
+-- scheduled finish to take early_minutes to zero. These four assertions are
+-- the ones that would have caught that.
+DO $$
+DECLARE
+  f record;
+  v_late  text;
+  v_in    timestamptz;
+  v_audit int;
+BEGIN
+  SELECT * INTO f FROM fx;
+
+  -- Coordinates sit exactly on the probe location created above, so this is
+  -- inside any fence that block left enabled and also satisfies
+  -- require_gps_clock_in. Neither is what is under test here.
+  --
+  -- The claim is a double lie: an 08:00 arrival and a clean 'present', sent by
+  -- the employee about themselves.
+  PERFORM pg_temp.as_user(f.emp_uid);
+  INSERT INTO attendance (company_id, employee_id, date, clock_in, status,
+                          clock_in_lat, clock_in_lng)
+  VALUES (f.company_id, f.emp_id, '2026-05-13',
+          '2026-05-13T04:00:00Z', 'present', 25.2048, 55.2708);
+  PERFORM pg_temp.as_nobody();
+
+  SELECT status, clock_in INTO v_late, v_in
+    FROM attendance
+   WHERE employee_id = f.emp_id AND date = '2026-05-13';
+
+  PERFORM pg_temp.chk(27, 'attendance',
+    'employee cannot self-report present while late',
+    'graded late', CASE WHEN v_late LIKE 'late%' THEN 'graded late'
+                        ELSE 'STORED AS '||coalesce(v_late,'null') END);
+
+  -- The stamp must be the server's clock at the moment of the request, not the
+  -- time the client asked for. Anything else makes the grade meaningless, since
+  -- it would be derived from a number the employee chose.
+  PERFORM pg_temp.chk(28, 'attendance',
+    'punch is stamped by the server, not by the client',
+    'server clock', CASE WHEN v_in > '2026-05-14T00:00:00Z' THEN 'server clock'
+                         ELSE 'CLIENT CLAIM KEPT: '||v_in::text END);
+
+  -- The audit trail is the record of all this, so it has to be unforgeable.
+  -- audit_logs is written only by log_sensitive_changes, which is SECURITY
+  -- DEFINER and owned by the table owner, so no end-user grant is needed.
+  PERFORM pg_temp.as_user(f.emp_uid);
+  BEGIN
+    INSERT INTO audit_logs (user_id, action, table_name, record_id, new_data, company_id)
+    VALUES (f.hr_uid, 'UPDATE', 'attendance',
+            '00000000-0000-0000-0000-0000000000fd'::uuid,
+            '{"forged":true}'::jsonb, f.company_id);
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(29, 'audit',
+      'employee cannot write an audit entry as someone else', 'refused', 'ACCEPTED');
+  EXCEPTION WHEN others THEN
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(29, 'audit',
+      'employee cannot write an audit entry as someone else', 'refused', 'refused');
+  END;
+
+  -- audit_select filters on company_id, so a row without one is invisible to
+  -- every human being. 760 of 774 rows were in that state, including all 61
+  -- attendance rows: a trail that existed and could not be read.
+  --
+  -- Scoped to rows written before this transaction — anything this suite writes
+  -- shares now() as its created_at, and is not what the guarantee is about.
+  SELECT count(*) INTO v_audit
+    FROM audit_logs WHERE company_id IS NULL AND created_at < now();
+  PERFORM pg_temp.chk(30, 'audit',
+    'every audit row records which company it belongs to',
+    '0 orphaned', CASE WHEN v_audit = 0 THEN '0 orphaned'
+                       ELSE v_audit::text||' INVISIBLE TO HR' END);
+
+  -- And the people entitled to read it must actually get rows back. The punch
+  -- inserted above guarantees there is at least one to find.
+  PERFORM pg_temp.as_user(f.hr_uid);
+  SELECT count(*) INTO v_audit FROM audit_logs WHERE table_name = 'attendance';
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(31, 'audit',
+    'HR can read the attendance audit trail for their company',
+    'rows visible', CASE WHEN v_audit > 0 THEN 'rows visible' ELSE 'ZERO ROWS' END);
+END $$;
+
+-- ── read_only is a normal employee for its own self-service ─────────────────
+--
+-- The instruction was that read_only can clock in and out and request leave
+-- like anyone else, and only that. The client gates came off first and the RLS
+-- policies still refused the clock-out, so the button worked and the update
+-- silently touched zero rows — which does not raise. Asserted on the policy
+-- shape rather than by impersonating a read_only user, so it holds in any
+-- environment whether or not one exists.
+DO $$
+DECLARE v_n int;
+BEGIN
+  SELECT count(*) INTO v_n
+    FROM pg_policies
+   WHERE schemaname = 'public'
+     AND policyname IN ('att_self_update', 'leave_self_update')
+     AND qual LIKE '%read_only%';
+  PERFORM pg_temp.chk(32, 'permissions',
+    'no self-service policy excludes read_only',
+    '0 policies', CASE WHEN v_n = 0 THEN '0 policies'
+                       ELSE v_n::text||' STILL EXCLUDE read_only' END);
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
