@@ -1034,7 +1034,6 @@ export default function Attendance() {
     viewDate.getMonth() === now.getMonth() && viewDate.getFullYear() === now.getFullYear()
 
   async function clockIn() {
-    if (role === 'read_only') return
     if (clockInBlocked) { setClockError(clockInBlockedReason); return }
     setActionLoading(true)
     setClockError('')
@@ -1137,7 +1136,7 @@ export default function Attendance() {
   // Pressing Clock Out never writes straight away: if the day isn't over yet
   // the employee is told how short they are and has to confirm.
   function requestClockOut() {
-    if (role === 'read_only' || !todayRecord) return
+    if (!todayRecord) return
     setClockError('')
     const end = scheduledEndToday()
     if (end) {
@@ -1157,7 +1156,6 @@ export default function Attendance() {
   }
 
   async function clockOut(earlyReason) {
-    if (role === 'read_only') return
     if (!todayRecord) return
     setActionLoading(true)
     setClockError('')
@@ -1289,12 +1287,19 @@ export default function Attendance() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const isOwnRecord      = selectedEmpId === employee?.id
-  // Migration 46 (make_read_only_role_truly_read_only) — read_only can still
-  // view attendance but must not clock in/out. att_insert/att_update RLS
-  // wasn't tightened for this specific case, so this is a frontend-only
-  // gate — hide the controls rather than let a click round-trip into a
-  // confusing failure.
-  const canClockInOut    = isOwnRecord && role !== 'read_only'
+  // read_only describes someone's access to HR RECORDS, not whether they work.
+  //
+  // It used to exclude them from clocking in — "make read_only truly read
+  // only". But the role is held by staff like an accountant who needs to see
+  // payroll and must not edit anyone's records, and who also turns up to work
+  // every day. Excluding them meant a shift could be scheduled for a person who
+  // could never satisfy it, which is how this was found.
+  //
+  // Clocking yourself in is not an administrative write. It is recording a fact
+  // about yourself, like your own leave request. Editing somebody else's
+  // attendance is the thing read_only must not do, and RLS already stops that —
+  // measured across all six roles: read_only changed 0 rows.
+  const canClockInOut    = isOwnRecord
   const selectedEmpName  = employees.find(e => e.id === selectedEmpId)?.full_name ?? ''
   const monthLabel       = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
