@@ -55,7 +55,7 @@ function renderRoleDashboard(role, employee) {
     case 'super_admin':        return <AdminDashboard />
     case 'admin':              return <OperationsDashboard />
     case 'read_only':
-    default:                   return <GenericDashboard employee={employee} role={role} />
+    default:                   return <GenericDashboard employee={employee} />
   }
 }
 
