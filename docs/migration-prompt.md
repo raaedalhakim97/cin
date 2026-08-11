@@ -63,30 +63,61 @@ If PR #14 is not merged, stop and tell me to merge it first.
 
 Then: git checkout main && git pull
 
-## Step 1 — does the dump need Docker?
+## Step 1 — Docker is required; do not re-test this
 
-ops/migrate-to-eu.sh has a hard `docker info` precondition, written when the
-Supabase CLI v1 ran pg_dump inside a container. CLI v2 may no longer need it.
-Test first, because Docker Desktop's WSL 2 integration is not currently working
-on this machine and fixing it is avoidable work:
+Settled by testing on 11 Aug 2026: CLI **v2.113.0 still requires Docker**.
+`supabase db dump` shells out to it and fails with "failed to run docker. Docker
+Desktop is a prerequisite for local development." So the `docker info`
+precondition in ops/migrate-to-eu.sh is correct and stays. Do not spend a cycle
+re-testing it.
 
-    set -a; . ~/.byond-migration.env; set +a
-    supabase db dump --db-url "$OLD_DB_URL" -f /tmp/test-schema.sql && wc -l /tmp/test-schema.sql
+Docker Desktop running on Windows is NOT sufficient. The symptom of a
+half-working setup is specific: Docker Desktop processes alive on Windows and the
+`docker-desktop` WSL distro running, while inside Ubuntu there is no `docker`
+binary and no `/var/run/docker.sock`. That means integration is not enabled for
+this distro.
 
-That only reads from Mumbai and writes a scratch file.
+The fix is at the GUI, so ask me to do it:
 
-- If it works: edit ops/migrate-to-eu.sh to drop the `docker info` check and the
-  `need supabase`-adjacent Docker note, explaining in the commit message that
-  CLI v2 dumps without Docker. Commit that.
-- If it demands Docker: tell me, and give me the WSL 2 fix steps.
+  Docker Desktop → Settings → Resources → WSL integration → enable the default
+  distro AND tick Ubuntu by name in the list below. Apply & Restart.
+
+Ticking Ubuntu by name is the step that gets missed. If Ubuntu is not in the list
+at all, either Docker Desktop was started before the distro existed (fully quit
+it from the tray and reopen — the list is built at startup), or Ubuntu is WSL 1.
+Check with `wsl -l -v` and convert with `wsl --set-version Ubuntu 2`.
+
+Verify with: `docker info` from inside Ubuntu.
+
+Do NOT substitute a raw `pg_dump` to avoid Docker, even though the local client
+is new enough. The script uses the Supabase CLI because it strips reserved
+Supabase roles and adds IF NOT EXISTS; hand-rolling those flags against a
+multi-tenant HR database, where one missed RLS policy means one company reading
+another's salaries, is the wrong place to improvise.
 
 ## Step 2 — the connection strings must be Session mode
 
-I will paste them from the Supabase dashboard: Settings -> Database ->
-Connection string -> Session mode. Check both before using them:
+Already solved and verified on 11 Aug 2026, recorded here so it is not
+rediscovered. The working hosts are:
+
+    Mumbai      postgres.rxkgnbvjywiqkgbbypfs @ aws-1-ap-south-1.pooler.supabase.com:5432
+    Frankfurt   postgres.ududaetdwoqtchkvqewv @ aws-0-eu-central-1.pooler.supabase.com:5432
+
+Note the prefixes differ — aws-1 and aws-0. It is assigned per project and cannot
+be derived from the region or the ref. A wrong prefix returns "Tenant or user not
+found", which reads like a bad password and sends you resetting credentials that
+were fine.
+
+The direct host db.<ref>.supabase.co is IPv6-only (no A record) and fails with
+"Network is unreachable" from this laptop, which has no global IPv6. That is not a
+firewall problem.
+
+Check both before using them:
 
 - Port must be 5432. Port 6543 is the transaction pooler and pg_dump cannot run
-  through it — it fails in a confusing way.
+  through it — it fails in a confusing way. To prove which mode you are on,
+  create a temp table and read it back in a second statement: it survives in
+  session mode and vanishes through the transaction pooler.
 - If a password contains characters like @ # / : the URL breaks. If so, tell me
   to reset the password to letters and numbers only (Settings -> Database ->
   Reset database password). Resetting is safe: the website and app authenticate
