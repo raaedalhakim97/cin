@@ -33,8 +33,19 @@ SELECT cron.schedule(
 );
 
 -- 3. Verification. Compare these against the old project before switching the
---    app over. Expected at time of capture: 104 policies, 44 functions,
---    32 tables, 8 auth users, 16 employees, 1 cron job.
+--    app over.
+--
+--    Read from ap-south-1 immediately before the move, after migrations 11-15:
+--
+--      rls policies 113   functions 57   tables 36
+--      auth users     8   employees 16   companies 2   cron jobs 1
+--      audit_logs   781   attendance 29
+--
+--    Row counts move as the product is used, so treat those two as "the same as
+--    the old project right now", not as fixed numbers. The structural three —
+--    policies, functions, tables — must match exactly. A restore that drops a
+--    policy leaves a table readable by the wrong tenant, and nothing about the
+--    app looks broken.
 SELECT 'cron jobs'    AS item, count(*)::text AS value FROM cron.job
 UNION ALL SELECT 'rls policies', count(*)::text FROM pg_policies WHERE schemaname = 'public'
 UNION ALL SELECT 'functions',    count(*)::text FROM pg_proc p
@@ -60,4 +71,37 @@ SELECT 'anon table grants beyond demo_requests INSERT (must be 0)',
 FROM information_schema.role_table_grants
 WHERE table_schema = 'public'
   AND grantee = 'anon'
-  AND NOT (table_name = 'demo_requests' AND privilege_type = 'INSERT');
+  AND NOT (table_name = 'demo_requests' AND privilege_type = 'INSERT')
+UNION ALL
+-- Migration 14 revoked these so the audit trail is append-only-by-trigger. A
+-- restore re-creates the table, and default privileges can hand them straight
+-- back — at which point any signed-in user can write or delete entries in the
+-- record of what happened, which is the one table that has to be trustworthy.
+SELECT 'audit_logs write grants for anon/authenticated (must be 0)',
+       count(*)::text
+FROM information_schema.role_table_grants
+WHERE table_schema = 'public'
+  AND table_name = 'audit_logs'
+  AND grantee IN ('anon', 'authenticated')
+  AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE')
+UNION ALL
+-- Migration 15: read_only must still be able to finish its own clock-out and
+-- cancel its own pending leave. If a restore brings back an older policy body,
+-- the button works and the update silently touches zero rows.
+SELECT 'self-service policies excluding read_only (must be 0)',
+       count(*)::text
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND policyname IN ('att_self_update', 'leave_self_update')
+  AND qual LIKE '%read_only%';
+
+-- 5. Then run the full guarantee suite against this project. It is the real
+--    verification — 32 assertions covering tenant isolation, attendance
+--    integrity, the audit trail and the geofence — and it rolls back everything
+--    it writes, so it is safe to run here:
+--
+--      psql -v ON_ERROR_STOP=1 "$NEW_DB_URL" -f supabase/tests/guarantees.sql
+--
+--    Assertion 22 ("monthly rules job scheduled and active") is the one that
+--    fails if step 2 above was skipped, which is exactly the silent failure this
+--    file exists to prevent.

@@ -50,6 +50,29 @@ if (eas.build?.preview?.android?.buildType !== 'apk') {
   failed = true
 }
 
+// An empty string in a build profile's `env` is worse than no key at all.
+// eas.json takes precedence over the environment variables stored on the Expo
+// project, so `"EXPO_PUBLIC_SUPABASE_URL": ""` does not mean "unset" — it wins,
+// and hands the app an empty value.
+//
+// mobile/src/lib/supabase.js treats a missing or empty URL or key as "no project
+// wired up yet" and falls back to the in-memory demo client. So a build carrying
+// empty strings installs and looks completely healthy, then rejects every real
+// login, because it is running on seed data. That is a whole build cycle spent
+// to find out, and it is the same confusing symptom the web demo produced.
+//
+// These belong in EAS environment variables (`eas env:create`, or the project's
+// dashboard), not in tracked source — the anon key is a JWT, and check-secrets.sh
+// refuses those in the repo.
+for (const [profile, cfg] of Object.entries(eas.build ?? {})) {
+  for (const key of ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY']) {
+    if (cfg?.env && cfg.env[key] === '') {
+      console.error(`::error::eas.json profile "${profile}" sets ${key} to an empty string, which overrides the EAS environment variable and forces the app into demo mode — remove the key instead`)
+      failed = true
+    }
+  }
+}
+
 // expo-updates is installed but does nothing until `updates.url` points at an
 // EAS project. Half-configured is the worst state: the app ships believing it
 // can be updated over the air, and the first time you need to change the

@@ -1,0 +1,210 @@
+# Prompt for Claude Code running on the laptop
+
+The Mumbai → Frankfurt migration and the APK build cannot be done from a
+Claude Code web session: the sandbox has no IPv6 (so the direct database hosts
+are unreachable), raw 5432 egress times out, and `dl.google.com` and
+`api.expo.dev` are denied by proxy policy. A Claude Code session on the laptop
+has all of that.
+
+Paste everything in the block below into a fresh Claude Code session started in
+WSL Ubuntu. It is written to be self-contained — that session has none of this
+conversation's context.
+
+---
+
+```
+You are helping me move a live Supabase project between regions and then build
+an Android APK. I am a supervisor, not a developer, so explain what you are
+doing and stop when something needs a decision from me.
+
+## Environment
+
+- Windows laptop, working inside WSL Ubuntu. psql 18.4, supabase CLI 2.113.0,
+  gh and wslu are installed. Docker may or may not work — see step 2.
+- Work in ~/cin (the Linux home). Do NOT work in /mnt/c: WSL cannot set Unix
+  permissions there and git fails with "chmod on .git/config.lock failed".
+- The repo github.com/raaedalhakim97/cin is PRIVATE. gh is already authenticated.
+
+## The project
+
+BYOND is a multi-tenant HR platform for UAE and Gulf SMEs (React 19 + Vite web,
+Expo mobile, Supabase). Two Supabase projects exist:
+
+    OLD  rxkgnbvjywiqkgbbypfs   ap-south-1    Mumbai      <- live, serving traffic
+    NEW  ududaetdwoqtchkvqewv   eu-central-1  Frankfurt   <- empty, destination
+
+We are moving out of India for UAE PDPL cross-border reasons, and because the
+same region also has to serve Nigeria later. A Supabase project's region is
+fixed, so "changing region" means dump one project and restore into the other.
+
+## Ground rules
+
+- NEVER print, echo, log or commit a database password, an anon key, or a JWT.
+  scripts/check-secrets.sh fails the build if a JWT appears in tracked source,
+  and that check is correct — do not work around it.
+- I will put the two connection strings in ~/.byond-migration.env, which is
+  OUTSIDE the repo so it can never be committed. Read them per command with:
+      set -a; . ~/.byond-migration.env; set +a; <command>
+  Do not copy them into the repo, into a script, or into your replies.
+- The old project stays live and untouched until I explicitly say to switch over.
+- Stop and ask me before anything destructive or irreversible.
+
+## Step 0 — check the branch state
+
+Confirm PR #14 on raaedalhakim97/cin is merged (gh pr view 14). It contains a
+correction to ops/post-migrate-eu.sql: the expected object counts in that file
+used to be 104 policies / 44 functions / 32 tables, captured before migrations
+11-15 landed. The real numbers are 113 / 57 / 36. If you verify the migration
+against the old numbers you will conclude nothing was lost while the restore is
+actually missing nine RLS policies, which silently lets one tenant read another
+tenant's salaries.
+
+If PR #14 is not merged, stop and tell me to merge it first.
+
+Then: git checkout main && git pull
+
+## Step 1 — does the dump need Docker?
+
+ops/migrate-to-eu.sh has a hard `docker info` precondition, written when the
+Supabase CLI v1 ran pg_dump inside a container. CLI v2 may no longer need it.
+Test first, because Docker Desktop's WSL 2 integration is not currently working
+on this machine and fixing it is avoidable work:
+
+    set -a; . ~/.byond-migration.env; set +a
+    supabase db dump --db-url "$OLD_DB_URL" -f /tmp/test-schema.sql && wc -l /tmp/test-schema.sql
+
+That only reads from Mumbai and writes a scratch file.
+
+- If it works: edit ops/migrate-to-eu.sh to drop the `docker info` check and the
+  `need supabase`-adjacent Docker note, explaining in the commit message that
+  CLI v2 dumps without Docker. Commit that.
+- If it demands Docker: tell me, and give me the WSL 2 fix steps.
+
+## Step 2 — the connection strings must be Session mode
+
+I will paste them from the Supabase dashboard: Settings -> Database ->
+Connection string -> Session mode. Check both before using them:
+
+- Port must be 5432. Port 6543 is the transaction pooler and pg_dump cannot run
+  through it — it fails in a confusing way.
+- If a password contains characters like @ # / : the URL breaks. If so, tell me
+  to reset the password to letters and numbers only (Settings -> Database ->
+  Reset database password). Resetting is safe: the website and app authenticate
+  over HTTPS with the anon key, not this password.
+
+## Step 3 — run the migration
+
+    set -a; . ~/.byond-migration.env; set +a; ./ops/migrate-to-eu.sh
+
+The script has three direction guards that run before anything else, dumps
+Mumbai to a timestamped folder, prints file sizes, then stops and waits for me
+to type "yes" before writing to Frankfurt. Do not type "yes" on my behalf —
+show me the sizes and let me decide.
+
+Before we start, confirm with me that nobody is mid-shift. The dump is a
+point-in-time snapshot: anything written to Mumbai afterwards is lost when we
+switch over. At least one employee has previously been left clocked in
+overnight, so check for open punches first:
+
+    select count(*) from attendance where clock_out is null and date >= current_date - 1;
+
+## Step 4 — verify Frankfurt against Mumbai
+
+    set -a; . ~/.byond-migration.env; set +a; psql "$NEW_DB_URL" -f ops/post-migrate-eu.sql
+
+That recreates the pg_cron job (the `cron` schema is not in the dump, so the
+monthly KPI rules job would silently never run) and prints the comparison.
+
+Expected, read from Mumbai just before the move:
+
+    rls policies 113   functions 57   tables 36
+    auth users     8   employees 16   companies 2   cron jobs 1
+    audit_logs   781   attendance 29
+
+The row counts move as the product is used — treat them as "same as Mumbai right
+now". The structural three (policies, functions, tables) must match EXACTLY.
+
+Then run the full guarantee suite against Frankfurt. It is 32 assertions
+covering tenant isolation, attendance integrity, the audit trail and the
+geofence, and it rolls back everything it writes, so it is safe:
+
+    set -a; . ~/.byond-migration.env; set +a; psql -v ON_ERROR_STOP=1 "$NEW_DB_URL" -f supabase/tests/guarantees.sql
+
+All 32 must pass. Assertion 22 is the one that fails if the cron step was
+skipped. Do not proceed to step 5 with any assertion failing — tell me instead.
+
+## Step 5 — three things the dump does not carry
+
+Tell me to do these in the Supabase dashboard for the NEW project, and check
+each one with me:
+
+1. Storage objects — uploaded HR documents are not copied by a database dump.
+2. Auth settings — SMTP, and the Site URL / redirect URLs. Miss these and
+   password-reset and invite emails break or point at the wrong domain.
+3. The API keys are different in the new project.
+
+## Step 6 — switch the website over
+
+The new project's URL and anon key go into Vercel (project cin, Production):
+VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. These are inlined at BUILD time,
+so a redeploy is required — changing the variable alone does nothing.
+
+After redeploying, confirm with me that I can log in and that clocking in on the
+website writes to Frankfurt, not Mumbai.
+
+Everyone will be signed out once, because the two projects sign JWTs with
+different secrets. Passwords survive in auth.users, so nobody needs a reset.
+
+Keep the Mumbai project running for a week or two as a fallback, then pause it.
+Do not delete it.
+
+## Step 7 — the APK, only after the above works
+
+Read docs/android-apk.md first; it explains the sequencing. EXPO_PUBLIC_SUPABASE_URL
+is baked into the binary at build time and is not read at startup, so an APK is
+permanently tied to whichever project it was built against. That is exactly why
+the migration comes first.
+
+    cd mobile
+    npx eas-cli login
+    npx eas-cli init                # writes extra.eas.projectId and owner
+    npx eas-cli update:configure    # writes updates.url
+
+app.json currently has updates.enabled: true with no updates.url. That is the
+worst state: the app ships believing it can be updated over the air, and the
+first time we need to push a fix we find out it cannot. Commit the app.json
+changes those commands make.
+
+Then store the FRANKFURT credentials on the Expo project — not in eas.json:
+
+    npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_URL      --value "<frankfurt url>"  --environment preview
+    npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "<frankfurt anon>" --environment preview
+
+Do not put these in eas.json. An empty string there is worse than nothing:
+eas.json overrides the stored variables, and mobile/src/lib/supabase.js reads an
+empty URL as "no project wired up yet" and falls back to an in-memory demo
+client. The APK then installs, looks perfectly healthy, and rejects every real
+login. scripts/check-mobile-config.mjs now fails on that, so run it after any
+eas.json edit.
+
+Build:
+
+    npx eas-cli build --platform android --profile preview
+
+The preview profile is distribution: internal and buildType: apk — an
+installable file, not the .aab a phone cannot open. EAS prints a download link.
+
+The APK is talking to the real database, not the demo, when my own password
+works (the demo accepts anything and shows "Sarah Al-Hamdan"), a clock-in on the
+phone appears on the website within seconds, and the phone refuses to clock in
+without location permission.
+
+## Working agreement
+
+- Branch for any code changes: claude/cin-repo-code-review-j3zlww. Do not push
+  to main.
+- Before committing, run: node scripts/lint-ratchet.mjs, npm run build,
+  bash scripts/check-secrets.sh, node scripts/check-mobile-config.mjs
+- Report what actually happened, including failures and skipped steps. If a
+  command fails, show me the real output rather than summarising it.
+```
