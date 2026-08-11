@@ -53,5 +53,23 @@ if git grep -nIP "$PW_RE" -- . ':!scripts/check-secrets.sh' >/dev/null 2>&1; the
   fail=1
 fi
 
-[[ $fail -eq 0 ]] && echo "no tracked .env, no keys, connection strings or passwords in source"
+# A database dump tracked in git.
+#
+# ops/migrate-to-eu.sh used to default its output to ./migration-<timestamp>,
+# which lands inside the repo. That folder holds data.sql — every employee row,
+# every salary and the entire audit log for both tenants. Nothing above would have
+# caught it: it contains no key format, and no line pairing the word "password"
+# with a literal. A single `git add -A` during the migration would have committed
+# the whole HR database.
+#
+# Caught during the Frankfurt migration by the session running it, before any
+# commit. The default now writes outside the repo and .gitignore covers the old
+# location, so this is the third layer rather than the only one.
+if git ls-files | grep -qE '(^|/)(migration-[0-9]{8}-[0-9]{6}/|data\.sql$|roles\.sql$|history_data\.sql$)'; then
+  echo "::error::a database dump is tracked in git — it contains salaries and the audit log"
+  git ls-files | grep -E '(^|/)(migration-[0-9]{8}-[0-9]{6}/|data\.sql$|roles\.sql$|history_data\.sql$)'
+  fail=1
+fi
+
+[[ $fail -eq 0 ]] && echo "no tracked .env, no keys, connection strings, passwords or dumps in source"
 exit $fail

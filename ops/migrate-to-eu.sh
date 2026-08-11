@@ -70,48 +70,109 @@ set -euo pipefail
 : "${OLD_DB_URL:?set OLD_DB_URL — see the header of this script}"
 : "${NEW_DB_URL:?set NEW_DB_URL — see the header of this script}"
 
-OUT="${OUT:-./migration-$(date +%Y%m%d-%H%M%S)}"
-mkdir -p "$OUT"
+# Default OUTSIDE the repository, deliberately.
+#
+# This used to default to ./migration-<timestamp>, inside the working tree and not
+# covered by .gitignore. data.sql holds every employee row, every salary and the
+# whole audit log for both tenants, so one `git add -A` mid-migration would have
+# published the entire HR database. Caught during the real migration, before any
+# commit, by the session running it.
+#
+# .gitignore covers the old path and check-secrets.sh refuses a tracked dump, but
+# the fix that does not depend on remembering anything is to not write it there.
+OUT="${OUT:-$HOME/byond-migration-dumps/migration-$(date +%Y%m%d-%H%M%S)}"
 
 # Direction checks run FIRST, before anything else can fail for a boring reason.
 # Getting these two variables the wrong way round is the only mistake here that
 # destroys the live database, so it must be caught even on a machine that has
-# neither psql nor Docker installed.
+# neither psql nor Docker installed — and before any later guard can mask it with
+# a complaint of its own.
 [[ "$OLD_DB_URL" == "$NEW_DB_URL" ]] && { echo "OLD_DB_URL and NEW_DB_URL are identical"; exit 1; }
 [[ "$OLD_DB_URL" == *ududaetdwoqtchkvqewv* ]] && { echo "OLD_DB_URL points at the NEW project — check your variables"; exit 1; }
 [[ "$NEW_DB_URL" == *rxkgnbvjywiqkgbbypfs* ]] && { echo "NEW_DB_URL points at the OLD project — refusing to overwrite it"; exit 1; }
 
+# Refuse to write the dumps anywhere inside the working tree, however OUT was set.
+REPO_ROOT="$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel 2>/dev/null || true)"
+mkdir -p "$OUT"
+chmod 700 "$OUT"
+OUT_ABS="$(cd "$OUT" && pwd -P)"
+if [[ -n "$REPO_ROOT" && ( "$OUT_ABS" == "$REPO_ROOT" || "$OUT_ABS" == "$REPO_ROOT"/* ) ]]; then
+  echo "OUT is inside the git working tree: $OUT_ABS"
+  echo "These dumps hold every salary and the full audit log. Point OUT outside the repo."
+  exit 1
+fi
+
 need() { command -v "$1" >/dev/null 2>&1 || { echo "missing: $1"; exit 1; }; }
 need psql
-need supabase
-docker info >/dev/null 2>&1 || { echo "Docker is not running — the Supabase CLI needs it"; exit 1; }
 
-echo "==> Writing dumps to $OUT"
+# The Supabase CLI and Docker are only needed to TAKE a dump. Restoring is plain
+# psql against .sql files, so a SKIP_DUMP=1 run must not demand either — otherwise
+# a machine that can restore a vetted dump is refused for lacking a tool it will
+# never invoke.
+if [[ "${SKIP_DUMP:-0}" != "1" ]]; then
+  need supabase
+  docker info >/dev/null 2>&1 || { echo "Docker is not running — the Supabase CLI needs it"; exit 1; }
+fi
 
-# Three files, because they restore in a specific order and one of them needs
-# triggers disabled while it loads.
-echo "==> 1/4  roles"
-supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/roles.sql" --role-only
+DUMPS=(roles.sql schema.sql data.sql history_schema.sql history_data.sql)
 
-echo "==> 2/4  schema"
-supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/schema.sql"
+# SKIP_DUMP=1 restores an EXISTING dump folder instead of taking a fresh one.
+#
+# This exists because of a real dilemma during the Frankfurt migration. The dumps
+# had been taken and then checked against the source project — 113 policies, 57
+# functions, 36 tables, 781 audit rows, all confirmed present in the dump file
+# itself. The only way to restore from those exact files was to run the psql
+# commands out of this script by hand, and the alternative was to re-dump, which
+# means restoring an artifact nobody has inspected.
+#
+# Neither is good. You verify an artifact and then you deploy THAT artifact, and
+# you do it through the reviewed code path rather than a retyped copy of it. So the
+# script now supports both, and the safe choice does not require improvising.
+#
+# A fresh dump is the better default when the source is live and being written to.
+# Reuse is better when the window is quiet and the dump has been vetted, which is
+# exactly when a careful person is standing at this prompt.
+if [[ "${SKIP_DUMP:-0}" == "1" ]]; then
+  echo "==> SKIP_DUMP=1 — restoring the existing dumps in $OUT, taking no new ones"
+  missing=0
+  for f in "${DUMPS[@]}"; do
+    if [[ ! -s "$OUT/$f" ]]; then echo "missing or empty: $OUT/$f"; missing=1; fi
+  done
+  [[ $missing -eq 0 ]] || { echo "Refusing to restore from an incomplete dump folder."; exit 1; }
+else
+  echo "==> Writing dumps to $OUT"
 
-echo "==> 3/4  data"
-supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/data.sql" --use-copy --data-only \
-  -x "storage.buckets_vectors" -x "storage.vector_indexes"
+  # Three files, because they restore in a specific order and one of them needs
+  # triggers disabled while it loads.
+  echo "==> 1/4  roles"
+  supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/roles.sql" --role-only
 
-# The migration history is a separate schema and is not part of the normal dump.
-# Carrying it across is what keeps `supabase db push` sane afterwards — without
-# it the new project believes it has never had a migration applied.
-echo "==> 4/4  migration history"
-supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/history_schema.sql" --schema supabase_migrations
-supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/history_data.sql" --use-copy --data-only --schema supabase_migrations
+  echo "==> 2/4  schema"
+  supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/schema.sql"
+
+  echo "==> 3/4  data"
+  supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/data.sql" --use-copy --data-only \
+    -x "storage.buckets_vectors" -x "storage.vector_indexes"
+
+  # The migration history is a separate schema and is not part of the normal dump.
+  # Carrying it across is what keeps `supabase db push` sane afterwards — without
+  # it the new project believes it has never had a migration applied.
+  echo "==> 4/4  migration history"
+  supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/history_schema.sql" --schema supabase_migrations
+  supabase db dump --db-url "$OLD_DB_URL" -f "$OUT/history_data.sql" --use-copy --data-only --schema supabase_migrations
+fi
 
 echo
-echo "==> Dumped:"
+echo "==> Restoring from:"
 wc -l "$OUT"/*.sql
 echo
-read -r -p "Restore these into the NEW Frankfurt project? [yes/NO] " reply
+# `|| reply=""` matters. Under `set -e`, a bare `read` that hits end-of-file exits
+# the script immediately with status 1 and prints nothing — so a deliberately
+# non-interactive run (stdin from /dev/null, which is a good way to prove the
+# script cannot approve itself) looks indistinguishable from a crash partway
+# through the restore. Treating EOF as "not yes" reaches the message below, which
+# says plainly that nothing was written.
+read -r -p "Restore these into the NEW Frankfurt project? [yes/NO] " reply || reply=""
 [[ "$reply" == "yes" ]] || { echo "Stopped. Dumps are in $OUT; nothing was written."; exit 0; }
 
 # session_replication_role = replica disables triggers for the data load. Without
