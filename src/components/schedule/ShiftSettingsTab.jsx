@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { CalendarClock, Save, Loader2, MapPin, Plus, Trash2, Crosshair } from 'lucide-react'
 import supabase from '../../services/supabase'
+
+// Lazy, because Leaflet and its stylesheet are about 150 KB that nobody needs
+// unless they are on this tab adding a site — and the main bundle is already over
+// the 500 KB warning.
+const WorkLocationMap = lazy(() => import('./WorkLocationMap'))
 
 const INPUT =
   'w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors'
@@ -196,6 +201,33 @@ function WorkLocations({ companyId, showToast }) {
           ))}
         </div>
       )}
+
+      {/* The map and the two coordinate fields are the same control. Clicking or
+          dragging writes into the inputs, and typing moves the pin — so whichever
+          one you reach for, the other stays correct. */}
+      <div className="mb-3">
+        <Suspense fallback={
+          <div className="h-64 w-full rounded-xl border border-[#E8E8E8] dark:border-[#2A2A2A] flex items-center justify-center">
+            <Loader2 size={18} className="animate-spin text-[#00D4A0]" />
+          </div>
+        }>
+          <WorkLocationMap
+            latitude={draft.latitude}
+            longitude={draft.longitude}
+            radiusMetres={draft.radius_metres}
+            existing={rows}
+            onPick={(lat, lng) =>
+              setDraft((d) => ({
+                ...d,
+                // Five decimals is a little over a metre. More digits than that
+                // is noise from a click, and it makes the field unreadable.
+                latitude: lat.toFixed(5),
+                longitude: lng.toFixed(5),
+              }))
+            }
+          />
+        </Suspense>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="sm:col-span-2">
