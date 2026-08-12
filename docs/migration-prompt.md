@@ -139,6 +139,32 @@ overnight, so check for open punches first:
 
     select count(*) from attendance where clock_out is null and date >= current_date - 1;
 
+## Step 3b — restore the privilege layer (REQUIRED, before any verification)
+
+`supabase db dump` does not emit ACLs. So a restore that matches the source on
+every structural and row count still arrives with the NEW project's default
+privileges applied, which on a fresh Supabase project grant anon and authenticated
+broad access. Measured on the real restore:
+
+                                            source   restored
+    TRUNCATE/TRIGGER/REFERENCES grants         0        246
+    anon grants beyond demo_requests INSERT    0        286
+    audit_logs write grants for anon/auth      0          8
+
+anon is the role the web app uses before anyone logs in, TRUNCATE is not subject
+to RLS at all, and write grants on audit_logs make the append-only record editable
+by the people it holds accountable.
+
+    set -a; . ~/.byond-migration.env; set +a; psql -v ON_ERROR_STOP=1 "$NEW_DB_URL" -f ops/post-restore-grants.sql
+
+Every count it prints at the end must be 0, except the last, which must be 2 —
+get_user_role and get_user_company_id have to stay executable by authenticated,
+because RLS policy expressions call them as the querying user. A 0 there means the
+application is broken, not hardened.
+
+Expect one NOTICE about skipping supabase_admin default privileges. That is
+correct: the role is platform-reserved and postgres is not a superuser.
+
 ## Step 4 — verify Frankfurt against Mumbai
 
     set -a; . ~/.byond-migration.env; set +a; psql "$NEW_DB_URL" -f ops/post-migrate-eu.sql
