@@ -4,6 +4,7 @@
     "slug": "byond-hr",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "byondhr",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,6 +15,7 @@
       "checkAutomatically": "ON_LOAD"
     },
     "splash": {
+      "image": "./assets/splash-icon.png",
       "backgroundColor": "#0F0F0F",
       "resizeMode": "contain"
     },
@@ -26,8 +28,16 @@
     },
     "android": {
       "package": "com.byond.hr",
-      "adaptiveIcon": { "backgroundColor": "#0F0F0F" },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#0F0F0F"
+      },
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
