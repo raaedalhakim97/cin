@@ -5,18 +5,54 @@ account and the four values that only exist once it is created, and those need a
 terminal logged in as you — so this is a runbook rather than something already
 done.
 
-## Why this cannot be built from a Claude Code session
+## Where this can and cannot be built
 
-Both routes to an APK need a host the sandbox is not allowed to reach, and the
-proxy denies them by policy:
+Not from a Claude Code **web** session. Both routes need a host that sandbox is not
+allowed to reach, and the proxy denies them by policy:
 
 ```
 CONNECT dl.google.com:443  -> 403 (policy denial)   # Android SDK, for a local Gradle build
 CONNECT api.expo.dev:443   -> 403 (policy denial)   # EAS, for a cloud build
 ```
 
-There is no Android SDK in the container either. So the build runs on your
-laptop, or in GitHub Actions with an `EXPO_TOKEN` secret.
+There is no Android SDK in that container either.
+
+**A Claude Code session on your own laptop is a different matter, and this file used
+to imply otherwise.** Measured from the Windows/WSL laptop:
+
+```
+api.expo.dev   -> HTTP 200
+dl.google.com  -> HTTP 302
+```
+
+So a session there can drive the whole EAS build. Two things it still cannot do for
+you, and neither is a network limit:
+
+* `eas-cli login` — creating an account or typing a password is yours. If you would
+  rather not hand over a logged-in session at all, generate an access token in the
+  Expo dashboard and pass it as `EXPO_TOKEN`, which is scoped and revocable.
+* installing Node, if the distro has none, because that needs `sudo`.
+
+The same caution applies as with the Docker requirement in `ops/migrate-to-eu.sh`:
+test the host rather than trusting a note written about a different machine. That is
+how both of these were established.
+
+### If WSL has no Node
+
+Windows Node leaks into WSL through interop, so `npm` resolves to
+`/mnt/c/Program Files/nodejs/npm` while `node` is not found at all. Do not drive
+the Windows Node against the WSL checkout over a `\\wsl.localhost\...` UNC path —
+`scripts/check-mobile-config.mjs` cannot resolve `app.json` through it. It is the
+same class of problem as working in `/mnt/c`.
+
+```
+sudo apt-get update && sudo apt-get install -y nodejs npm
+```
+
+One thing to watch afterwards: an older `npm` rewrites `libc` metadata on unrelated
+optional packages, which turns a one-package install into a fifty-line lockfile
+diff. If you need to add a dependency and see that, use `npx npm@11 install <pkg>`
+instead. `npx eas-cli` does not touch the lockfile, so the build itself is unaffected.
 
 ## Decide this before you build: which database does the APK point at?
 
@@ -62,11 +98,20 @@ Commit the `app.json` changes those two commands make.
 
 These must **not** go in `eas.json` or anywhere else tracked — the anon key is a
 JWT, and `scripts/check-secrets.sh` fails the build if one appears in source.
-They are stored on the Expo project instead:
+They are stored on the Expo project instead.
+
+Keep the key out of the command line too, not just out of the repo. A literal in a
+command lands in shell history, in terminal scrollback, and in any transcript of the
+session. Put it in the same file the database URLs already live in — outside any
+repository, mode 0600 — and reference it:
 
 ```bash
+echo "FRANKFURT_ANON_KEY='<paste it here>'" >> ~/.byond-migration.env
+chmod 600 ~/.byond-migration.env
+
+set -a; . ~/.byond-migration.env; set +a
 npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_URL      --value "https://<project>.supabase.co" --environment preview
-npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "<anon key>"                    --environment preview
+npx eas-cli env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "$FRANKFURT_ANON_KEY"           --environment preview
 ```
 
 Take both from the Supabase dashboard, or from the Vercel environment variables
@@ -79,6 +124,11 @@ project wired up yet" and silently falls back to the in-memory demo client. The
 APK then installs, looks perfectly healthy, and rejects every real login,
 because it is running on seed data. `check-mobile-config.mjs` now fails on this
 rather than letting you spend a build cycle finding out.
+
+The `env` blocks were removed from both profiles for exactly that reason, so there
+is currently nothing to fix in `eas.json` — the `preview` profile is already
+`distribution: internal` with `android.buildType: apk`, and nothing else. Leave it
+that way; the check exists to catch the empty strings coming back.
 
 ## Build it
 
