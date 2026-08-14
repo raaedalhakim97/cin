@@ -33,3 +33,9 @@ dist-ssr
 migration-[0-9]*-[0-9]*/
 */data.sql
 */roles.sql
+
+# Vercel CLI. `vercel link` writes .vercel/project.json — project and org IDs, not
+# credentials, so scripts/check-secrets.sh would not flag it. It is machine-local
+# state and should not be committed. The CLI usually adds this itself; it is here so
+# the outcome does not depend on whether it did.
+.vercel
