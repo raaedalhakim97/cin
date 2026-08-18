@@ -63,6 +63,17 @@ pg_dump --version    # must say 17.x
 
 ### 2. Get a connection string that works with `pg_dump`
 
+**Back up Frankfurt, `ududaetdwoqtchkvqewv` (eu-central-1).** That is production as of
+19 August 2026. Mumbai, `rxkgnbvjywiqkgbbypfs`, is the retired project — still running
+as a fallback, but nothing writes to it any more. Backing that one up would produce a
+perfect nightly copy of a database nobody uses, and the failure would be invisible
+because the dumps would look completely healthy.
+
+If the password has been exposed anywhere — a chat, a transcript, a screenshot — rotate
+it **before** writing the config file in step 4, not after. Otherwise the config is
+written with a credential you are about to invalidate, and the first failure is a
+backup that silently stops working at 03:17 the following morning.
+
 Supabase dashboard → **Project Settings** → **Database** → Connection string →
 **URI**.
 
@@ -181,15 +192,76 @@ a few euros a month:
 27 4 * * * rsync -a --delete /var/backups/byond/ uXXXXX@uXXXXX.your-storagebox.de:byond/
 ```
 
+### 9. Where the backups physically sit
+
+Check which Hetzner location the server is in. Nuremberg, Falkenstein and Helsinki are
+in the EU; Hillsboro and Ashburn are not.
+
+The database was moved to Frankfurt so that UAE PDPL cross-border rules are satisfied
+by an EU adequacy argument, and the same reasoning has to serve Nigeria's NDPA later.
+Nightly encrypted copies of every salary, IBAN and national ID sitting on a US server
+would quietly undo that, and it would be an odd thing to have to explain. Keep both the
+server and any off-site copy inside the EU.
+
+---
+
+## Restoring for real — read this before you need it
+
+`ops/verify-restore.sh` proves a backup *parses and contains the rows*. It restores into
+a throwaway container, so it deliberately proves nothing about grants. Restoring into a
+live Supabase project needs two more steps, and skipping them is not a small mistake.
+
+`backup-supabase.sh` dumps with `--no-owner --no-privileges`. Policies come across —
+`CREATE POLICY` is schema, not an ACL — but **table and function GRANTs do not**. So a
+restore lands with the *target* project's default privileges, and on a fresh Supabase
+project those give `anon` and `authenticated` broad access.
+
+That is not hypothetical. It is exactly what the Frankfurt migration was found in, after
+a restore that matched the source on every structural and row count:
+
+```
+                                          source   restored
+TRUNCATE/TRIGGER/REFERENCES grants           0        246
+anon grants beyond demo_requests INSERT      0        286
+audit_logs write grants for anon/auth        0          8
+```
+
+`anon` is the role the web app uses before anyone logs in, and `TRUNCATE` is not subject
+to RLS, so no row policy contains it. RLS was fully intact throughout — which is why
+nothing looked wrong.
+
+So after any real restore:
+
+```bash
+psql -v ON_ERROR_STOP=1 "$TARGET_DB_URL" -f ops/post-restore-grants.sql
+psql -v ON_ERROR_STOP=1 "$TARGET_DB_URL" -f supabase/tests/guarantees.sql
+```
+
+The guarantee suite is the actual proof — 32 assertions covering tenant isolation,
+attendance integrity, the audit trail and the geofence — and it rolls back everything it
+writes, so it is safe against production. Five of those 32 failed on the Frankfurt
+restore, and all five were this.
+
+Also recreate the `pg_cron` schedule, which no dump carries: `ops/post-migrate-eu.sql`.
+
 ---
 
 ## What this does not cover
 
+- **Table and function GRANTs.** See the section above. The dump excludes ACLs by
+  design, and `post-restore-grants.sql` is how they come back.
 - **Point-in-time recovery.** A nightly dump means you can lose up to a day.
   If that is unacceptable for payroll, Supabase Pro with PITR is the answer;
   no script can substitute for it.
 - **Storage bucket contents.** `pg_dump` captures the database, not uploaded
-  files. Once employees start uploading documents, add a `storage` sync too.
+  files — and this one has already bitten. The Frankfurt restore produced a
+  `storage.objects` row *and* an `hr_documents` row for a 113 KB PDF whose bytes
+  were never copied, so the document listed in the UI and 404'd on download. The
+  metadata travels and the file does not, which is worse than an obvious absence.
+  Add a `storage` sync as soon as employees upload anything real.
+- **`pg_cron` schedules.** The `cron` schema is not in the dump. Without it the
+  monthly KPI job silently never runs, and nobody notices until a month of awards
+  and warnings is missing.
 - **Auth users.** They live in the `auth` schema, which this dump does include —
   but restoring them into a *different* Supabase project needs care, because
   user IDs are referenced throughout `public`.
