@@ -181,13 +181,13 @@ Expected, read from Mumbai just before the move:
 The row counts move as the product is used — treat them as "same as Mumbai right
 now". The structural three (policies, functions, tables) must match EXACTLY.
 
-Then run the full guarantee suite against Frankfurt. It is 38 assertions
+Then run the full guarantee suite against Frankfurt. It is 40 assertions
 covering tenant isolation, attendance integrity, the audit trail and the
 geofence, and it rolls back everything it writes, so it is safe:
 
     set -a; . ~/.byond-migration.env; set +a; psql -v ON_ERROR_STOP=1 "$NEW_DB_URL" -f supabase/tests/guarantees.sql
 
-All 38 must pass. Assertion 22 is the one that fails if the cron step was
+All 40 must pass. Assertion 22 is the one that fails if the cron step was
 skipped. Do not proceed to step 5 with any assertion failing — tell me instead.
 
 ## Step 5 — three things the dump does not carry

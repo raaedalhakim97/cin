@@ -572,6 +572,70 @@ BEGIN
     'notify_employee not callable by anon or authenticated', '0', v_n::text);
 END $$;
 
+-- ── A notification must never break the thing it is about ──────────────────
+--
+-- The most important property of the whole notification feature, and the only one
+-- worth deliberately breaking something to prove.
+--
+-- Every notification trigger wraps its work in an exception handler. If that handler
+-- is ever removed, or a trigger is added without one, a bug in notification code
+-- becomes a refused clock-in — someone standing at the gate at 6am unable to start
+-- their shift because a message could not be addressed. So this replaces
+-- notify_employee with a version that always raises, and then requires the punch to
+-- succeed anyway. The whole suite rolls back, so the broken version never persists.
+DO $$
+DECLARE f record; v_ok boolean := true; v_emp uuid; v_n int;
+BEGIN
+  SELECT * INTO f FROM fx;
+
+  -- 39: the original complaint — a shift published with nobody told about it.
+  INSERT INTO shifts (company_id, employee_id, shift_date, start_at, end_at,
+                      shift_type, status, published_at)
+  VALUES (f.company_id, f.emp_id, current_date + 1,
+          (current_date + 1)::timestamp + time '08:00',
+          (current_date + 1)::timestamp + time '16:00',
+          'work', 'published', now());
+
+  SELECT count(*) INTO v_n
+    FROM notifications
+   WHERE employee_id = f.emp_id AND kind = 'shift_published'
+     AND created_at > now() - interval '1 minute';
+  PERFORM pg_temp.chk(39, 'notifications',
+    'a published shift tells the employee', 'told',
+    CASE WHEN v_n >= 1 THEN 'told' ELSE 'SILENT' END);
+
+  -- 40: break the notifier and require the clock-in to survive it.
+  CREATE OR REPLACE FUNCTION public.notify_employee(
+    p_company_id uuid, p_employee_id uuid, p_kind text, p_title text,
+    p_body text DEFAULT NULL, p_link text DEFAULT NULL, p_subject_table text DEFAULT NULL,
+    p_subject_id uuid DEFAULT NULL, p_dedupe_window interval DEFAULT '5 minutes'
+  ) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+  AS $broken$ BEGIN RAISE EXCEPTION 'deliberately broken notifier'; END $broken$;
+
+  SELECT e.id INTO v_emp
+    FROM employees e
+   WHERE e.company_id = f.company_id AND e.status = 'active' AND e.user_id IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM attendance a
+                      WHERE a.employee_id = e.id AND a.date = current_date)
+   ORDER BY e.id LIMIT 1;
+
+  IF v_emp IS NULL THEN
+    PERFORM pg_temp.chk(40, 'notifications',
+      'broken notifier cannot block a clock-in', 'clock-in accepted',
+      'SKIPPED: everyone already has a punch today');
+  ELSE
+    BEGIN
+      INSERT INTO attendance (company_id, employee_id, date, clock_in, status)
+      VALUES (f.company_id, v_emp, current_date, now(), 'late_minor');
+    EXCEPTION WHEN OTHERS THEN
+      v_ok := false;
+    END;
+    PERFORM pg_temp.chk(40, 'notifications',
+      'broken notifier cannot block a clock-in', 'clock-in accepted',
+      CASE WHEN v_ok THEN 'clock-in accepted' ELSE 'CLOCK-IN REFUSED' END);
+  END IF;
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
