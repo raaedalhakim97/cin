@@ -27,6 +27,9 @@
       "bundleIdentifier": "com.byond.hr",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "BYOND HR records your location when you clock in or out, so your attendance can be verified against your work site."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
