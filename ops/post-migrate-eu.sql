@@ -35,11 +35,15 @@ SELECT cron.schedule(
 -- 3. Verification. Compare these against the old project before switching the
 --    app over.
 --
---    Read from ap-south-1 immediately before the move, after migrations 11-15:
+--    Read from eu-central-1 after migration 16, on 19 August 2026:
 --
---      rls policies 113   functions 57   tables 36
+--      rls policies 115   functions 60   tables 37
 --      auth users     8   employees 16   companies 2   cron jobs 1
---      audit_logs   781   attendance 29
+--
+--    Those three structural numbers moved with migration 16, which added the
+--    notifications table, its two policies, and three functions. If you are verifying
+--    a restore of a dump taken BEFORE that migration, expect 113 / 57 / 36 instead —
+--    the numbers describe the schema, so they change whenever the schema does.
 --
 --    Row counts move as the product is used, so treat those two as "the same as
 --    the old project right now", not as fixed numbers. The structural three —
@@ -93,10 +97,29 @@ SELECT 'self-service policies excluding read_only (must be 0)',
 FROM pg_policies
 WHERE schemaname = 'public'
   AND policyname IN ('att_self_update', 'leave_self_update')
-  AND qual LIKE '%read_only%';
+  AND qual LIKE '%read_only%'
+UNION ALL
+-- Migration 16: notifications are written only by notify_employee, which is SECURITY
+-- DEFINER. With INSERT a signed-in user could manufacture a notification that appears
+-- to come from HR, and with DELETE they could remove one they had been sent.
+SELECT 'notifications write grants for anon/authenticated (must be 0)',
+       count(*)::text
+FROM information_schema.role_table_grants
+WHERE table_schema = 'public'
+  AND table_name = 'notifications'
+  AND grantee IN ('anon', 'authenticated')
+  AND privilege_type IN ('INSERT', 'DELETE')
+UNION ALL
+SELECT 'notify_employee reachable by anon/authenticated (must be 0)',
+       count(*)::text
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN ('notify_employee', 'notifications_only_read_at_is_editable')
+  AND (has_function_privilege('anon', p.oid, 'EXECUTE')
+    OR has_function_privilege('authenticated', p.oid, 'EXECUTE'));
 
 -- 5. Then run the full guarantee suite against this project. It is the real
---    verification — 32 assertions covering tenant isolation, attendance
+--    verification — 38 assertions covering tenant isolation, attendance
 --    integrity, the audit trail and the geofence — and it rolls back everything
 --    it writes, so it is safe to run here:
 --

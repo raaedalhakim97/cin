@@ -79,6 +79,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authentic
 -- user can rewrite the record of what happened.
 REVOKE INSERT, UPDATE, DELETE ON public.audit_logs FROM authenticated;
 
+-- Migration 16: notifications are written only by notify_employee, which is SECURITY
+-- DEFINER. With INSERT, a signed-in user could manufacture a notification that appears
+-- to come from HR; with DELETE they could remove one they had been sent. The blanket
+-- GRANT above hands back both, which is exactly why this revoke follows it.
+REVOKE INSERT, DELETE ON public.notifications FROM authenticated;
+REVOKE ALL ON public.notifications FROM anon;
+
 -- ── 2. Default privileges ─────────────────────────────────────────────────
 --
 -- Without these the next table anyone creates arrives with the same over-broad
@@ -150,6 +157,8 @@ REVOKE ALL ON FUNCTION public.validate_kpi_adjustment_type() FROM PUBLIC, anon, 
 REVOKE ALL ON FUNCTION public.validate_leave_transition() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.validate_payroll_transition() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.validate_shift() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_employee(uuid,uuid,text,text,text,text,text,uuid,interval) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notifications_only_read_at_is_editable() FROM PUBLIC, anon, authenticated;
 
 -- ── 4. Verification ───────────────────────────────────────────────────────
 --
@@ -185,7 +194,8 @@ WHERE n.nspname = 'public'
     'onboard_company','recalculate_all_attendance_scores','seed_default_document_types',
     'seed_default_kpi_adjustment_types','snapshot_pdp_progress','sync_attendance_score',
     'update_updated_at','validate_kpi_adjustment_type','validate_leave_transition',
-    'validate_payroll_transition','validate_shift')
+    'validate_payroll_transition','validate_shift',
+    'notify_employee','notifications_only_read_at_is_editable')
   AND (has_function_privilege('anon', p.oid, 'EXECUTE')
     OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))
 UNION ALL

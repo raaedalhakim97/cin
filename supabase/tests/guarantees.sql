@@ -505,6 +505,73 @@ BEGIN
                        ELSE v_n::text||' STILL EXCLUDE read_only' END);
 END $$;
 
+-- ── A notification is not something you can write about yourself ───────────
+--
+-- Notifications tell people they were late, that leave was approved, that a shift
+-- changed. If they can be written by the people they are about, they are worth
+-- nothing — and worse, one could be made to look as though HR sent it. Same shape as
+-- the audit trail: inserted only by a SECURITY DEFINER function, with the grants
+-- revoked so it does not rest on the absence of a policy.
+DO $$
+DECLARE f record; v_id uuid; v_n int; v_title text;
+BEGIN
+  SELECT * INTO f FROM fx;
+
+  v_id := notify_employee(f.company_id, f.emp_id, 'feed_post',
+                          'Suite probe notification', NULL, '/feed',
+                          'feed_posts', '33333333-3333-3333-3333-333333333333'::uuid);
+
+  PERFORM pg_temp.chk(33, 'notifications',
+    'the trigger helper can create one', 'created',
+    CASE WHEN v_id IS NOT NULL THEN 'created' ELSE 'NULL' END);
+
+  -- The recipient reads their own.
+  PERFORM pg_temp.as_user(f.emp_uid);
+  SELECT count(*) INTO v_n FROM notifications WHERE id = v_id;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(34, 'notifications', 'recipient can read their own', '1', v_n::text);
+
+  -- Nobody else does, including HR. A notification list is closer to someone's inbox
+  -- than to their personnel file, and the underlying events are separately visible.
+  PERFORM pg_temp.as_user(f.hr_uid);
+  SELECT count(*) INTO v_n FROM notifications WHERE id = v_id;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(35, 'notifications', 'HR cannot read another persons notification', '0', v_n::text);
+
+  -- Marking read must not be a way to rewrite the message.
+  PERFORM pg_temp.as_user(f.emp_uid);
+  BEGIN
+    UPDATE notifications SET read_at = now(), title = 'Rewritten by the recipient'
+     WHERE id = v_id;
+  EXCEPTION WHEN others THEN NULL;
+  END;
+  PERFORM pg_temp.as_nobody();
+  SELECT title INTO v_title FROM notifications WHERE id = v_id;
+  PERFORM pg_temp.chk(36, 'notifications',
+    'recipient cannot rewrite the message', 'Suite probe notification', coalesce(v_title,'GONE'));
+
+  -- And one cannot be manufactured at all.
+  PERFORM pg_temp.as_user(f.emp_uid);
+  BEGIN
+    INSERT INTO notifications (company_id, employee_id, kind, title)
+    VALUES (f.company_id, f.emp_id, 'leave_approved', 'Your leave was approved');
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(37, 'notifications', 'employee cannot forge a notification', 'refused', 'ACCEPTED');
+  EXCEPTION WHEN others THEN
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(37, 'notifications', 'employee cannot forge a notification', 'refused', 'refused');
+  END;
+
+  -- notify_employee itself must be unreachable, or the revoke above is decoration.
+  SELECT count(*) INTO v_n
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'notify_employee'
+     AND (has_function_privilege('anon', p.oid, 'EXECUTE')
+       OR has_function_privilege('authenticated', p.oid, 'EXECUTE'));
+  PERFORM pg_temp.chk(38, 'notifications',
+    'notify_employee not callable by anon or authenticated', '0', v_n::text);
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
