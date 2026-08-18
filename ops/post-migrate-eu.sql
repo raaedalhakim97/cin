@@ -37,11 +37,12 @@ SELECT cron.schedule(
 --
 --    Read from eu-central-1 after migration 16, on 19 August 2026:
 --
---      rls policies 115   functions 60   tables 37
---      auth users     8   employees 16   companies 2   cron jobs 1
+--      rls policies 115   functions 66   tables 37
+--      auth users     8   employees 16   companies 2   cron jobs 2
 --
---    Those three structural numbers moved with migration 16, which added the
---    notifications table, its two policies, and three functions. If you are verifying
+--    Those structural numbers moved with migrations 16 and 17, which added the
+--    notifications table, its two policies, and nine functions. Two cron jobs now:
+--    the monthly KPI run and the nightly open-punch sweep. If you are verifying
 --    a restore of a dump taken BEFORE that migration, expect 113 / 57 / 36 instead —
 --    the numbers describe the schema, so they change whenever the schema does.
 --
@@ -119,7 +120,7 @@ WHERE n.nspname = 'public'
     OR has_function_privilege('authenticated', p.oid, 'EXECUTE'));
 
 -- 5. Then run the full guarantee suite against this project. It is the real
---    verification — 38 assertions covering tenant isolation, attendance
+--    verification — 40 assertions covering tenant isolation, attendance
 --    integrity, the audit trail and the geofence — and it rolls back everything
 --    it writes, so it is safe to run here:
 --

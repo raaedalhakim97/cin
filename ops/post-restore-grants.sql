@@ -159,6 +159,12 @@ REVOKE ALL ON FUNCTION public.validate_payroll_transition() FROM PUBLIC, anon, a
 REVOKE ALL ON FUNCTION public.validate_shift() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_employee(uuid,uuid,text,text,text,text,text,uuid,interval) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notifications_only_read_at_is_editable() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_roles(uuid,text[],text,text,text,text,text,uuid,uuid,uuid,interval) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_attendance_change() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_feed_post() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_leave_change() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_shift_published() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_missing_clockouts() FROM PUBLIC, anon, authenticated;
 
 -- ── 4. Verification ───────────────────────────────────────────────────────
 --
@@ -195,7 +201,9 @@ WHERE n.nspname = 'public'
     'seed_default_kpi_adjustment_types','snapshot_pdp_progress','sync_attendance_score',
     'update_updated_at','validate_kpi_adjustment_type','validate_leave_transition',
     'validate_payroll_transition','validate_shift',
-    'notify_employee','notifications_only_read_at_is_editable')
+    'notify_employee','notifications_only_read_at_is_editable',
+    'notify_roles','notify_attendance_change','notify_feed_post',
+    'notify_leave_change','notify_shift_published','notify_missing_clockouts')
   AND (has_function_privilege('anon', p.oid, 'EXECUTE')
     OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))
 UNION ALL
