@@ -8,11 +8,14 @@
     "scheme": "byondhr",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "runtimeVersion": { "policy": "appVersion" },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
       "enabled": true,
       "fallbackToCacheTimeout": 3000,
-      "checkAutomatically": "ON_LOAD"
+      "checkAutomatically": "ON_LOAD",
+      "url": "https://u.expo.dev/5a43b21f-90a7-4f91-85f6-480d1fea41bf"
     },
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -34,7 +37,16 @@
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#0F0F0F"
       },
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -48,6 +60,15 @@
         }
       ]
     ],
-    "experiments": { "typedRoutes": false }
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5a43b21f-90a7-4f91-85f6-480d1fea41bf"
+      }
+    },
+    "owner": "byondhr"
   }
 }
