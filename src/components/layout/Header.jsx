@@ -3,6 +3,7 @@ import useAuthStore from '../../store/authStore'
 import useThemeStore from '../../store/themeStore'
 import useUiStore from '../../store/uiStore'
 import TrialBanner from '../TrialBanner'
+import NotificationBell from '../NotificationBell'
 
 const roleLabel = {
   super_admin:        'Super Admin',
@@ -33,6 +34,11 @@ export default function Header() {
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-2 sm:gap-4">
+
+        {/* Notifications. Only for someone whose account is linked to an employee
+            record — an unlinked user has no notifications by definition, and the
+            bell would sit there permanently empty. */}
+        {employee?.id && <NotificationBell />}
 
         {/* Theme toggle */}
         <button

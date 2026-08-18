@@ -118,14 +118,17 @@ END $$;
 
 -- ── 3. Functions ──────────────────────────────────────────────────────────
 --
--- These 26 are exactly the functions the source project denies to both anon and
--- authenticated. The other 31 are deliberately left alone: they include
--- get_user_role and get_user_company_id, which RLS policy expressions call as the
--- querying user, so revoking those would not harden anything — it would take the
+-- These are exactly the functions the source project denies to both anon and
+-- authenticated: 26 from the original audit, plus the eight notification internals
+-- added by migrations 16 and 17. The remaining 32 are deliberately left alone — they
+-- include get_user_role and get_user_company_id, which RLS policy expressions call as
+-- the querying user, so revoking those would not harden anything. It would take the
 -- application down completely.
 --
--- 26 + 31 = 57, the full function count, so this is a partition of the schema and
--- not a sample of it.
+-- 34 + 32 = 66, the full function count, so this is a partition of the schema rather
+-- than a sample of it. If that sum stops matching, a function has been added without
+-- anyone deciding which side of the line it belongs on, and the safe reading is that
+-- it is reachable by every signed-in user.
 --
 -- PUBLIC is included because a grant to PUBLIC is why several of these are
 -- reachable at all after a restore; revoking only from anon and authenticated
