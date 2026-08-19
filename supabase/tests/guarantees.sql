@@ -636,6 +636,65 @@ BEGIN
   END IF;
 END $$;
 
+-- ═══ 12. SECURITY DEFINER helpers are not a public API — migration 18 ══════
+-- A SECURITY DEFINER function ignores RLS by design, so EXECUTE on one is the
+-- whole access decision. Both scoring helpers take an employee AND a company as
+-- arguments and check nothing about the caller, so while anon could execute them
+-- the arguments alone decided what was read: measured on Frankfurt, anon with no
+-- JWT obtained a named employee's attendance score of 100 and reliability of
+-- 99.54, while SELECT on attendance and employees was refused. The tables were
+-- never the hole; these were.
+--
+-- Asserted as privileges rather than by calling them, because a call returning
+-- NULL is ambiguous — it means "no rows that month" just as often as "refused",
+-- and that ambiguity is what let this sit unnoticed.
+SELECT pg_temp.chk(41, 'isolation', 'unguarded score helpers unreachable by anon/authenticated', 'unreachable',
+  CASE WHEN has_function_privilege('anon',          'public.calculate_attendance_score(uuid,integer,integer,uuid)',  'EXECUTE')
+         OR has_function_privilege('authenticated', 'public.calculate_attendance_score(uuid,integer,integer,uuid)',  'EXECUTE')
+         OR has_function_privilege('anon',          'public.calculate_reliability_score(uuid,integer,integer,uuid)', 'EXECUTE')
+         OR has_function_privilege('authenticated', 'public.calculate_reliability_score(uuid,integer,integer,uuid)', 'EXECUTE')
+       THEN 'REACHABLE' ELSE 'unreachable' END);
+
+-- The counterpart. Hardening that also breaks the product is not hardening, and
+-- the three-argument overload is what the KPI screen actually calls — it reads the
+-- company from auth.uid() instead of trusting an argument.
+SELECT pg_temp.chk(42, 'isolation', 'guarded 3-arg score helper still callable by authenticated', 'callable',
+  CASE WHEN has_function_privilege('authenticated',
+              'public.calculate_attendance_score(uuid,integer,integer)', 'EXECUTE')
+       THEN 'callable' ELSE 'BROKEN' END);
+
+-- Every SECURITY DEFINER function reachable by anon or authenticated must either
+-- interrogate the caller or be one of the deliberate exceptions. This is the
+-- generalised form of 41: it fails when a NEW unguarded definer function is
+-- exposed, which is the way this class of bug returns.
+--
+-- The exceptions, each for a stated reason:
+--   accept_employee_invite, get_invite_preview  — bearer-token flows, reached
+--       before a session exists; the token is the credential
+--   self_onboard_company, log_login_attempt     — signup and login logging, both
+--       necessarily pre-session
+--   get_user_role, get_user_company_id, get_user_department_id,
+--   get_active_session_count, is_platform_owner — the primitives RLS policy
+--       expressions call; they must stay executable or every policy errors
+--   compute_kpi_rating, is_evaluation_month, geofence_requires_a_location,
+--   last_work_location_is_protected, create_user_session, mark_session_inactive
+--                                                — pure logic or self-scoped
+SELECT pg_temp.chk(43, 'isolation', 'no unguarded SECURITY DEFINER function exposed', '0',
+  (SELECT count(*)::text
+   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public'
+     AND p.prosecdef
+     AND (has_function_privilege('anon', p.oid, 'EXECUTE')
+       OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+     AND p.prosrc !~ 'auth\.uid\(\)'
+     AND p.proname NOT IN (
+       'accept_employee_invite', 'get_invite_preview', 'self_onboard_company',
+       'log_login_attempt', 'get_user_role', 'get_user_company_id',
+       'get_user_department_id', 'get_active_session_count', 'is_platform_owner',
+       'compute_kpi_rating', 'is_evaluation_month', 'geofence_requires_a_location',
+       'last_work_location_is_protected', 'create_user_session', 'mark_session_inactive'
+     )));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
