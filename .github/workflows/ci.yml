@@ -93,3 +93,11 @@ jobs:
       - name: Validate app and build config
         working-directory: mobile
         run: node ../scripts/check-mobile-config.mjs
+
+      - name: Notification kinds agree across both bells
+        # The kind list is declared once, in migration 16's CHECK constraint, and
+        # consumed by the web bell, the mobile bell and mobile routing. Adding a
+        # kind without updating all three is silent: the row renders as a plain
+        # grey bell, and on mobile the tap goes nowhere. Nothing else would catch
+        # it, because nothing throws.
+        run: node scripts/check-notification-kinds.mjs

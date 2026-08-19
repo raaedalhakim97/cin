@@ -18,6 +18,10 @@ function atToday(hh, mm) {
   return d.toISOString()
 }
 
+function minutesAgo(n) {
+  return new Date(Date.now() - n * 60000).toISOString()
+}
+
 function daysAgo(n) {
   const d = new Date()
   d.setDate(d.getDate() - n)
@@ -415,6 +419,82 @@ export function buildSeed() {
     },
   ]
 
+  // Notifications, one set per persona.
+  //
+  // Written per-recipient rather than company-wide, because that is what the real
+  // table is: notifications are addressed to a person, and the demo client
+  // filters them to the signed-in persona the way RLS does in production. So
+  // every persona needs their own or the screen is empty for most of them.
+  //
+  // Which kinds a persona gets follows the triggers in migration 17 rather than
+  // being spread evenly for the sake of a screenshot: the team and approval kinds
+  // only go to roles that can act on them, and read_only gets the two it can
+  // actually receive. The point is that the demo shows the same shapes the live
+  // triggers produce — including the routing, which differs by role for
+  // attendance_team_late and the leave kinds.
+  const OWN_NOTIFICATIONS = [
+    {
+      kind: 'attendance_late',
+      title: 'Your clock-in was recorded as late',
+      body: "Today's punch is graded up to 30 minutes late. Attendance is 30% of your KPI, so it is worth checking the record is right.",
+      link: '/attendance',
+      minutesAgo: 24,
+      read: false,
+    },
+    {
+      kind: 'shift_published',
+      title: 'Your shift is published',
+      body: 'Day Shift · 08:00–17:00. Check the hours before the day starts.',
+      link: '/my-schedule',
+      minutesAgo: 260,
+      read: false,
+    },
+    {
+      kind: 'feed_post',
+      title: 'April payslips are ready',
+      body: 'You can now view and download your April payslip from the Profile tab.',
+      link: '/feed',
+      minutesAgo: 900,
+      read: true,
+    },
+  ]
+
+  const APPROVER_NOTIFICATIONS = [
+    {
+      kind: 'leave_submitted',
+      title: 'Omar Khalid requested leave',
+      body: 'Annual — 12 Sep to 16 Sep (5 days). Waiting for approval.',
+      link: '/leave',
+      minutesAgo: 55,
+      read: false,
+    },
+    {
+      kind: 'attendance_team_late',
+      title: 'Yousef Nasser clocked in late',
+      body: 'Graded between 30 and 60 minutes late.',
+      link: '/attendance',
+      minutesAgo: 130,
+      read: false,
+    },
+  ]
+
+  const notifications = PERSONAS.flatMap((p) => {
+    const approver = p.role === 'super_admin' || p.role === 'hr_manager' || p.role === 'department_manager'
+    // read_only can be told things but has nothing to approve and no team.
+    const set = p.role === 'read_only' ? OWN_NOTIFICATIONS.slice(1) : OWN_NOTIFICATIONS
+    return [...set, ...(approver ? APPROVER_NOTIFICATIONS : [])].map((n, i) => ({
+      id: `n-${p.employeeId}-${i}`,
+      company_id: COMPANY_ID,
+      employee_id: p.employeeId,
+      kind: n.kind,
+      title: n.title,
+      body: n.body,
+      link: n.link,
+      read_at: n.read ? minutesAgo(n.minutesAgo - 5) : null,
+      created_at: minutesAgo(n.minutesAgo),
+    }))
+  })
+
   const today_schedule = PERSONAS.map((p) => ({
     employee_id: p.employeeId,
     start_at: atToday(8, 0),
@@ -446,6 +526,7 @@ export function buildSeed() {
     feed_posts,
     feed_reactions,
     feed_comments,
+    notifications,
     today_schedule,
     shifts,
     shift_settings: [
