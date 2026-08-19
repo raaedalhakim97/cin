@@ -70,8 +70,17 @@ export default function Sidebar() {
   const mobileNavOpen = useUiStore(s => s.mobileNavOpen)
   const closeMobileNav = useUiStore(s => s.closeMobileNav)
 
+  // A platform owner sees ONLY the platform items. They run BYOND; they are not
+  // staff at one of its companies, so Attendance, KPI, Payroll and the employee
+  // list are not theirs to look at. The route guard enforces the same rule, so a
+  // hidden link is not the only thing standing between them and a tenant page.
+  //
+  // Deliberately not a "hide these few" list: written as "platform items only", a
+  // page added to the tenant app later cannot leak into the operator's sidebar by
+  // forgetting to exclude it.
   const visibleItems = navItems.filter(item => {
-    if (item.platformOwner && !isPlatformOwner) return false
+    if (isPlatformOwner) return item.platformOwner === true
+    if (item.platformOwner) return false
     return !item.roles || item.roles.includes(role)
   })
 
