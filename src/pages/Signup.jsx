@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, User, Building2, Sparkles, MailCheck } from 'lucide-react'
 import supabase from '../services/supabase'
+import { authErrorMessage } from '../utils/authErrors'
 import useAuthStore from '../store/authStore'
 import Logo from '../components/Logo'
 import {
@@ -44,7 +45,8 @@ export default function Signup() {
     const { data, error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
-      setServerError(error.message)
+      console.error('[Signup] signUp failed', error.code, error)
+      setServerError(authErrorMessage(error))
       setLoading(false)
       return
     }
