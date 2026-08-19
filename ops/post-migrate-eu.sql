@@ -120,7 +120,7 @@ WHERE n.nspname = 'public'
     OR has_function_privilege('authenticated', p.oid, 'EXECUTE'));
 
 -- 5. Then run the full guarantee suite against this project. It is the real
---    verification — 40 assertions covering tenant isolation, attendance
+--    verification — 43 assertions covering tenant isolation, attendance
 --    integrity, the audit trail and the geofence — and it rolls back everything
 --    it writes, so it is safe to run here:
 --

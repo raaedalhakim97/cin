@@ -31,7 +31,13 @@ export default function TopBar({ title, onMenu, notifications = 0, onNotificatio
           paddingHorizontal: space(2),
         }}
       >
-        <Pressable onPress={onMenu} hitSlop={12} style={{ width: space(4) }}>
+        <Pressable
+          onPress={onMenu}
+          hitSlop={12}
+          style={{ width: space(4) }}
+          accessibilityRole="button"
+          accessibilityLabel="Open menu"
+        >
           <Ionicons name="menu" size={26} color={c.chromeText} />
         </Pressable>
 
@@ -40,11 +46,23 @@ export default function TopBar({ title, onMenu, notifications = 0, onNotificatio
         </Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1.5), width: space(8), justifyContent: 'flex-end' }}>
-          <Pressable onPress={onHelp} hitSlop={10}>
+          <Pressable onPress={onHelp} hitSlop={10} accessibilityRole="button" accessibilityLabel="Help">
             <Ionicons name="help-circle-outline" size={23} color={c.chromeMuted} />
           </Pressable>
 
-          <Pressable onPress={onNotifications} hitSlop={10} style={{ position: 'relative' }}>
+          {/* The count belongs in the label, not just in the badge. A badge is a
+              coloured circle to a screen reader; "Notifications, 2 unread" is the
+              same information the sighted user gets. Matches the web bell's
+              aria-label wording so the two surfaces announce identically. */}
+          <Pressable
+            onPress={onNotifications}
+            hitSlop={10}
+            style={{ position: 'relative' }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              notifications > 0 ? `Notifications, ${notifications} unread` : 'Notifications'
+            }
+          >
             <Ionicons name="notifications-outline" size={23} color={c.chromeText} />
             {notifications > 0 ? (
               <View

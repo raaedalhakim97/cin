@@ -5,6 +5,7 @@ import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
 import Logo from '../components/Logo'
 import { savePendingInviteToken, acceptEmployeeInvite, INVITE_ROLE_LABEL } from '../utils/invite'
+import { authErrorMessage } from '../utils/authErrors'
 
 const INVALID_REASON_MESSAGE = {
   not_found: "This invite link isn't valid.",
@@ -12,6 +13,7 @@ const INVALID_REASON_MESSAGE = {
   accepted: 'This invite has already been used.',
   revoked: 'This invite has been revoked.',
 }
+
 
 function Shell({ children }) {
   return (
@@ -72,7 +74,10 @@ export default function AcceptInvite() {
     const { data, error } = await supabase.auth.signUp({ email: preview.email, password })
 
     if (error) {
-      setServerError(error.message)
+      // Logged with the code, because the message alone does not say which of
+      // Auth's failure modes this was.
+      console.error('[AcceptInvite] signUp failed', error.code, error)
+      setServerError(authErrorMessage(error, 'Please tell your HR team.'))
       setSubmitting(false)
       return
     }
