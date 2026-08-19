@@ -1127,7 +1127,15 @@ function AnonymizeModal({ employee, onClose, onConfirm, onSuccess }) {
   const [error, setError]           = useState('')
   const [result, setResult]         = useState(null)
 
-  const nameMatches = nameInput.trim().length > 0 && nameInput.trim() === employee.full_name
+  // Both sides are trimmed. This used to trim only the input, which made any
+  // employee whose stored name carried padding whitespace permanently
+  // un-anonymizable: "Eiad Said" never equals "Eiad Said ", and you could not type
+  // the trailing space either because the input was trimmed before comparing. That
+  // is the Right to Erasure path, so a name saved with a stray space meant a
+  // person could not be erased on request — a compliance failure, not a cosmetic
+  // one. Case is still compared strictly; that friction is deliberate.
+  const storedName  = (employee.full_name ?? '').trim()
+  const nameMatches = nameInput.trim().length > 0 && nameInput.trim() === storedName
   const canConfirm  = nameMatches && understood && !submitting
 
   async function handleConfirm() {
@@ -1185,7 +1193,7 @@ function AnonymizeModal({ employee, onClose, onConfirm, onSuccess }) {
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">
-                Type <span className="font-semibold text-[#1A1A1A] dark:text-white">{employee.full_name}</span> to confirm.
+                Type <span className="font-semibold text-[#1A1A1A] dark:text-white">{storedName}</span> to confirm.
               </p>
               <input
                 type="text"

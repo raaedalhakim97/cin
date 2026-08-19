@@ -17,6 +17,7 @@ const roleLabel = {
 export default function Header() {
   const employee = useAuthStore(s => s.employee)
   const role     = useAuthStore(s => s.role)
+  const isPlatformOwner = useAuthStore(s => s.isPlatformOwner)
   const { isDark, toggle } = useThemeStore()
   const toggleMobileNav = useUiStore(s => s.toggleMobileNav)
 
@@ -52,7 +53,7 @@ export default function Header() {
         {/* Role badge */}
         {role && (
           <span className="hidden sm:inline-block text-xs px-2.5 py-1 rounded-full font-semibold bg-[#00D4A0]/10 text-[#00D4A0]">
-            {roleLabel[role] ?? role}
+            {isPlatformOwner ? 'BYOND Owner' : (roleLabel[role] ?? role)}
           </span>
         )}
 

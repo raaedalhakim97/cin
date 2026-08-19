@@ -34,6 +34,22 @@ export default function PrivateRoute({ children, roles, platformOwner }) {
     return <Navigate to="/unauthorized" replace />
   }
 
+  // The inverse, and the reason it is here rather than only in the sidebar: a
+  // platform owner operates BYOND, they are not staff at one of its companies.
+  // Attendance, KPI, payroll and the employee list are not their job, and landing
+  // on them produces a page that is either empty or about a company they happen to
+  // be attached to — which is worse than not offering it.
+  //
+  // Sent to /platform rather than /unauthorized: this is not a permission failure,
+  // it is the wrong desk. Bookmarks and the post-login redirect both land here, so
+  // one rule covers all the ways in and there is no second place to keep in sync.
+  //
+  // /platform itself sets platformOwner, so it never matches this branch and cannot
+  // bounce against itself.
+  if (!platformOwner && isPlatformOwner) {
+    return <Navigate to="/platform" replace />
+  }
+
   if (roles && roles.length > 0 && !roles.includes(role)) {
     // Authenticated but wrong role — send to dashboard with 403-equivalent UX
     return <Navigate to="/unauthorized" replace />
