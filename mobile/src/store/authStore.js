@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import supabase from '../lib/supabase'
 import { capabilities, secondMode } from '../lib/permissions'
+import useNotificationStore from './notificationStore'
 
 // Same discipline as the web authStore: salary, bank_account and national_id are
 // never selected into the client. On mobile this matters more, not less — the
@@ -39,7 +40,12 @@ const useAuthStore = create((set, get) => ({
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, next) => {
       if (next) await get().loadProfile(next)
-      else set({ session: null, employee: null, role: null, companyId: null, company: null })
+      else {
+        // Also the path taken when a refresh token expires, not just an explicit
+        // sign-out, so the badge has to be cleared here too.
+        useNotificationStore.getState().reset()
+        set({ session: null, employee: null, role: null, companyId: null, company: null })
+      }
     })
     return subscription
   },
@@ -77,6 +83,9 @@ const useAuthStore = create((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut()
+    // Otherwise the previous user's unread count stays on the bell until the next
+    // successful refresh — and on a shared phone that is someone else's number.
+    useNotificationStore.getState().reset()
     set({
       session: null,
       employee: null,

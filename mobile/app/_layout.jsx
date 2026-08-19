@@ -76,6 +76,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
           <Stack.Screen name="login" options={{ animation: reduceMotion ? 'none' : 'fade' }} />
           <Stack.Screen name="feed" options={{ presentation: 'card' }} />
+          <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
           <Stack.Screen name="approvals" options={{ presentation: 'card' }} />
           <Stack.Screen name="settings" options={{ presentation: 'card' }} />
           <Stack.Screen name="operations" options={{ presentation: 'card' }} />

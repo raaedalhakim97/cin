@@ -196,6 +196,19 @@ class Query {
   _run() {
     const rows = (db[this.table] = db[this.table] ?? [])
 
+    // A stand-in for one RLS policy, and the only one this layer implements.
+    //
+    // Every other table is read by screens that filter explicitly, so returning
+    // the whole table is harmless. The notification screens deliberately do NOT
+    // filter by employee_id — RLS owns that in production, and duplicating it in
+    // the client would be a second copy of the rule that has to agree with the
+    // first. Without this the demo would hand every persona everybody else's
+    // notifications, which looks exactly like the leak the real policy prevents.
+    if (this.table === 'notifications' && this._mode !== 'insert') {
+      const me = currentEmployeeId()
+      this.filters.push({ op: 'eq', column: 'employee_id', value: me ?? '__nobody__' })
+    }
+
     if (this._mode === 'insert') {
       const list = Array.isArray(this._payload) ? this._payload : [this._payload]
       const created = list.map((p) => afterWrite(this.table, { id: nextId(), created_at: new Date().toISOString(), ...p }))
@@ -267,6 +280,13 @@ function personaEmail(persona) {
   return `${persona.label.split(' ')[0].toLowerCase()}@company.com`
 }
 
+// Who is signed in, as an employee id. Used by the notifications filter above and
+// by mark_notifications_read, both of which are per-recipient.
+function currentEmployeeId() {
+  if (!session) return null
+  return PERSONAS.find((p) => p.userId === session.user.id)?.employeeId ?? null
+}
+
 export const demoPersonas = PERSONAS.map((p) => ({ ...p, email: personaEmail(p) }))
 
 const auth = {
@@ -303,8 +323,25 @@ const demoClient = {
   from: (table) => new Query(table),
   auth,
   rpc: async (name) => {
-    // No mobile screen depends on an RPC's return value; log_login_attempt is
-    // fire-and-forget and the rest are admin-side.
+    // "Mark all read" is the one RPC with a visible effect, so it has to actually
+    // do something here — returning a bare success would leave the badge and the
+    // bold rows exactly as they were, which reads as a broken button rather than
+    // as an unimplemented demo. Scoped to the signed-in persona, as the real
+    // function is by RLS.
+    if (name === 'mark_notifications_read') {
+      const me = currentEmployeeId()
+      const now = new Date().toISOString()
+      let n = 0
+      for (const row of db.notifications ?? []) {
+        if (row.employee_id === me && !row.read_at) {
+          row.read_at = now
+          n += 1
+        }
+      }
+      return { data: n, error: null }
+    }
+    // No other mobile screen depends on an RPC's return value; log_login_attempt
+    // is fire-and-forget and the rest are admin-side.
     if (name === 'log_login_attempt') return { data: null, error: null }
     return { data: null, error: null }
   },

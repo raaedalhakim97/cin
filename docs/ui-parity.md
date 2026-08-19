@@ -76,9 +76,18 @@ because they drifted:
 - **Navigation shape.** Web uses a persistent left sidebar; mobile uses a bottom
   tab bar of five plus a drawer. A sidebar on a phone wastes the width, and a tab
   bar on a desktop wastes the height.
-- **Chrome colour.** Mobile's top bar and drawer are dark in both themes, which is
-  what frames the light content on a small screen. The web's header sits on the
-  page surface instead.
+- **Chrome colour.** Now the same on both, and no longer a difference: mobile's top
+  bar and drawer follow the theme (`chrome: #FFFFFF` light, `#1A1A1A` dark), which
+  is what the web's header and sidebar already did. This entry used to say mobile
+  was dark in both themes — that was true of an earlier `theme.js` and put a black
+  bar on the phone where the browser had a white one.
+- **Notifications.** Both read the same `notifications` rows and show the same
+  twelve kinds with the same tints. The web anchors a 352px panel to the header
+  bell; mobile pushes a full screen from the bell in `TopBar`. A popover that wide
+  covers a 390px phone anyway, and a screen gets back-gesture dismissal,
+  pull-to-refresh and full height for free. Mobile also has to re-route: the `link`
+  column holds a web route, and `/my-schedule` has no mobile equivalent — see
+  `mobileRoute()` in `mobile/src/lib/notifications.js`.
 - **Quick actions.** Mobile puts a scrolling tile row on Home because reaching a
   destination costs more taps on a phone. The web's sidebar already exposes every
   destination at once.
