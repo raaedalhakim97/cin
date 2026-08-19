@@ -118,14 +118,23 @@ export default function EmployeeNew() {
     setSubmitting(true)
     setServerError('')
 
+    // Trimmed on the way in. Saved raw, a name pasted with a trailing space became
+    // a record that the anonymize dialog could never match, so the employee could
+    // not be erased on request. create_employee_invite already btrims for the same
+    // reason; this is the direct-creation path catching up.
+    const clean = (v) => {
+      const t = typeof v === 'string' ? v.trim() : v
+      return t === '' ? null : t
+    }
+
     const payload = {
       company_id:          companyId,
-      full_name:           values.full_name,
-      email:               values.email,
-      phone:               values.phone            || null,
-      national_id:         values.national_id      || null,
-      job_title:           values.job_title        || null,
-      job_description:     values.job_description  || null,
+      full_name:           clean(values.full_name),
+      email:               clean(values.email),
+      phone:               clean(values.phone),
+      national_id:         clean(values.national_id),
+      job_title:           clean(values.job_title),
+      job_description:     clean(values.job_description),
       interview_score:     values.interview_score !== '' && values.interview_score != null ? Number(values.interview_score) : null,
       department_id:       values.department_id    || null,
       classification:      values.classification,
