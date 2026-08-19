@@ -27,6 +27,7 @@ import KPI from './pages/KPI'
 import TeamAnalytics from './pages/TeamAnalytics'
 import NewsFeed from './pages/NewsFeed'
 import Leads from './pages/Leads'
+import Platform from './pages/Platform'
 import Permissions from './pages/Permissions'
 import Settings from './pages/Settings'
 import Documents from './pages/Documents'
@@ -274,8 +275,22 @@ function App() {
               </PrivateRoute>
             } />
 
+            {/* The operator console. Gated on platform ownership, NOT on
+                super_admin: a tenant's own super_admin must not reach a list of
+                every other company. The database enforces the same rule inside
+                platform_company_overview(). */}
+            <Route path="/platform" element={
+              <PrivateRoute platformOwner>
+                <Platform />
+              </PrivateRoute>
+            } />
+
+            {/* Demo requests are platform-level — demo_requests has no company_id
+                and its RLS policies require is_platform_owner. This was gated on
+                super_admin, which showed the nav item to every tenant owner and
+                then handed them a page that could only ever be empty. */}
             <Route path="/leads" element={
-              <PrivateRoute roles={SUPER_ADMIN}>
+              <PrivateRoute platformOwner>
                 <Leads />
               </PrivateRoute>
             } />

@@ -695,6 +695,75 @@ SELECT pg_temp.chk(43, 'isolation', 'no unguarded SECURITY DEFINER function expo
        'last_work_location_is_protected', 'create_user_session', 'mark_session_inactive'
      )));
 
+-- ═══ 13. The operator console reads across tenants — migration 19 ══════════
+-- platform_company_overview() is the one function in this schema that is supposed
+-- to see every company, which makes its refusal the only thing standing between
+-- the operator console and a cross-tenant read. SECURITY DEFINER means RLS does
+-- not apply inside it, so there is no second line of defence to fall back on.
+--
+-- The case that matters is 45: a tenant's own super_admin is the highest role
+-- inside a company and must still be refused. If platform access were ever
+-- modelled as "super_admin plus a bit", every customer's owner would get the
+-- operator surface, which is why is_platform_owner is a separate flag and not a
+-- role.
+DO $$
+DECLARE
+  v_owner uuid; v_tenant_admin uuid; v_n int; v_ok text;
+BEGIN
+  SELECT user_id INTO v_owner FROM user_roles WHERE is_platform_owner IS TRUE LIMIT 1;
+  SELECT user_id INTO v_tenant_admin FROM user_roles
+   WHERE role = 'super_admin' AND is_platform_owner IS NOT TRUE LIMIT 1;
+
+  -- 44. A platform owner sees every company, not just their own.
+  IF v_owner IS NULL THEN
+    PERFORM pg_temp.chk(44, 'platform', 'platform owner sees all companies', 'skipped',
+      'skipped');
+  ELSE
+    PERFORM pg_temp.as_user(v_owner);
+    BEGIN
+      SELECT count(*) INTO v_n FROM public.platform_company_overview();
+      v_ok := CASE WHEN v_n = (SELECT count(*) FROM company) THEN 'all' ELSE 'only '||v_n END;
+    EXCEPTION WHEN OTHERS THEN v_ok := 'REFUSED';
+    END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(44, 'platform', 'platform owner sees all companies', 'all', v_ok);
+  END IF;
+
+  -- 45. A tenant super_admin who is not a platform owner is refused outright —
+  --     an exception, not an empty set. An empty set would be indistinguishable
+  --     from "no companies exist" and would hide a broken check.
+  IF v_tenant_admin IS NULL THEN
+    PERFORM pg_temp.chk(45, 'platform', 'tenant super_admin refused by console', 'skipped',
+      'skipped');
+  ELSE
+    PERFORM pg_temp.as_user(v_tenant_admin);
+    BEGIN
+      SELECT count(*) INTO v_n FROM public.platform_company_overview();
+      v_ok := 'LEAKED '||v_n||' companies';
+    EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+    END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(45, 'platform', 'tenant super_admin refused by console', 'refused', v_ok);
+  END IF;
+END $$;
+
+-- 46. The console must never be able to return a column that identifies a person.
+-- Asserted against the function's declared return type rather than its body, so
+-- adding "just the owner's name" to the console fails here rather than shipping.
+SELECT pg_temp.chk(46, 'platform', 'console return type carries no personal data', '0',
+  (SELECT count(*)::text
+   FROM pg_proc p
+   JOIN pg_namespace n ON n.oid = p.pronamespace,
+   unnest(string_to_array(pg_get_function_result(p.oid), ',')) AS col
+   WHERE n.nspname = 'public'
+     AND p.proname = 'platform_company_overview'
+     AND col ~* '(salary|national_id|bank_account|iban|passport|phone|email|full_name)'));
+
+-- 47. anon must not reach it at all — stopped at the grant, before the refusal
+-- inside even runs.
+SELECT pg_temp.chk(47, 'platform', 'console unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.platform_company_overview()', 'EXECUTE')::text);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

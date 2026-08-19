@@ -12,6 +12,12 @@ const useAuthStore = create((set, get) => ({
   employee: null,     // never contains salary, bank_account, or national_id
   role: null,
   companyId: null,    // tenant scope — sourced from user_roles.company_id
+  // Platform ownership is NOT a role — it is a separate flag on the same row, and
+  // the two answer different questions. role says what you may do inside one
+  // company; isPlatformOwner says whether you may see the list of companies at
+  // all. A tenant's super_admin is not a platform owner, which is exactly the
+  // distinction the operator console depends on.
+  isPlatformOwner: false,
   company: null,       // { id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone } — for TrialBanner, Profile.jsx's Privacy & Data section, and money/time formatting
   sessionToken: null, // Supabase access token — in memory only, never persisted
   loading: true,
@@ -28,7 +34,7 @@ const useAuthStore = create((set, get) => ({
       if (session) {
         await get().loadProfile(session)
       } else {
-        set({ session: null, employee: null, role: null, companyId: null, company: null, sessionToken: null })
+        set({ session: null, employee: null, role: null, companyId: null, company: null, sessionToken: null, isPlatformOwner: false })
       }
     })
     return subscription
@@ -47,7 +53,7 @@ const useAuthStore = create((set, get) => ({
 
     const { data: roleData, error: roleError } = await supabase
       .from('user_roles')
-      .select('role, company_id')
+      .select('role, company_id, is_platform_owner')
       .eq('user_id', session.user.id)
       .maybeSingle()
 
@@ -82,6 +88,9 @@ const useAuthStore = create((set, get) => ({
       employee: sanitizeEmployee(rawEmployee) ?? null,
       role: roleData?.role ?? null,
       companyId: roleData?.company_id ?? null,
+      // Defaults to false on a missing row rather than undefined: the console's
+      // gate reads this, and an absent flag must mean "no" and never "maybe".
+      isPlatformOwner: roleData?.is_platform_owner === true,
       company,
       sessionToken: session.access_token,
     })
@@ -97,7 +106,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().sessionToken
     if (token) await endUserSession(token)
     await supabase.auth.signOut()
-    set({ session: null, employee: null, role: null, companyId: null, company: null, sessionToken: null })
+    set({ session: null, employee: null, role: null, companyId: null, company: null, sessionToken: null, isPlatformOwner: false })
   },
 }))
 
