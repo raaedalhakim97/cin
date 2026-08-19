@@ -28,6 +28,7 @@ import TeamAnalytics from './pages/TeamAnalytics'
 import NewsFeed from './pages/NewsFeed'
 import Leads from './pages/Leads'
 import Platform from './pages/Platform'
+import PlatformCompany from './pages/PlatformCompany'
 import Permissions from './pages/Permissions'
 import Settings from './pages/Settings'
 import Documents from './pages/Documents'
@@ -282,6 +283,16 @@ function App() {
             <Route path="/platform" element={
               <PrivateRoute platformOwner>
                 <Platform />
+              </PrivateRoute>
+            } />
+
+            {/* BYOND's file on one customer: contacts, contract, payments, action
+                plans, support. Same gate — the five tables behind it have
+                is_platform_owner as their only policy, so the customer cannot read
+                their own row. */}
+            <Route path="/platform/:companyId" element={
+              <PrivateRoute platformOwner>
+                <PlatformCompany />
               </PrivateRoute>
             } />
 

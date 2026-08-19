@@ -3,6 +3,7 @@ import {
   Building2, Users, AlertTriangle, MapPinOff, CircleSlash, Clock,
   Plus, ChevronRight, ChevronDown, Copy, Check, Loader2, XCircle, Link2,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import supabase from '../services/supabase'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
@@ -556,6 +557,13 @@ export default function Platform() {
                                   </span>
                                 </span>
                               </button>
+
+                              <Link
+                                to={`/platform/${c.company_id}`}
+                                className="inline-block mt-1 ml-5 text-[11px] font-semibold text-[#00A57D] dark:text-[#00D4A0] hover:underline"
+                              >
+                                Open file →
+                              </Link>
 
                               {warnings.length > 0 && (
                                 <ul className="mt-2 space-y-1.5">
