@@ -28,6 +28,7 @@ export const NAV = {
   settings: 'Settings',
   approvals: 'Approvals',
   operations: 'Operations',
+  platform: 'Platform',
   leads: 'Leads',
   signOut: 'Sign out',
 }

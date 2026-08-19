@@ -17,6 +17,7 @@ import {
   LogOut,
   X,
   UserCircle,
+  Building2,
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { NAV } from '../../data/vocabulary'
@@ -50,7 +51,13 @@ const navItems = [
   { label: NAV.schedule,      icon: Calendar,         path: '/schedule',       live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
   { label: NAV.mySchedule,    icon: CalendarClock,    path: '/my-schedule',    live: true },
   { label: NAV.news,          icon: Newspaper,        path: '/news',           live: true },
-  { label: NAV.leads,         icon: Inbox,            path: '/leads',          live: true, roles: ['super_admin'] },
+  // Platform-level items. Gated on `platformOwner`, not on a role: a tenant's own
+  // super_admin runs one company and must not be shown a list of all of them.
+  // /leads was previously roles:['super_admin'], which put the demo inbox in every
+  // tenant owner's sidebar even though its RLS requires is_platform_owner — so the
+  // page could only ever come back empty for them.
+  { label: NAV.platform,      icon: Building2,        path: '/platform',       live: true, platformOwner: true },
+  { label: NAV.leads,         icon: Inbox,            path: '/leads',          live: true, platformOwner: true },
   { label: NAV.settings,      icon: Settings,         path: '/settings',       live: true, roles: SETTINGS_NAV_ROLES },
   { label: NAV.access,        icon: ShieldCheck,      path: '/permissions',    live: true, roles: ['super_admin'] },
 ]
@@ -59,10 +66,14 @@ export default function Sidebar() {
   const location = useLocation()
   const signOut = useAuthStore(s => s.signOut)
   const role = useAuthStore(s => s.role)
+  const isPlatformOwner = useAuthStore(s => s.isPlatformOwner)
   const mobileNavOpen = useUiStore(s => s.mobileNavOpen)
   const closeMobileNav = useUiStore(s => s.closeMobileNav)
 
-  const visibleItems = navItems.filter(item => !item.roles || item.roles.includes(role))
+  const visibleItems = navItems.filter(item => {
+    if (item.platformOwner && !isPlatformOwner) return false
+    return !item.roles || item.roles.includes(role)
+  })
 
   return (
     <>
