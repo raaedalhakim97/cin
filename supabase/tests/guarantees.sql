@@ -669,10 +669,12 @@ SELECT pg_temp.chk(42, 'isolation', 'guarded 3-arg score helper still callable b
 -- exposed, which is the way this class of bug returns.
 --
 -- The exceptions, each for a stated reason:
---   accept_employee_invite, get_invite_preview  — bearer-token flows, reached
---       before a session exists; the token is the credential
---   self_onboard_company, log_login_attempt     — signup and login logging, both
---       necessarily pre-session
+--   get_invite_preview, log_login_attempt       — the invite page and a failed
+--       login both run before a session exists
+--   accept_employee_invite, self_onboard_company — bearer-token / signup flows.
+--       Still exposed to `authenticated` (which is all they need — App.jsx runs
+--       both on the first authenticated visit after email confirmation), but no
+--       longer to anon as of migration 24
 --   get_user_role, get_user_company_id, get_user_department_id,
 --   get_active_session_count, is_platform_owner — the primitives RLS policy
 --       expressions call; they must stay executable or every policy errors
@@ -763,6 +765,101 @@ SELECT pg_temp.chk(46, 'platform', 'console return type carries no personal data
 -- inside even runs.
 SELECT pg_temp.chk(47, 'platform', 'console unreachable by anon', 'false',
   has_function_privilege('anon', 'public.platform_company_overview()', 'EXECUTE')::text);
+
+-- ═══ 14. A missing caller is not an authorised caller — migration 24 ═══════
+-- Assertion 43 checks that an exposed definer function *mentions* auth.uid().
+-- These two mentioned it and still let a stranger through, because the guard was
+--
+--   IF get_user_company_id(auth.uid()) != v_emp_company THEN RAISE ...
+--
+-- and `NULL != <uuid>` is NULL, which `IF` treats as false. Text cannot catch that,
+-- so these are behavioural: impersonate someone with no user_roles row and require
+-- an exception. A returned value is a failure here regardless of what it contains —
+-- an empty export would still mean the guard did not fire.
+--
+-- Safe to run against production: the whole suite is inside a transaction that
+-- always rolls back, which is what makes it possible to assert on anonymize_employee
+-- at all. Nothing it scrubs is kept.
+DO $$
+DECLARE
+  v_stranger uuid := gen_random_uuid();  -- authenticated, but in no company
+  v_emp uuid; v_other_admin uuid; v_ok text; v_res jsonb;
+BEGIN
+  SELECT emp_id INTO v_emp FROM fx;
+  -- A super_admin of some *other* company than the fixture employee's.
+  SELECT ur.user_id INTO v_other_admin
+    FROM user_roles ur
+   WHERE ur.role = 'super_admin'
+     AND ur.company_id <> (SELECT company_id FROM fx)
+   LIMIT 1;
+
+  -- 48. The PDPL export refuses a caller with no company.
+  PERFORM pg_temp.as_user(v_stranger);
+  BEGIN
+    v_res := public.export_employee_data(v_emp);
+    v_ok := 'LEAKED '||coalesce(v_res->'personal_information'->>'full_name','(empty)');
+  EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(48, 'isolation', 'PDPL export refuses a caller with no company',
+    'refused', v_ok);
+
+  -- 49. Erasure refuses the same caller. This one writes if the guard fails, which
+  -- is exactly why it is asserted: the failure mode is a stranger terminating and
+  -- blanking an employee record, not merely reading one.
+  PERFORM pg_temp.as_user(v_stranger);
+  BEGIN
+    v_res := public.anonymize_employee(v_emp);
+    v_ok := 'ERASED';
+  EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(49, 'isolation', 'erasure refuses a caller with no company',
+    'refused', v_ok);
+
+  -- 50. And the ordinary cross-tenant case, for the same two functions: the highest
+  -- role in another company is still the wrong company.
+  IF v_other_admin IS NULL THEN
+    PERFORM pg_temp.chk(50, 'isolation', 'PDPL export refuses another company''s super_admin',
+      'skipped', 'skipped');
+  ELSE
+    PERFORM pg_temp.as_user(v_other_admin);
+    BEGIN
+      v_res := public.export_employee_data(v_emp);
+      v_ok := 'LEAKED '||coalesce(v_res->'personal_information'->>'full_name','(empty)');
+    EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+    END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(50, 'isolation', 'PDPL export refuses another company''s super_admin',
+      'refused', v_ok);
+  END IF;
+END $$;
+
+-- 51. Both are also stopped at the grant, before the refusal inside them runs.
+SELECT pg_temp.chk(51, 'isolation', 'PDPL export unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.export_employee_data(uuid)', 'EXECUTE')::text);
+
+SELECT pg_temp.chk(52, 'isolation', 'erasure unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.anonymize_employee(uuid)', 'EXECUTE')::text);
+
+-- 53. The surface itself, as a number. A definer function whose first act is to ask
+-- who the caller is has no anon use case, so anon should reach only these five, and
+-- adding a sixth should fail here rather than in a probe six months later.
+--
+--   get_invite_preview           — the invite page renders before login
+--   log_login_attempt            — a failed login has no session to log with
+--   compute_kpi_rating           — pure arithmetic, touches no table
+--   geofence_requires_a_location — trigger functions; anon holds no DML on the
+--   last_work_location_is_protected  tables they guard, so they never fire for it
+SELECT pg_temp.chk(53, 'isolation', 'definer functions reachable by anon', '0',
+  (SELECT count(*)::text
+   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.prosecdef
+     AND has_function_privilege('anon', p.oid, 'EXECUTE')
+     AND p.proname NOT IN (
+       'get_invite_preview', 'log_login_attempt', 'compute_kpi_rating',
+       'geofence_requires_a_location', 'last_work_location_is_protected'
+     )));
 
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
