@@ -159,6 +159,11 @@ $function$;
 -- when they clocked in.
 CREATE OR REPLACE FUNCTION public.platform_company_access(p_company_id uuid)
 RETURNS TABLE (
+  -- The invite's id, NULL for someone who has already accepted. Needed because
+  -- revoking is done from this list, and a list you cannot act on is a report.
+  -- The first version omitted it, which made platform_revoke_invite unreachable
+  -- from the console it exists to serve.
+  invite_id   uuid,
   kind        text,     -- 'active' | 'pending'
   role        text,
   full_name   text,
@@ -176,13 +181,13 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT 'active'::text, ur.role, e.full_name, e.email, e.status, ur.assigned_at
+  SELECT NULL::uuid, 'active'::text, ur.role, e.full_name, e.email, e.status, ur.assigned_at
     FROM user_roles ur
     JOIN employees e ON e.id = ur.employee_id
    WHERE ur.company_id = p_company_id
      AND ur.role IN ('super_admin', 'hr_manager', 'admin')
   UNION ALL
-  SELECT 'pending'::text, i.role, e.full_name, i.email, i.status, i.created_at
+  SELECT i.id, 'pending'::text, i.role, e.full_name, i.email, i.status, i.created_at
     FROM employee_invites i
     LEFT JOIN employees e ON e.id = i.employee_id
    WHERE i.company_id = p_company_id
