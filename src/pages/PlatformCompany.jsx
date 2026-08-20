@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Star, Trash2, Plus, FileText, Server, CreditCard,
   FileSignature, ListChecks, Headphones, ShieldCheck, Loader2, AlertTriangle,
+  PauseCircle,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 import Sidebar from '../components/layout/Sidebar'
@@ -80,6 +81,10 @@ const BADGE = {
   active: 'bg-[#00D4A0]/10 text-[#00A57D] dark:text-[#00D4A0]',
   pending: 'bg-[#FF8C42]/10 text-[#FF8C42]',
   unlinked: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  // plan — 'active' and 'cancelled' above are shared with the invoice and action
+  // vocabularies, which is fine: they mean the same kind of thing in both.
+  trial: 'bg-[#4D9FFF]/10 text-[#4D9FFF]',
+  suspended: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
 }
 
 const ROLE_LABEL = { super_admin: 'Owner', hr_manager: 'HR Manager', admin: 'Ops Coordinator' }
@@ -156,10 +161,15 @@ export default function PlatformCompany() {
       supabase.from('company_invoices').select('*').eq('company_id', companyId).order('issued_on', { ascending: false }),
       supabase.from('company_action_items').select('*').eq('company_id', companyId).order('created_at', { ascending: false }),
       supabase.from('company_support_tickets').select('*').eq('company_id', companyId).order('opened_at', { ascending: false }),
-    ]).then(([ov, ac, docs, fp, contacts, contract, invoices, actions, tickets]) => {
+      // Read straight from `company` rather than through platform_company_overview:
+      // the overview deliberately returns counts and dates only, and plan_note is
+      // neither. company_select_own already lets a platform owner read any company
+      // row (`OR is_platform_owner(auth.uid())`), so there is nothing to add.
+      supabase.from('company').select('plan, plan_note, plan_changed_at').eq('id', companyId).maybeSingle(),
+    ]).then(([ov, ac, docs, fp, contacts, contract, invoices, actions, tickets, plan]) => {
       if (cancelled) return
 
-      const firstError = [ov, ac, docs, fp, contacts, contract, invoices, actions, tickets].find((r) => r.error)
+      const firstError = [ov, ac, docs, fp, contacts, contract, invoices, actions, tickets, plan].find((r) => r.error)
       if (firstError) {
         console.error('[PlatformCompany] load failed', firstError.error?.code, firstError.error)
         setError(
@@ -180,6 +190,7 @@ export default function PlatformCompany() {
         invoices: invoices.data ?? [],
         actions: actions.data ?? [],
         tickets: tickets.data ?? [],
+        plan: plan.data ?? null,
       })
       setError('')
     })
@@ -231,6 +242,18 @@ export default function PlatformCompany() {
               </div>
 
               <div className="grid lg:grid-cols-2 gap-4 lg:gap-5">
+                {/* First, and full width: it is the only control on this page that
+                    changes what the customer can do rather than what BYOND knows
+                    about them. */}
+                <div className="lg:col-span-2">
+                  {/* Keyed on the saved state so a successful change remounts the
+                      control with the new plan and note as its defaults, instead of
+                      leaving the form holding what was typed a moment ago. */}
+                  <Plan
+                    key={`${state.plan?.plan ?? ''}-${state.plan?.plan_changed_at ?? ''}`}
+                    companyId={companyId} name={c.name} row={state.plan} onChanged={reload}
+                  />
+                </div>
                 <Contacts companyId={companyId} rows={state.contacts} onChanged={reload} />
                 <Access rows={state.access} onChanged={reload} />
                 <Contract companyId={companyId} row={state.contract} defaultCurrency={ccy} onChanged={reload} />
@@ -245,6 +268,125 @@ export default function PlatformCompany() {
         </main>
       </div>
     </div>
+  )
+}
+
+// ── Plan and access ──────────────────────────────────────────────────────────
+// The one control on this page with a consequence outside BYOND: moving a company
+// off 'trial'/'active' shuts the workspace at the next request its people make.
+//
+// Enforcement is entirely in the database — get_user_company_id returns NULL for a
+// plan that does not grant access, and 100 RLS policies resolve tenant scope through
+// it. This is only the handle.
+const PLANS = [
+  { value: 'trial',     label: 'Trial',     grants: true,  blurb: 'Full access. The three-month quarter self-signup starts on.' },
+  { value: 'active',    label: 'Active',    grants: true,  blurb: 'Full access, paying customer.' },
+  { value: 'suspended', label: 'Suspended', grants: false, blurb: 'Access stops. Nothing is deleted. Reversible from this page.' },
+  { value: 'cancelled', label: 'Cancelled', grants: false, blurb: 'Access stops, subscription ended. Records retained.' },
+]
+
+function Plan({ companyId, name, row, onChanged }) {
+  const current = row?.plan ?? 'trial'
+  const [next, setNext] = useState(current)
+  const [note, setNote] = useState(row?.plan_note ?? '')
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const chosen = PLANS.find((p) => p.value === next) ?? PLANS[0]
+  const nowGrants = PLANS.find((p) => p.value === current)?.grants !== false
+  const dirty = next !== current || (note ?? '') !== (row?.plan_note ?? '')
+  // Confirm only when access is being taken away. Restoring it is not the dangerous
+  // direction, and a confirmation on every save trains people to click through it.
+  const needsConfirm = !chosen.grants && nowGrants
+
+  async function save() {
+    setBusy(true)
+    const { error } = await supabase.rpc('platform_set_plan', {
+      p_company_id: companyId,
+      p_plan: next,
+      p_note: note.trim() || null,
+    })
+    setBusy(false)
+    setConfirming(false)
+    if (error) {
+      console.error('[Plan] platform_set_plan failed', error)
+      setErr(error.message)
+      return
+    }
+    setErr('')
+    onChanged()
+  }
+
+  return (
+    <Section icon={PauseCircle} title="Plan and access"
+      subtitle="What this company may do. Changing it takes effect on their next request.">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <Badge value={current} />
+        <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">
+          {nowGrants ? 'Workspace is open' : 'Workspace is shut'}
+          {row?.plan_changed_at ? ` · last changed ${DATE(row.plan_changed_at)}` : ''}
+        </span>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <label className="block">
+          <span className="block text-xs font-semibold text-[#666666] dark:text-[#A0A0A0] mb-1.5">Plan</span>
+          <select className={input} value={next} onChange={(e) => { setNext(e.target.value); setConfirming(false) }}>
+            {PLANS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          <span className="block text-xs text-[#666666] dark:text-[#A0A0A0] mt-1.5">{chosen.blurb}</span>
+        </label>
+
+        <label className="block">
+          {/* Labelled for what it is. The note is rendered on the customer's
+              suspended screen, so an internal aside written here goes straight to
+              the person it is about. */}
+          <span className="block text-xs font-semibold text-[#666666] dark:text-[#A0A0A0] mb-1.5">
+            Message shown to the workspace
+          </span>
+          <input className={input} value={note} onChange={(e) => setNote(e.target.value)}
+                 placeholder="Invoice 3 unpaid since 12 July — contact accounts@byondhr.com" />
+          <span className="block text-xs text-[#666666] dark:text-[#A0A0A0] mt-1.5">
+            Optional. Their owner and HR see this; employees are told to ask them.
+          </span>
+        </label>
+      </div>
+
+      {err && <p className="text-xs text-[#FF4D4D] mt-3">{err}</p>}
+
+      {confirming ? (
+        <div className="mt-4 px-4 py-3 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+          <p className="text-sm text-[#1A1A1A] dark:text-white font-semibold flex items-start gap-2">
+            <AlertTriangle size={15} className="text-[#FF4D4D] shrink-0 mt-0.5" />
+            Shut the workspace at {name}?
+          </p>
+          <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1.5 ml-[23px]">
+            Everyone there loses access — attendance, leave, payroll, documents — from
+            their next click. Data is kept and this page can undo it.
+          </p>
+          <div className="flex gap-2 mt-3 ml-[23px]">
+            <button onClick={save} disabled={busy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#FF4D4D] hover:bg-[#E63939] disabled:opacity-50">
+              {busy && <Loader2 size={13} className="animate-spin" />} Yes, set to {chosen.label.toLowerCase()}
+            </button>
+            <button onClick={() => setConfirming(false)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#666666] dark:text-[#A0A0A0] hover:underline">
+              Keep it open
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => (needsConfirm ? setConfirming(true) : save())}
+          disabled={busy || !dirty}
+          className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-[#0F0F0F] bg-[#00D4A0] hover:bg-[#00C090] disabled:opacity-40"
+        >
+          {busy && <Loader2 size={14} className="animate-spin" />}
+          {dirty ? 'Save plan' : 'Saved'}
+        </button>
+      )}
+    </Section>
   )
 }
 

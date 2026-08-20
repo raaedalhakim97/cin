@@ -861,6 +861,91 @@ SELECT pg_temp.chk(53, 'isolation', 'definer functions reachable by anon', '0',
        'geofence_requires_a_location', 'last_work_location_is_protected'
      )));
 
+-- ═══ 15. Suspension is enforced, not decorative — migration 25 ═════════════
+-- The Terms have always said "access to the workspace is suspended", the plan CHECK
+-- has always allowed 'suspended', and until migration 25 nothing in the database
+-- treated it differently — nor was there any function that could set it.
+--
+-- Enforcement lives in get_user_company_id, which 100 policies resolve tenant scope
+-- through. These assertions flip a real company's plan inside the suite's
+-- always-rolls-back transaction and read the consequence through RLS as one of its
+-- own people, which is the only way to test a claim about 100 policies without
+-- writing 100 assertions. Both directions are asserted: 'active' must be untouched
+-- by the change, because a gate that shuts on everyone is not a gate.
+DO $$
+DECLARE
+  v_co uuid; v_uid uuid; v_open int; v_shut int; v_plan text; v_ok text;
+BEGIN
+  SELECT company_id INTO v_co FROM fx;
+  SELECT user_id INTO v_uid FROM user_roles WHERE company_id = v_co LIMIT 1;
+
+  -- 54. Access granted: the baseline. Forced to 'active' rather than trusting
+  --     whatever the company's plan happens to be today.
+  UPDATE company SET plan = 'active' WHERE id = v_co;
+  PERFORM pg_temp.as_user(v_uid);
+  SELECT count(*) INTO v_open FROM employees;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(54, 'suspension', 'an active workspace reads its own employees', 'some',
+    CASE WHEN v_open > 0 THEN 'some' ELSE 'none — fixture or RLS broken' END);
+
+  -- 55. And with the plan suspended, the same person reads nothing at all.
+  UPDATE company SET plan = 'suspended', plan_note = 'assertion 55' WHERE id = v_co;
+  PERFORM pg_temp.as_user(v_uid);
+  SELECT count(*) INTO v_shut FROM employees;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(55, 'suspension', 'a suspended workspace reads no employees', '0', v_shut::text);
+
+  -- 56. The explanation survives the enforcement. This is the assertion that stops
+  --     someone "simplifying" my_workspace() to go through get_user_company_id: it
+  --     would still pass every other test here and leave suspended customers
+  --     staring at an empty app with no reason given.
+  PERFORM pg_temp.as_user(v_uid);
+  BEGIN
+    SELECT plan INTO v_plan FROM public.my_workspace();
+    v_ok := coalesce(v_plan, 'NO ROW');
+  EXCEPTION WHEN OTHERS THEN v_ok := 'REFUSED';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(56, 'suspension', 'a suspended workspace can still read why', 'suspended', v_ok);
+
+  -- 57. And the tenant cannot let themselves back in. platform_set_plan is
+  --     SECURITY DEFINER, so its caller check is the only thing between a customer's
+  --     own super_admin and their own plan column.
+  PERFORM pg_temp.as_user(
+    coalesce((SELECT user_id FROM user_roles
+               WHERE role = 'super_admin' AND is_platform_owner IS NOT TRUE LIMIT 1), v_uid));
+  BEGIN
+    PERFORM public.platform_set_plan(v_co, 'active', NULL);
+    v_ok := 'LET THEMSELVES BACK IN';
+  EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(57, 'suspension', 'a tenant cannot set their own plan', 'refused', v_ok);
+END $$;
+
+-- 58. Only a platform owner may set a plan, and anon may not reach the function at
+-- all — stopped at the grant, before the refusal inside it runs.
+SELECT pg_temp.chk(58, 'suspension', 'plan control unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.platform_set_plan(uuid,text,text)', 'EXECUTE')::text);
+
+-- 59. What the plan column is allowed to contain, asserted against the constraint
+-- rather than against a list in this file: platform_set_plan and authStore both
+-- enumerate the four plans, and a fifth added to the CHECK without being taught to
+-- them would be neither settable nor understood.
+--
+-- contype = 'c' is load-bearing, and migration 25 is what made it so: the new
+-- plan_changed_by column brought a foreign key whose definition also matches
+-- '%plan%'. Without the filter, LIMIT 1 picked "FOREIGN KEY (plan_changed_by) …",
+-- which contains none of the four words, and the assertion reported 0 against a
+-- perfectly good CHECK constraint.
+SELECT pg_temp.chk(59, 'suspension', 'plan vocabulary is the expected four', '4',
+  (SELECT count(DISTINCT p)::text
+   FROM unnest(ARRAY['trial', 'active', 'suspended', 'cancelled']) AS p
+   WHERE (SELECT pg_get_constraintdef(oid) FROM pg_constraint
+           WHERE conrelid = 'public.company'::regclass
+             AND contype = 'c'
+             AND pg_get_constraintdef(oid) ILIKE '%plan = ANY%' LIMIT 1) LIKE '%' || p || '%'));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

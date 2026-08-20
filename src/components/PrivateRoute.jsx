@@ -27,8 +27,19 @@ export default function PrivateRoute({ children, roles, platformOwner }) {
   const session = useAuthStore((s) => s.session)
   const role = useAuthStore((s) => s.role)
   const isPlatformOwner = useAuthStore((s) => s.isPlatformOwner)
+  const suspended = useAuthStore((s) => s.suspended)
 
   if (!session) return <Navigate to="/login" replace />
+
+  // Before the role checks, because a suspended workspace has no role to check: RLS
+  // denies the user_roles read once the plan stops granting access, so `role` is
+  // null and every roles={[...]} guard below would fire /unauthorized — an access
+  // denial, which is both wrong and unhelpful. The database has already stopped
+  // them; this only replaces empty pages with a reason.
+  //
+  // Platform owners are excluded from `suspended` in authStore, so suspending
+  // BYOND's own workspace cannot lock its owners out of the console.
+  if (suspended) return <Navigate to="/workspace-suspended" replace />
 
   if (platformOwner && !isPlatformOwner) {
     return <Navigate to="/unauthorized" replace />

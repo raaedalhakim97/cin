@@ -29,6 +29,7 @@ import NewsFeed from './pages/NewsFeed'
 import Leads from './pages/Leads'
 import Platform from './pages/Platform'
 import PlatformCompany from './pages/PlatformCompany'
+import WorkspaceSuspended from './pages/WorkspaceSuspended'
 import Permissions from './pages/Permissions'
 import Settings from './pages/Settings'
 import Documents from './pages/Documents'
@@ -88,6 +89,7 @@ function App() {
   const loading    = useAuthStore((s) => s.loading)
   const session    = useAuthStore((s) => s.session)
   const role       = useAuthStore((s) => s.role)
+  const suspended  = useAuthStore((s) => s.suspended)
   const loadProfile = useAuthStore((s) => s.loadProfile)
   const isDark     = useThemeStore((s) => s.isDark)
   const [onboarding, setOnboarding] = useState(false)
@@ -119,8 +121,13 @@ function App() {
   // on the user's first authenticated visit after they confirm — session
   // exists but role is still null (self_onboard_company hasn't run for
   // them). NEVER calls onboard_company() — that RPC is admin-only.
+  //
+  // `suspended` is in the condition because since migration 25 a null role has a
+  // second cause: a suspended workspace cannot read its own user_roles row. Without
+  // it, a suspended owner with a stale pendingSignup key would have this effect try
+  // to onboard them a second time on every visit.
   useEffect(() => {
-    if (loading || !session || role || attemptedOnboardRef.current) return
+    if (loading || !session || role || suspended || attemptedOnboardRef.current) return
     const pending = readPendingSignup()
     if (!pending) return
 
@@ -136,7 +143,7 @@ function App() {
       }
       setOnboarding(false)
     })()
-  }, [loading, session, role, loadProfile])
+  }, [loading, session, role, suspended, loadProfile])
 
   // Invite acceptance flow (migration 40): when email confirmation is ON,
   // AcceptInvite.jsx couldn't call accept_employee_invite immediately after
@@ -148,8 +155,10 @@ function App() {
   // each effect's own readPendingX() simply returns null/undefined if it's
   // not theirs. NEVER calls onboard_company()/self_onboard_company() — only
   // accept_employee_invite() links the account, per the task's explicit rule.
+  // `suspended` is excluded here for the same reason as above — and because an
+  // invite into a suspended workspace should not quietly succeed.
   useEffect(() => {
-    if (loading || !session || role || attemptedInviteRef.current) return
+    if (loading || !session || role || suspended || attemptedInviteRef.current) return
     const token = readPendingInviteToken()
     if (!token) return
 
@@ -167,7 +176,7 @@ function App() {
       }
       setAcceptingInvite(false)
     })()
-  }, [loading, session, role, loadProfile])
+  }, [loading, session, role, suspended, loadProfile])
 
   return (
     <div>
@@ -195,6 +204,17 @@ function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/invite/:token" element={<AcceptInvite />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+
+            {/* Deliberately not wrapped in PrivateRoute: that guard is what sends
+                people here, and wrapping it would be a redirect loop. It needs a
+                session (everything on it comes from my_workspace(), which refuses
+                an anonymous caller) and it must bounce anyone whose workspace is
+                fine, or a stale bookmark would show a suspension that isn't. */}
+            <Route path="/workspace-suspended" element={
+              !session ? <Navigate to="/login" replace />
+                : suspended ? <WorkspaceSuspended />
+                : <Navigate to="/dashboard" replace />
+            } />
 
             {/* All authenticated users */}
             <Route path="/dashboard" element={
