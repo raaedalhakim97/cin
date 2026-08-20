@@ -539,31 +539,49 @@ export default function Platform() {
                         <Fragment key={c.company_id}>
                           <tr className="border-b border-[#E8E8E8] dark:border-[#2A2A2A] align-top">
                             <td className="py-4 px-5">
-                              <button
-                                onClick={() => setExpanded(isOpen ? null : c.company_id)}
-                                className="flex items-start gap-1.5 text-left group"
-                                aria-expanded={isOpen}
-                              >
-                                {isOpen
-                                  ? <ChevronDown size={15} className="mt-0.5 shrink-0 text-[#666666] dark:text-[#A0A0A0]" />
-                                  : <ChevronRight size={15} className="mt-0.5 shrink-0 text-[#666666] dark:text-[#A0A0A0]" />}
-                                <span>
-                                  <span className="block text-sm font-semibold text-[#1A1A1A] dark:text-white group-hover:text-[#00A57D] dark:group-hover:text-[#00D4A0]">
+                              {/* The name is the link to the company's file, and the
+                                  chevron is its own control.
+
+                                  It used to be the other way round: the whole name
+                                  block was the expand button and the only route to the
+                                  file was the small green line underneath. BYOND's own
+                                  owner clicked the chevron looking for the plan and
+                                  contract controls and concluded they were not there —
+                                  which is the correct reading of a page where the
+                                  obvious target does something else. A company name in
+                                  a list of companies should open the company. */}
+                              <div className="flex items-start gap-1.5">
+                                <button
+                                  onClick={() => setExpanded(isOpen ? null : c.company_id)}
+                                  className="shrink-0 mt-0.5 text-[#666666] dark:text-[#A0A0A0] hover:text-[#00A57D] dark:hover:text-[#00D4A0]"
+                                  aria-expanded={isOpen}
+                                  aria-label={`${isOpen ? 'Hide' : 'Show'} who can administer ${c.name}`}
+                                >
+                                  {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                                </button>
+                                <div className="min-w-0">
+                                  <Link
+                                    to={`/platform/${c.company_id}`}
+                                    className="block text-sm font-semibold text-[#1A1A1A] dark:text-white hover:text-[#00A57D] dark:hover:text-[#00D4A0] hover:underline"
+                                  >
                                     {c.name}
-                                  </span>
+                                  </Link>
                                   <span className="block text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
                                     {c.country ?? '—'} · {c.currency ?? '—'}
                                     {c.created_via ? ` · via ${c.created_via}` : ''}
                                   </span>
-                                </span>
-                              </button>
-
-                              <Link
-                                to={`/platform/${c.company_id}`}
-                                className="inline-block mt-1 ml-5 text-[11px] font-semibold text-[#00A57D] dark:text-[#00D4A0] hover:underline"
-                              >
-                                Open file →
-                              </Link>
+                                  {/* Kept alongside the linked name rather than
+                                      replaced by it: the name carries the intuition,
+                                      this says out loud that there is a page, and what
+                                      is on it. */}
+                                  <Link
+                                    to={`/platform/${c.company_id}`}
+                                    className="inline-block mt-1 text-[11px] font-semibold text-[#00A57D] dark:text-[#00D4A0] hover:underline"
+                                  >
+                                    Open file — plan, contract, payments, support →
+                                  </Link>
+                                </div>
+                              </div>
 
                               {warnings.length > 0 && (
                                 <ul className="mt-2 space-y-1.5">
@@ -643,10 +661,17 @@ export default function Platform() {
           </div>
           )}
 
+          {/* This used to read "suspending or removing a company is not done from
+              here", written when nothing could suspend a company at all. Suspension
+              now exists and is done from the company's own file — leaving the old
+              sentence up would tell an owner the thing they are looking for does not
+              exist, one line under a list of links to it. */}
           <p className="mt-4 text-xs text-[#666666] dark:text-[#A0A0A0]">
-            Suspending or removing a company is not done from here — deleting a tenant
-            cascades through every employee, punch and payslip it owns, which is not a
-            thing to have one tap away from a list.
+            Plans, contracts, payments and support live on each company&apos;s file —
+            open one above. Suspending a workspace is done there, not from this list,
+            and deleting a tenant is not offered anywhere: it cascades through every
+            employee, punch and payslip the company owns, which is not a thing to have
+            one tap away from a table.
           </p>
         </main>
       </div>
