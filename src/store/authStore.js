@@ -19,6 +19,11 @@ const useAuthStore = create((set, get) => ({
   // distinction the operator console depends on.
   isPlatformOwner: false,
   company: null,       // { id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone } — for TrialBanner, Profile.jsx's Privacy & Data section, and money/time formatting
+  // Set only when the ordinary queries came back with nothing — see loadProfile.
+  // It is the one thing a suspended workspace can still read about itself:
+  // { company_id, company_name, plan, plan_note, plan_changed_at, role, employee_id, platform_owner }
+  workspace: null,
+  suspended: false,
   sessionToken: null, // Supabase access token — in memory only, never persisted
   loading: true,
 
@@ -34,7 +39,7 @@ const useAuthStore = create((set, get) => ({
       if (session) {
         await get().loadProfile(session)
       } else {
-        set({ session: null, employee: null, role: null, companyId: null, company: null, sessionToken: null, isPlatformOwner: false })
+        set({ session: null, employee: null, role: null, companyId: null, company: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
       }
     })
     return subscription
@@ -82,6 +87,40 @@ const useAuthStore = create((set, get) => ({
       company = companyData ?? null
     }
 
+    // A missing user_roles row used to have one meaning — "this login was never
+    // linked to an employee record". Since migration 25 it has two, because
+    // roles_select is scoped by get_user_company_id and that helper returns NULL
+    // once the company's plan stops granting access. So a suspended workspace and
+    // an unlinked account look identical from here: no role, no company, an app
+    // full of empty pages and no reason given.
+    //
+    // my_workspace() is the one reader that answers while the gate is shut — it
+    // reads user_roles and company directly and reports only the caller's own row.
+    // Called only on this branch: an ordinary login still makes exactly the three
+    // queries it made before.
+    let workspace = null
+    if (!roleData) {
+      const { data: ws, error: wsError } = await supabase.rpc('my_workspace')
+      if (wsError) {
+        console.error('[authStore] my_workspace failed for user_id', session.user.id, wsError)
+      }
+      // RETURNS TABLE arrives as an array; no row means the account really is
+      // attached to nothing.
+      workspace = (Array.isArray(ws) ? ws[0] : ws) ?? null
+    }
+
+    // Ownership can arrive from either reader. It has to: BYOND's own workspace is
+    // a company row like any other, and if it were ever suspended the platform
+    // owners would lose the user_roles read that tells them they are owners —
+    // locking them out of the console that is the only place to undo it.
+    const platformOwner = roleData?.is_platform_owner === true || workspace?.platform_owner === true
+
+    // Mirrors get_user_company_id's JOIN exactly. Kept as a list of what grants
+    // access rather than a list of what blocks it, so a plan added later is denied
+    // by default in both places instead of silently allowed in one.
+    const suspended = workspace != null && !platformOwner
+      && !['trial', 'active'].includes(workspace.plan)
+
     // sanitizeEmployee is a belt-and-suspenders guard — SAFE_SELECT already excludes sensitive fields
     set({
       session,
@@ -90,8 +129,10 @@ const useAuthStore = create((set, get) => ({
       companyId: roleData?.company_id ?? null,
       // Defaults to false on a missing row rather than undefined: the console's
       // gate reads this, and an absent flag must mean "no" and never "maybe".
-      isPlatformOwner: roleData?.is_platform_owner === true,
+      isPlatformOwner: platformOwner,
       company,
+      workspace,
+      suspended,
       sessionToken: session.access_token,
     })
   },
@@ -106,7 +147,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().sessionToken
     if (token) await endUserSession(token)
     await supabase.auth.signOut()
-    set({ session: null, employee: null, role: null, companyId: null, company: null, sessionToken: null, isPlatformOwner: false })
+    set({ session: null, employee: null, role: null, companyId: null, company: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
   },
 }))
 

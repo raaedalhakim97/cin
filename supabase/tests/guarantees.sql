@@ -669,10 +669,12 @@ SELECT pg_temp.chk(42, 'isolation', 'guarded 3-arg score helper still callable b
 -- exposed, which is the way this class of bug returns.
 --
 -- The exceptions, each for a stated reason:
---   accept_employee_invite, get_invite_preview  — bearer-token flows, reached
---       before a session exists; the token is the credential
---   self_onboard_company, log_login_attempt     — signup and login logging, both
---       necessarily pre-session
+--   get_invite_preview, log_login_attempt       — the invite page and a failed
+--       login both run before a session exists
+--   accept_employee_invite, self_onboard_company — bearer-token / signup flows.
+--       Still exposed to `authenticated` (which is all they need — App.jsx runs
+--       both on the first authenticated visit after email confirmation), but no
+--       longer to anon as of migration 24
 --   get_user_role, get_user_company_id, get_user_department_id,
 --   get_active_session_count, is_platform_owner — the primitives RLS policy
 --       expressions call; they must stay executable or every policy errors
@@ -763,6 +765,186 @@ SELECT pg_temp.chk(46, 'platform', 'console return type carries no personal data
 -- inside even runs.
 SELECT pg_temp.chk(47, 'platform', 'console unreachable by anon', 'false',
   has_function_privilege('anon', 'public.platform_company_overview()', 'EXECUTE')::text);
+
+-- ═══ 14. A missing caller is not an authorised caller — migration 24 ═══════
+-- Assertion 43 checks that an exposed definer function *mentions* auth.uid().
+-- These two mentioned it and still let a stranger through, because the guard was
+--
+--   IF get_user_company_id(auth.uid()) != v_emp_company THEN RAISE ...
+--
+-- and `NULL != <uuid>` is NULL, which `IF` treats as false. Text cannot catch that,
+-- so these are behavioural: impersonate someone with no user_roles row and require
+-- an exception. A returned value is a failure here regardless of what it contains —
+-- an empty export would still mean the guard did not fire.
+--
+-- Safe to run against production: the whole suite is inside a transaction that
+-- always rolls back, which is what makes it possible to assert on anonymize_employee
+-- at all. Nothing it scrubs is kept.
+DO $$
+DECLARE
+  v_stranger uuid := gen_random_uuid();  -- authenticated, but in no company
+  v_emp uuid; v_other_admin uuid; v_ok text; v_res jsonb;
+BEGIN
+  SELECT emp_id INTO v_emp FROM fx;
+  -- A super_admin of some *other* company than the fixture employee's.
+  SELECT ur.user_id INTO v_other_admin
+    FROM user_roles ur
+   WHERE ur.role = 'super_admin'
+     AND ur.company_id <> (SELECT company_id FROM fx)
+   LIMIT 1;
+
+  -- 48. The PDPL export refuses a caller with no company.
+  PERFORM pg_temp.as_user(v_stranger);
+  BEGIN
+    v_res := public.export_employee_data(v_emp);
+    v_ok := 'LEAKED '||coalesce(v_res->'personal_information'->>'full_name','(empty)');
+  EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(48, 'isolation', 'PDPL export refuses a caller with no company',
+    'refused', v_ok);
+
+  -- 49. Erasure refuses the same caller. This one writes if the guard fails, which
+  -- is exactly why it is asserted: the failure mode is a stranger terminating and
+  -- blanking an employee record, not merely reading one.
+  PERFORM pg_temp.as_user(v_stranger);
+  BEGIN
+    v_res := public.anonymize_employee(v_emp);
+    v_ok := 'ERASED';
+  EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(49, 'isolation', 'erasure refuses a caller with no company',
+    'refused', v_ok);
+
+  -- 50. And the ordinary cross-tenant case, for the same two functions: the highest
+  -- role in another company is still the wrong company.
+  IF v_other_admin IS NULL THEN
+    PERFORM pg_temp.chk(50, 'isolation', 'PDPL export refuses another company''s super_admin',
+      'skipped', 'skipped');
+  ELSE
+    PERFORM pg_temp.as_user(v_other_admin);
+    BEGIN
+      v_res := public.export_employee_data(v_emp);
+      v_ok := 'LEAKED '||coalesce(v_res->'personal_information'->>'full_name','(empty)');
+    EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+    END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(50, 'isolation', 'PDPL export refuses another company''s super_admin',
+      'refused', v_ok);
+  END IF;
+END $$;
+
+-- 51. Both are also stopped at the grant, before the refusal inside them runs.
+SELECT pg_temp.chk(51, 'isolation', 'PDPL export unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.export_employee_data(uuid)', 'EXECUTE')::text);
+
+SELECT pg_temp.chk(52, 'isolation', 'erasure unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.anonymize_employee(uuid)', 'EXECUTE')::text);
+
+-- 53. The surface itself, as a number. A definer function whose first act is to ask
+-- who the caller is has no anon use case, so anon should reach only these five, and
+-- adding a sixth should fail here rather than in a probe six months later.
+--
+--   get_invite_preview           — the invite page renders before login
+--   log_login_attempt            — a failed login has no session to log with
+--   compute_kpi_rating           — pure arithmetic, touches no table
+--   geofence_requires_a_location — trigger functions; anon holds no DML on the
+--   last_work_location_is_protected  tables they guard, so they never fire for it
+SELECT pg_temp.chk(53, 'isolation', 'definer functions reachable by anon', '0',
+  (SELECT count(*)::text
+   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.prosecdef
+     AND has_function_privilege('anon', p.oid, 'EXECUTE')
+     AND p.proname NOT IN (
+       'get_invite_preview', 'log_login_attempt', 'compute_kpi_rating',
+       'geofence_requires_a_location', 'last_work_location_is_protected'
+     )));
+
+-- ═══ 15. Suspension is enforced, not decorative — migration 25 ═════════════
+-- The Terms have always said "access to the workspace is suspended", the plan CHECK
+-- has always allowed 'suspended', and until migration 25 nothing in the database
+-- treated it differently — nor was there any function that could set it.
+--
+-- Enforcement lives in get_user_company_id, which 100 policies resolve tenant scope
+-- through. These assertions flip a real company's plan inside the suite's
+-- always-rolls-back transaction and read the consequence through RLS as one of its
+-- own people, which is the only way to test a claim about 100 policies without
+-- writing 100 assertions. Both directions are asserted: 'active' must be untouched
+-- by the change, because a gate that shuts on everyone is not a gate.
+DO $$
+DECLARE
+  v_co uuid; v_uid uuid; v_open int; v_shut int; v_plan text; v_ok text;
+BEGIN
+  SELECT company_id INTO v_co FROM fx;
+  SELECT user_id INTO v_uid FROM user_roles WHERE company_id = v_co LIMIT 1;
+
+  -- 54. Access granted: the baseline. Forced to 'active' rather than trusting
+  --     whatever the company's plan happens to be today.
+  UPDATE company SET plan = 'active' WHERE id = v_co;
+  PERFORM pg_temp.as_user(v_uid);
+  SELECT count(*) INTO v_open FROM employees;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(54, 'suspension', 'an active workspace reads its own employees', 'some',
+    CASE WHEN v_open > 0 THEN 'some' ELSE 'none — fixture or RLS broken' END);
+
+  -- 55. And with the plan suspended, the same person reads nothing at all.
+  UPDATE company SET plan = 'suspended', plan_note = 'assertion 55' WHERE id = v_co;
+  PERFORM pg_temp.as_user(v_uid);
+  SELECT count(*) INTO v_shut FROM employees;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(55, 'suspension', 'a suspended workspace reads no employees', '0', v_shut::text);
+
+  -- 56. The explanation survives the enforcement. This is the assertion that stops
+  --     someone "simplifying" my_workspace() to go through get_user_company_id: it
+  --     would still pass every other test here and leave suspended customers
+  --     staring at an empty app with no reason given.
+  PERFORM pg_temp.as_user(v_uid);
+  BEGIN
+    SELECT plan INTO v_plan FROM public.my_workspace();
+    v_ok := coalesce(v_plan, 'NO ROW');
+  EXCEPTION WHEN OTHERS THEN v_ok := 'REFUSED';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(56, 'suspension', 'a suspended workspace can still read why', 'suspended', v_ok);
+
+  -- 57. And the tenant cannot let themselves back in. platform_set_plan is
+  --     SECURITY DEFINER, so its caller check is the only thing between a customer's
+  --     own super_admin and their own plan column.
+  PERFORM pg_temp.as_user(
+    coalesce((SELECT user_id FROM user_roles
+               WHERE role = 'super_admin' AND is_platform_owner IS NOT TRUE LIMIT 1), v_uid));
+  BEGIN
+    PERFORM public.platform_set_plan(v_co, 'active', NULL);
+    v_ok := 'LET THEMSELVES BACK IN';
+  EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+  END;
+  PERFORM pg_temp.as_nobody();
+  PERFORM pg_temp.chk(57, 'suspension', 'a tenant cannot set their own plan', 'refused', v_ok);
+END $$;
+
+-- 58. Only a platform owner may set a plan, and anon may not reach the function at
+-- all — stopped at the grant, before the refusal inside it runs.
+SELECT pg_temp.chk(58, 'suspension', 'plan control unreachable by anon', 'false',
+  has_function_privilege('anon', 'public.platform_set_plan(uuid,text,text)', 'EXECUTE')::text);
+
+-- 59. What the plan column is allowed to contain, asserted against the constraint
+-- rather than against a list in this file: platform_set_plan and authStore both
+-- enumerate the four plans, and a fifth added to the CHECK without being taught to
+-- them would be neither settable nor understood.
+--
+-- contype = 'c' is load-bearing, and migration 25 is what made it so: the new
+-- plan_changed_by column brought a foreign key whose definition also matches
+-- '%plan%'. Without the filter, LIMIT 1 picked "FOREIGN KEY (plan_changed_by) …",
+-- which contains none of the four words, and the assertion reported 0 against a
+-- perfectly good CHECK constraint.
+SELECT pg_temp.chk(59, 'suspension', 'plan vocabulary is the expected four', '4',
+  (SELECT count(DISTINCT p)::text
+   FROM unnest(ARRAY['trial', 'active', 'suspended', 'cancelled']) AS p
+   WHERE (SELECT pg_get_constraintdef(oid) FROM pg_constraint
+           WHERE conrelid = 'public.company'::regclass
+             AND contype = 'c'
+             AND pg_get_constraintdef(oid) ILIKE '%plan = ANY%' LIMIT 1) LIKE '%' || p || '%'));
 
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
