@@ -86,12 +86,14 @@ const SELECT =
 // ─── Micro-components ─────────────────────────────────────────────────────────
 
 // `currency` used to default to the string 'AED', which is wrong for any
-// tenant outside the UAE. It now resolves from the company on the store.
+// tenant that is not in that one country. It resolves from the company on the
+// store, and when the company has no currency set it prints no unit at all —
+// a number with the wrong currency beside it is worse than a bare number.
 // An explicit currency="" still means "no unit here" — several call sites
 // rely on that to avoid repeating the unit on every line of a breakdown —
 // so only an omitted prop falls back to the tenant's currency.
 function MoneyText({ value, revealed, currency, prefix = '' }) {
-  const companyCurrency = useAuthStore(s => s.company?.currency) ?? 'AED'
+  const companyCurrency = useAuthStore(s => s.company?.currency) ?? ''
   const unit = currency === undefined ? companyCurrency : currency
   if (!revealed) return <>{maskSalary()}</>
   return <>{prefix}{fmtMoney(value)}{unit ? ` ${unit}` : ''}</>
@@ -425,7 +427,7 @@ function MyPayslipTab({ employee, companyId, showToast }) {
 // ─── Edit Run Modal ───────────────────────────────────────────────────────────
 
 function EditRunModal({ run, onClose, onSave }) {
-  const currency = useAuthStore(s => s.company?.currency) ?? 'AED'
+  const currency = useAuthStore(s => s.company?.currency) ?? ''
   const [form, setForm] = useState({
     basic_salary:        run.basic_salary ?? 0,
     housing_allowance:   run.housing_allowance ?? 0,

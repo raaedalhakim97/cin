@@ -80,7 +80,7 @@ function Section({ title, children }) {
 export default function EmployeeNew() {
   const navigate    = useNavigate()
   const companyId   = useAuthStore((s) => s.companyId)
-  const currency    = useAuthStore((s) => s.company?.currency) ?? 'AED'
+  const currency    = useAuthStore((s) => s.company?.currency) ?? ''
   const [departments, setDepartments] = useState([])
   const [submitting,  setSubmitting]  = useState(false)
   const [serverError, setServerError] = useState('')

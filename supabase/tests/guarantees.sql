@@ -843,22 +843,30 @@ SELECT pg_temp.chk(52, 'isolation', 'erasure unreachable by anon', 'false',
   has_function_privilege('anon', 'public.anonymize_employee(uuid)', 'EXECUTE')::text);
 
 -- 53. The surface itself, as a number. A definer function whose first act is to ask
--- who the caller is has no anon use case, so anon should reach only these five, and
--- adding a sixth should fail here rather than in a probe six months later.
+-- who the caller is has no anon use case, so adding one that anon can reach should
+-- fail here rather than in a probe six months later.
 --
---   get_invite_preview           — the invite page renders before login
---   log_login_attempt            — a failed login has no session to log with
---   compute_kpi_rating           — pure arithmetic, touches no table
---   geofence_requires_a_location — trigger functions; anon holds no DML on the
---   last_work_location_is_protected  tables they guard, so they never fire for it
+-- Trigger functions are excluded structurally rather than by name. CREATE FUNCTION
+-- grants EXECUTE to PUBLIC by default, so every new trigger function is born
+-- anon-executable — and a trigger function cannot be invoked as an RPC anyway;
+-- PostgREST will not expose a function returning `trigger`, and calling one directly
+-- raises "trigger functions can only be called as triggers". Migration 26's guard was
+-- the third such function and it broke this assertion's hand-maintained list, which is
+-- the argument for the rule over the list.
+--
+-- The two named exceptions are deliberate and reachable:
+--   get_invite_preview — the invite page renders before login
+--   log_login_attempt  — a failed login has no session to log with
+-- compute_kpi_rating stays because it is pure arithmetic over a number it is handed;
+-- it reads no table and takes no identity.
 SELECT pg_temp.chk(53, 'isolation', 'definer functions reachable by anon', '0',
   (SELECT count(*)::text
    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
    WHERE n.nspname = 'public' AND p.prosecdef
      AND has_function_privilege('anon', p.oid, 'EXECUTE')
+     AND p.prorettype <> 'pg_catalog.trigger'::regtype
      AND p.proname NOT IN (
-       'get_invite_preview', 'log_login_attempt', 'compute_kpi_rating',
-       'geofence_requires_a_location', 'last_work_location_is_protected'
+       'get_invite_preview', 'log_login_attempt', 'compute_kpi_rating'
      )));
 
 -- ═══ 15. Suspension is enforced, not decorative — migration 25 ═════════════
@@ -945,6 +953,124 @@ SELECT pg_temp.chk(59, 'suspension', 'plan vocabulary is the expected four', '4'
            WHERE conrelid = 'public.company'::regclass
              AND contype = 'c'
              AND pg_get_constraintdef(oid) ILIKE '%plan = ANY%' LIMIT 1) LIKE '%' || p || '%'));
+
+-- ═══ 16. The logic audit's fixes — migrations 26-29 ════════════════════════
+-- Every one of these was a rule the product believed it had. None was enforced.
+DO $$
+DECLARE
+  v_emp uuid; v_uid uuid; v_row uuid; v_ok text;
+  v_mgr numeric; v_self numeric; v_date date; v_tz text; v_co uuid;
+BEGIN
+  -- An employee who is NOT hr/super_admin, with a KPI row of their own.
+  SELECT e.id, e.user_id, e.company_id INTO v_emp, v_uid, v_co
+    FROM employees e
+    JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role NOT IN ('super_admin','hr_manager')
+     AND e.status = 'active'
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(60, 'audit', 'employee cannot write their own manager score', 'skipped', 'skipped');
+    PERFORM pg_temp.chk(61, 'audit', 'employee can still self-evaluate', 'skipped', 'skipped');
+  ELSE
+    INSERT INTO kpi_scores (employee_id, company_id, period_year, period_month, manager_score)
+    VALUES (v_emp, v_co, 2099, 1, 60)
+    ON CONFLICT (employee_id, period_year, period_month) DO UPDATE SET manager_score = 60
+    RETURNING id INTO v_row;
+
+    -- 60. The escalation: awarding yourself the score your manager owns.
+    PERFORM pg_temp.as_user(v_uid);
+    BEGIN
+      UPDATE kpi_scores SET manager_score = 100, behavior_score = 100,
+                            achievement_score = 100, attendance_score = 100
+       WHERE id = v_row;
+    EXCEPTION WHEN OTHERS THEN NULL;   -- refusal is fine; silent pinning is the design
+    END;
+    PERFORM pg_temp.as_nobody();
+    SELECT manager_score INTO v_mgr FROM kpi_scores WHERE id = v_row;
+    PERFORM pg_temp.chk(60, 'audit', 'employee cannot write their own manager score',
+      '60.00', coalesce(v_mgr::text, 'null'));
+
+    -- 61. …and the legitimate write still works, or the guard is just a wall.
+    PERFORM pg_temp.as_user(v_uid);
+    BEGIN
+      UPDATE kpi_scores SET self_score = 77 WHERE id = v_row;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    PERFORM pg_temp.as_nobody();
+    SELECT self_score INTO v_self FROM kpi_scores WHERE id = v_row;
+    PERFORM pg_temp.chk(61, 'audit', 'employee can still self-evaluate',
+      '77.00', coalesce(v_self::text, 'null'));
+  END IF;
+END $$;
+
+-- 62. A punch belongs to the company's calendar day, not the device's. Asserted on the
+-- function body rather than by inserting a punch: a real insert trips geofence and GPS
+-- requirements that differ per company, and this is the line that matters.
+SELECT pg_temp.chk(62, 'audit', 'punch date is derived from company timezone', 'derived',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'autolink_attendance_to_shift')
+            LIKE '%now() AT TIME ZONE v_tz%'
+       THEN 'derived' ELSE 'CLIENT-SUPPLIED' END);
+
+-- 63. Payroll that does not add up cannot leave draft.
+SELECT pg_temp.chk(63, 'audit', 'payroll arithmetic checked before approval', 'checked',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'validate_payroll_transition')
+            LIKE '%does not add up%'
+       THEN 'checked' ELSE 'UNCHECKED' END);
+
+-- 64. Leave dates run forwards and days cannot exceed the range they sit in.
+SELECT pg_temp.chk(64, 'audit', 'leave date/day constraints present', '2',
+  (SELECT count(*)::text FROM pg_constraint
+    WHERE conrelid = 'public.leave_requests'::regclass
+      AND conname IN ('leave_dates_run_forwards', 'leave_days_fit_the_range')));
+
+-- 65. The session cleanup job exists and is enabled. A function nothing calls is not a
+-- feature — this is the assertion that would have caught it.
+SELECT pg_temp.chk(65, 'audit', 'expired-session cleanup is scheduled', 'scheduled',
+  CASE WHEN EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'nightly-session-cleanup' AND active)
+       THEN 'scheduled' ELSE 'NOT SCHEDULED' END);
+
+-- ═══ 17. Country packs and leave policy — migrations 31-33 ═════════════════
+-- The feature's whole risk is that a pack invents a legal entitlement. These assert the
+-- guardrails rather than the numbers: the numbers belong to whoever read the statute.
+
+-- 66. Every leave rule carries a citation. A rule without one is a number somebody
+-- made up, and this is the assertion that stops it being added.
+SELECT pg_temp.chk(66, 'country', 'every country leave rule cites a source', '0',
+  (SELECT count(*)::text FROM country_leave_rules
+    WHERE legal_reference IS NULL OR btrim(legal_reference) = ''));
+
+-- 67. Only verified countries have rules at all. An unverified pack seeds nothing, so
+-- rules attached to one would be inherited by companies without ever being checked.
+SELECT pg_temp.chk(67, 'country', 'no leave rules under an unverified country', '0',
+  (SELECT count(*)::text FROM country_leave_rules r
+     JOIN country_rules c ON c.code = r.country_code
+    WHERE NOT c.verified));
+
+-- 68. A company policy row seeded from a pack is marked as such, so HR can see what
+-- they inherited and what they chose. Anything else is a company's own decision.
+SELECT pg_temp.chk(68, 'country', 'seeded policies are labelled country_pack', '0',
+  (SELECT count(*)::text FROM company_leave_policies
+    WHERE source NOT IN ('country_pack', 'company')));
+
+-- 69. Reference data is readable by tenants and writable only by BYOND. A company that
+-- could edit the country's law could quietly lower the floor it is measured against.
+SELECT pg_temp.chk(69, 'country', 'country rules not writable by a tenant', 'owner-only',
+  CASE WHEN (SELECT count(*) FROM pg_policies
+              WHERE tablename = 'country_leave_rules' AND cmd = 'ALL'
+                AND qual LIKE '%is_platform_owner%') = 1
+       THEN 'owner-only' ELSE 'WRITABLE' END);
+
+-- 70. The F-02 closure, behavioural: an employee with a zero balance must be refused,
+-- and the refusal must come from policy rather than from an absent row. Asserted on the
+-- function body because the insert path needs a company with a policy and an employee
+-- with none, which the fixture cannot guarantee on every environment.
+SELECT pg_temp.chk(70, 'country', 'no leave policy no longer means unlimited leave', 'refuses',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'check_leave_entitlement')
+            LIKE '%No % leave policy is set%'
+       THEN 'refuses' ELSE 'STILL ALLOWS' END);
 
 -- ═══ Report ════════════════════════════════════════════════════════════════
 

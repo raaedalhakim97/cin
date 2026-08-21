@@ -250,9 +250,9 @@ function InfoRow({ icon: Icon, label, value }) {
 
 function SalaryCard({ label, value }) {
   // Read from the store rather than threaded through four layers of props.
-  // company.currency is the tenant's own currency; the AED fallback only
+  // company.currency is the tenant's own currency; the empty fallback only
   // applies before the company row has loaded.
-  const currency = useAuthStore(s => s.company?.currency) ?? 'AED'
+  const currency = useAuthStore(s => s.company?.currency) ?? ''
   const hasSalary = value !== null && value !== undefined
   return (
     <div className="p-4 rounded-xl bg-[#F5F5F0] dark:bg-[#0F0F0F] border border-[#E8E8E8] dark:border-[#2A2A2A]">
@@ -595,7 +595,7 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
           </div>
           <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mb-4 max-w-2xl">
             Anonymizing this employee permanently scrubs all personal data (name, email, phone, national ID, bank account,
-            and more). Payroll records are kept for UAE tax law but de-identified. <span className="font-semibold text-[#FF4D4D]">This cannot be undone.</span>
+            and more). Payroll records are kept to meet tax and labour-law retention rules but de-identified. <span className="font-semibold text-[#FF4D4D]">This cannot be undone.</span>
           </p>
           <button
             onClick={onOpenAnonymize}
@@ -991,7 +991,7 @@ function KpiTab({ employeeId }) {
 // ─── Payroll tab ──────────────────────────────────────────────────────────────
 
 function PayrollTab({ employeeId }) {
-  const currency = useAuthStore(s => s.company?.currency) ?? 'AED'
+  const currency = useAuthStore(s => s.company?.currency) ?? ''
   const [runs, setRuns]           = useState([])
   const [loading, setLoading]     = useState(true)
   const [expandedId, setExpandedId] = useState(null)

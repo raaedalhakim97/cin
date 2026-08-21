@@ -20,7 +20,9 @@ export default function Privacy() {
       <p>
         BYOND is an HR platform operated by SERVA, Dubai, United Arab Emirates. This policy explains what
         personal data the platform holds, why, and what you can do about it. It is written to align with
-        UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL).
+        UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL), which governs BYOND
+        as the operator. Where your employer is based elsewhere, their own data protection law applies to them
+        as the controller, and nothing here displaces it.
       </p>
 
       <h2>Who is responsible for your data</h2>
@@ -40,14 +42,15 @@ export default function Privacy() {
       <h3>Identity and employment records</h3>
       <ul>
         <li>Name, work email, phone number and profile photo</li>
-        <li>Emirates ID number and labour card number</li>
+        <li>National identity number and work permit number</li>
         <li>Job title, department, contract type and dates, probation and hire dates</li>
         <li>Basic salary, allowances, bank account details and IBAN</li>
         <li>Documents uploaded by you or your employer — passports, visas, contracts, certificates</li>
       </ul>
       <p>
-        Salary and bank details exist to run payroll and produce WPS files. Emirates ID and labour card
-        numbers exist because UAE employment records require them.
+        Salary and bank details exist to run payroll and produce the salary transfer file your employer&rsquo;s
+        bank requires — the WPS SIF in the UAE. Identity and work permit numbers exist because employment
+        records in most countries require them.
       </p>
 
       <h3>Attendance and location</h3>
@@ -96,19 +99,22 @@ export default function Privacy() {
 
       <h2>Where your data is stored</h2>
       <p>
-        BYOND runs on Supabase, which hosts the database and file storage. Data is currently stored in the
-        <strong> Asia Pacific (Mumbai) region</strong>. Under the PDPL, transfers outside the UAE require an
-        adequate level of protection in the destination jurisdiction or appropriate contractual safeguards.
+        BYOND runs on Supabase, which hosts the database and file storage. Data is stored in the
+        <strong> European Union (Frankfurt, eu-central-1)</strong>. Encrypted backups are held on dedicated
+        infrastructure in <strong>Germany (Nuremberg)</strong>. Under the PDPL, transfers outside the UAE
+        require an adequate level of protection in the destination jurisdiction or appropriate contractual
+        safeguards; the EU&rsquo;s data protection regime provides that standard.
       </p>
       <p>
-        We state the region here rather than leaving it vague because an employer processing Emirates ID
-        numbers and salaries needs to know it in order to meet their own obligations.
+        We state the region here rather than leaving it vague because an employer processing national ID
+        numbers and salaries needs to know it in order to meet their own obligations — and because those
+        obligations differ depending on where the employer is.
       </p>
 
       <h2>How long it is kept</h2>
       <p>
-        Employment records are retained for as long as you are employed and afterwards for the period UAE
-        labour and tax law requires. Attendance, leave and payroll records are kept on the same basis. Sign-in
+        Employment records are retained for as long as you are employed and afterwards for the period the
+        labour and tax law where you are employed requires. Attendance, leave and payroll records are kept on the same basis. Sign-in
         and audit records are kept for security investigation. When your employer deletes an employee record,
         associated personal data is removed or anonymised.
       </p>

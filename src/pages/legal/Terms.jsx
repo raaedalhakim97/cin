@@ -62,7 +62,7 @@ export default function Terms() {
       <h2>4. Acceptable use</h2>
       <p>You may not use BYOND to:</p>
       <ul>
-        <li>Break any applicable law, including UAE labour and data protection law</li>
+        <li>Break any applicable law, including the labour and data protection law of the countries you operate in</li>
         <li>Monitor people covertly, or in ways you have not disclosed to them</li>
         <li>Attempt to access another organisation&apos;s workspace or data</li>
         <li>Probe, scan or test the security of the service without our written permission</li>
@@ -76,7 +76,7 @@ export default function Terms() {
       </p>
       <p>
         The platform will not issue disciplinary action on its own — warnings are surfaced to your HR team for a
-        human to act on, because UAE labour law grants an employee the right to be heard. Employment decisions,
+        human to act on, because the right to be heard before a penalty runs through most labour codes. Employment decisions,
         and their compliance with law and with your own policies, remain yours.
       </p>
 

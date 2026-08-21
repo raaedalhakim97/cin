@@ -426,7 +426,7 @@ function CompanySettingsTab({ companyId, showToast }) {
           type="text"
           value={form.timezone ?? ''}
           onChange={e => set('timezone', e.target.value)}
-          placeholder="e.g. Asia/Dubai"
+          placeholder="e.g. Europe/London, Africa/Lagos, Asia/Riyadh"
           className={INPUT}
         />
       </div>
