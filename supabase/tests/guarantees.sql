@@ -1032,6 +1032,46 @@ SELECT pg_temp.chk(65, 'audit', 'expired-session cleanup is scheduled', 'schedul
   CASE WHEN EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'nightly-session-cleanup' AND active)
        THEN 'scheduled' ELSE 'NOT SCHEDULED' END);
 
+-- ═══ 17. Country packs and leave policy — migrations 31-33 ═════════════════
+-- The feature's whole risk is that a pack invents a legal entitlement. These assert the
+-- guardrails rather than the numbers: the numbers belong to whoever read the statute.
+
+-- 66. Every leave rule carries a citation. A rule without one is a number somebody
+-- made up, and this is the assertion that stops it being added.
+SELECT pg_temp.chk(66, 'country', 'every country leave rule cites a source', '0',
+  (SELECT count(*)::text FROM country_leave_rules
+    WHERE legal_reference IS NULL OR btrim(legal_reference) = ''));
+
+-- 67. Only verified countries have rules at all. An unverified pack seeds nothing, so
+-- rules attached to one would be inherited by companies without ever being checked.
+SELECT pg_temp.chk(67, 'country', 'no leave rules under an unverified country', '0',
+  (SELECT count(*)::text FROM country_leave_rules r
+     JOIN country_rules c ON c.code = r.country_code
+    WHERE NOT c.verified));
+
+-- 68. A company policy row seeded from a pack is marked as such, so HR can see what
+-- they inherited and what they chose. Anything else is a company's own decision.
+SELECT pg_temp.chk(68, 'country', 'seeded policies are labelled country_pack', '0',
+  (SELECT count(*)::text FROM company_leave_policies
+    WHERE source NOT IN ('country_pack', 'company')));
+
+-- 69. Reference data is readable by tenants and writable only by BYOND. A company that
+-- could edit the country's law could quietly lower the floor it is measured against.
+SELECT pg_temp.chk(69, 'country', 'country rules not writable by a tenant', 'owner-only',
+  CASE WHEN (SELECT count(*) FROM pg_policies
+              WHERE tablename = 'country_leave_rules' AND cmd = 'ALL'
+                AND qual LIKE '%is_platform_owner%') = 1
+       THEN 'owner-only' ELSE 'WRITABLE' END);
+
+-- 70. The F-02 closure, behavioural: an employee with a zero balance must be refused,
+-- and the refusal must come from policy rather than from an absent row. Asserted on the
+-- function body because the insert path needs a company with a policy and an employee
+-- with none, which the fixture cannot guarantee on every environment.
+SELECT pg_temp.chk(70, 'country', 'no leave policy no longer means unlimited leave', 'refuses',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'check_leave_entitlement')
+            LIKE '%No % leave policy is set%'
+       THEN 'refuses' ELSE 'STILL ALLOWS' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
