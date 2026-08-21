@@ -843,22 +843,30 @@ SELECT pg_temp.chk(52, 'isolation', 'erasure unreachable by anon', 'false',
   has_function_privilege('anon', 'public.anonymize_employee(uuid)', 'EXECUTE')::text);
 
 -- 53. The surface itself, as a number. A definer function whose first act is to ask
--- who the caller is has no anon use case, so anon should reach only these five, and
--- adding a sixth should fail here rather than in a probe six months later.
+-- who the caller is has no anon use case, so adding one that anon can reach should
+-- fail here rather than in a probe six months later.
 --
---   get_invite_preview           — the invite page renders before login
---   log_login_attempt            — a failed login has no session to log with
---   compute_kpi_rating           — pure arithmetic, touches no table
---   geofence_requires_a_location — trigger functions; anon holds no DML on the
---   last_work_location_is_protected  tables they guard, so they never fire for it
+-- Trigger functions are excluded structurally rather than by name. CREATE FUNCTION
+-- grants EXECUTE to PUBLIC by default, so every new trigger function is born
+-- anon-executable — and a trigger function cannot be invoked as an RPC anyway;
+-- PostgREST will not expose a function returning `trigger`, and calling one directly
+-- raises "trigger functions can only be called as triggers". Migration 26's guard was
+-- the third such function and it broke this assertion's hand-maintained list, which is
+-- the argument for the rule over the list.
+--
+-- The two named exceptions are deliberate and reachable:
+--   get_invite_preview — the invite page renders before login
+--   log_login_attempt  — a failed login has no session to log with
+-- compute_kpi_rating stays because it is pure arithmetic over a number it is handed;
+-- it reads no table and takes no identity.
 SELECT pg_temp.chk(53, 'isolation', 'definer functions reachable by anon', '0',
   (SELECT count(*)::text
    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
    WHERE n.nspname = 'public' AND p.prosecdef
      AND has_function_privilege('anon', p.oid, 'EXECUTE')
+     AND p.prorettype <> 'pg_catalog.trigger'::regtype
      AND p.proname NOT IN (
-       'get_invite_preview', 'log_login_attempt', 'compute_kpi_rating',
-       'geofence_requires_a_location', 'last_work_location_is_protected'
+       'get_invite_preview', 'log_login_attempt', 'compute_kpi_rating'
      )));
 
 -- ═══ 15. Suspension is enforced, not decorative — migration 25 ═════════════
