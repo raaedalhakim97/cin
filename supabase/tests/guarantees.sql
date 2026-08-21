@@ -946,6 +946,84 @@ SELECT pg_temp.chk(59, 'suspension', 'plan vocabulary is the expected four', '4'
              AND contype = 'c'
              AND pg_get_constraintdef(oid) ILIKE '%plan = ANY%' LIMIT 1) LIKE '%' || p || '%'));
 
+-- ═══ 16. The logic audit's fixes — migrations 26-29 ════════════════════════
+-- Every one of these was a rule the product believed it had. None was enforced.
+DO $$
+DECLARE
+  v_emp uuid; v_uid uuid; v_row uuid; v_ok text;
+  v_mgr numeric; v_self numeric; v_date date; v_tz text; v_co uuid;
+BEGIN
+  -- An employee who is NOT hr/super_admin, with a KPI row of their own.
+  SELECT e.id, e.user_id, e.company_id INTO v_emp, v_uid, v_co
+    FROM employees e
+    JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role NOT IN ('super_admin','hr_manager')
+     AND e.status = 'active'
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(60, 'audit', 'employee cannot write their own manager score', 'skipped', 'skipped');
+    PERFORM pg_temp.chk(61, 'audit', 'employee can still self-evaluate', 'skipped', 'skipped');
+  ELSE
+    INSERT INTO kpi_scores (employee_id, company_id, period_year, period_month, manager_score)
+    VALUES (v_emp, v_co, 2099, 1, 60)
+    ON CONFLICT (employee_id, period_year, period_month) DO UPDATE SET manager_score = 60
+    RETURNING id INTO v_row;
+
+    -- 60. The escalation: awarding yourself the score your manager owns.
+    PERFORM pg_temp.as_user(v_uid);
+    BEGIN
+      UPDATE kpi_scores SET manager_score = 100, behavior_score = 100,
+                            achievement_score = 100, attendance_score = 100
+       WHERE id = v_row;
+    EXCEPTION WHEN OTHERS THEN NULL;   -- refusal is fine; silent pinning is the design
+    END;
+    PERFORM pg_temp.as_nobody();
+    SELECT manager_score INTO v_mgr FROM kpi_scores WHERE id = v_row;
+    PERFORM pg_temp.chk(60, 'audit', 'employee cannot write their own manager score',
+      '60.00', coalesce(v_mgr::text, 'null'));
+
+    -- 61. …and the legitimate write still works, or the guard is just a wall.
+    PERFORM pg_temp.as_user(v_uid);
+    BEGIN
+      UPDATE kpi_scores SET self_score = 77 WHERE id = v_row;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    PERFORM pg_temp.as_nobody();
+    SELECT self_score INTO v_self FROM kpi_scores WHERE id = v_row;
+    PERFORM pg_temp.chk(61, 'audit', 'employee can still self-evaluate',
+      '77.00', coalesce(v_self::text, 'null'));
+  END IF;
+END $$;
+
+-- 62. A punch belongs to the company's calendar day, not the device's. Asserted on the
+-- function body rather than by inserting a punch: a real insert trips geofence and GPS
+-- requirements that differ per company, and this is the line that matters.
+SELECT pg_temp.chk(62, 'audit', 'punch date is derived from company timezone', 'derived',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'autolink_attendance_to_shift')
+            LIKE '%now() AT TIME ZONE v_tz%'
+       THEN 'derived' ELSE 'CLIENT-SUPPLIED' END);
+
+-- 63. Payroll that does not add up cannot leave draft.
+SELECT pg_temp.chk(63, 'audit', 'payroll arithmetic checked before approval', 'checked',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'validate_payroll_transition')
+            LIKE '%does not add up%'
+       THEN 'checked' ELSE 'UNCHECKED' END);
+
+-- 64. Leave dates run forwards and days cannot exceed the range they sit in.
+SELECT pg_temp.chk(64, 'audit', 'leave date/day constraints present', '2',
+  (SELECT count(*)::text FROM pg_constraint
+    WHERE conrelid = 'public.leave_requests'::regclass
+      AND conname IN ('leave_dates_run_forwards', 'leave_days_fit_the_range')));
+
+-- 65. The session cleanup job exists and is enabled. A function nothing calls is not a
+-- feature — this is the assertion that would have caught it.
+SELECT pg_temp.chk(65, 'audit', 'expired-session cleanup is scheduled', 'scheduled',
+  CASE WHEN EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'nightly-session-cleanup' AND active)
+       THEN 'scheduled' ELSE 'NOT SCHEDULED' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
