@@ -45,7 +45,33 @@ export function isAlreadyOnboardedError(error) {
   return msg.includes('already') && (msg.includes('company') || msg.includes('belong'))
 }
 
+// Currency and timezone a workspace starts with, by country. Both are only defaults —
+// Settings can change either, and every screen reads the company's own values rather
+// than assuming these.
+//
+// The list used to hold two entries, and everything that missed fell back to the UAE.
+// That is the shape of assumption this product is removing: a Kenyan company should not
+// have to notice that its salaries were labelled in dirhams.
+//
+// Country is stored as the label, not a code, because that is what existing rows hold.
+// Moving to ISO 3166 alpha-2 is the right end state — "UAE", "uae" and "United Arab
+// Emirates" are three different countries to a text column — and is tracked separately.
 export const COUNTRY_DEFAULTS = {
-  UAE:     { currency: 'AED', timezone: 'Asia/Dubai' },
-  Nigeria: { currency: 'NGN', timezone: 'Africa/Lagos' },
+  UAE:            { currency: 'AED', timezone: 'Asia/Dubai' },
+  'Saudi Arabia': { currency: 'SAR', timezone: 'Asia/Riyadh' },
+  Qatar:          { currency: 'QAR', timezone: 'Asia/Qatar' },
+  Kuwait:         { currency: 'KWD', timezone: 'Asia/Kuwait' },
+  Bahrain:        { currency: 'BHD', timezone: 'Asia/Bahrain' },
+  Oman:           { currency: 'OMR', timezone: 'Asia/Muscat' },
+  Jordan:         { currency: 'JOD', timezone: 'Asia/Amman' },
+  Egypt:          { currency: 'EGP', timezone: 'Africa/Cairo' },
+  Nigeria:        { currency: 'NGN', timezone: 'Africa/Lagos' },
+  Kenya:          { currency: 'KES', timezone: 'Africa/Nairobi' },
+  India:          { currency: 'INR', timezone: 'Asia/Kolkata' },
+  Pakistan:       { currency: 'PKR', timezone: 'Asia/Karachi' },
+  'United Kingdom': { currency: 'GBP', timezone: 'Europe/London' },
 }
+
+// One place for both selects to read, so adding a country is one edit and neither
+// screen can drift from the other.
+export const COUNTRY_OPTIONS = Object.keys(COUNTRY_DEFAULTS)

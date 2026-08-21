@@ -224,7 +224,7 @@ export default function HRDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={FileCheck2} label="Data Subject Requests Pending" value={String(compliance.dsrPending)} tone={compliance.dsrPending ? 'orange' : 'neutral'} />
           <StatCard icon={ShieldCheck} label="Consent Records This Month" value={String(compliance.consentThisMonth)} tone="mint" />
-          <StatCard icon={AlertTriangle} label="Employees Missing WPS Data" value={String(compliance.missingWps)} tone={compliance.missingWps ? 'red' : 'neutral'} />
+          <StatCard icon={AlertTriangle} label="Employees Missing Payment Details" value={String(compliance.missingWps)} tone={compliance.missingWps ? 'red' : 'neutral'} />
           <Link to="/documents" className="block">
             <StatCard icon={FileText} label="Employees Non-Compliant" value={String(compliance.nonCompliantEmployees)} tone={compliance.nonCompliantEmployees ? 'red' : 'neutral'} />
           </Link>

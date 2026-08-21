@@ -34,7 +34,7 @@ const SLIDES = [
   {
     src: '/people/team-3.jpg',
     caption: 'HR teams who are done with spreadsheets',
-    sub: 'Payroll, leave and reviews in one place, built for how the Gulf actually works.',
+    sub: 'Payroll, leave and reviews in one place, built around the rules your country actually runs on.',
   },
 ]
 

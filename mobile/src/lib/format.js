@@ -1,17 +1,18 @@
-// Currency comes from company.currency, which self_onboard_company already sets
-// from the signup country (AED for UAE, NGN for Nigeria — see web
-// utils/onboarding.js COUNTRY_DEFAULTS). The web app hardcodes 'AED' in
-// EmployeeNew, EmployeeDetail and Payroll, so an NGN tenant sees the wrong
-// symbol everywhere but the payslip PDF. Mobile reads the real value from the
-// start.
-export function money(amount, currency = 'AED') {
+// Currency comes from company.currency, which self_onboard_company sets from the
+// signup country (see web utils/onboarding.js COUNTRY_DEFAULTS).
+//
+// There is deliberately no default. A missing currency prints a bare number, because
+// a figure labelled with the wrong currency is worse than one labelled with none —
+// it is a salary that looks like it was quoted in a currency nobody agreed to.
+export function money(amount, currency) {
   const n = Number(amount) || 0
-  return `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+  const formatted = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return currency ? `${formatted} ${currency}` : formatted
 }
 
 // Local YYYY-MM-DD. Mirrors the web's localDateStr — using toISOString() here
-// would shift the date for anyone east of UTC, which is every user in both
-// target markets (Asia/Dubai, Africa/Lagos).
+// would shift the date for anyone whose timezone is not UTC, which is most of
+// them — the company's own timezone is what decides the working day.
 export function localDateStr(d = new Date()) {
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
 }

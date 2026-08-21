@@ -77,7 +77,7 @@ const useAuthStore = create((set, get) => ({
         // currency and timezone are here because they are formatting inputs the
         // whole app needs: without currency in the store, every salary figure
         // fell back to a hardcoded 'AED', which is wrong for any tenant that
-        // isn't in the UAE.
+        // is not in that one country.
         .select('id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone')
         .eq('id', roleData.company_id)
         .maybeSingle()

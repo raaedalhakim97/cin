@@ -217,7 +217,7 @@ function HeroChart() {
 }
 
 const NAV_LINKS = [
-  { href: '#uae', label: 'For the UAE' },
+  { href: '#compliance', label: 'Local rules' },
   { href: '#features', label: 'Platform' },
   { href: '#mobile', label: 'Mobile' },
   { href: '#pricing', label: 'Pricing' },
@@ -401,7 +401,7 @@ function ProductFrame() {
           </div>
           <div>
             <div className="text-[13px] font-semibold">Clocked in · 42m from site</div>
-            <div className="text-xs text-[#8A8A8A]">Checked against Dubai HQ</div>
+            <div className="text-xs text-[#8A8A8A]">Checked against your work location</div>
           </div>
         </div>
       </div>
@@ -507,14 +507,14 @@ function Hero() {
 // statement about commercial relationships — and the kind a single question
 // from a prospect destroys. Replaced with capabilities that are built and
 // shipping, which is the only proof we actually have.
-const CAPABILITIES = ['Web & mobile', 'Geofenced attendance', 'WPS-ready payroll export', 'UAE labour-law aware']
+const CAPABILITIES = ['Web & mobile', 'Geofenced attendance', 'Bank-ready payroll export', 'Labour-law aware']
 
 function LogoStrip() {
   return (
     <Reveal className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 mt-10">
       <div className="border-y border-[#1a1a1a] py-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         <span className="text-xs tracking-[.16em] uppercase text-[#6E6E6E] font-semibold">
-          Built in Dubai for teams across the Gulf
+          Built for teams who answer to a labour ministry
         </span>
         <div className="flex flex-wrap gap-x-7 gap-y-3 items-center text-[15px] font-semibold tracking-tight text-[#9A9A9A]">
           {CAPABILITIES.map((c) => (
@@ -648,51 +648,55 @@ function Acronym() {
 
 // The market position, stated once and properly.
 //
-// Every item is something the product does today. "MOHRE-aware" claims a shape
-// of contract and a set of fields, not certification by anyone; "PDPL" claims
-// the region is disclosed and the rights are supported, which the privacy page
-// sets out in full. Both are deliberately narrower than they could be — this is
-// the section a buyer's HR lead will read hardest, and an overstatement here is
-// found in the first demo.
-const UAE_POINTS = [
+// Every item is something the product does today, and the wording is deliberately
+// narrower than it could be — this is the section a buyer's HR lead reads hardest,
+// and an overstatement here is found in the first demo.
+//
+// It used to be headed "Built for the UAE" and name Emirates ID, MOHRE and the WPS
+// file directly. That was true and it was the reason to choose BYOND — but it also
+// told every buyer outside one country that the product was not for them. The
+// capabilities are unchanged; what changed is that they are described by what they
+// do rather than by the one place they were first built for. Where a country's
+// format is named, it is named as an example, not as the whole product.
+const COMPLIANCE_POINTS = [
   {
     icon: Banknote,
-    title: 'WPS files, generated',
-    body: 'Payroll produces the SIF your bank expects, from the salaries and IBANs already on file. No re-keying into a template each month.',
+    title: 'Salary files your bank accepts',
+    body: 'Payroll produces the transfer file in the format your banking system expects — the UAE WPS SIF today — built from the salaries and IBANs already on file. No re-keying into a template each month.',
   },
   {
     icon: ScrollText,
-    title: 'Built around UAE labour law',
-    body: 'Contract types, probation, gratuity-relevant dates and leave entitlement follow the rules your HR team already works to — not a US template with the wording changed.',
+    title: 'Shaped by real employment law',
+    body: 'Contract types, probation, end-of-service dates and leave entitlement are first-class, configured per company — not a US template with the wording changed.',
   },
   {
     icon: IdCard,
-    title: 'Emirates ID and labour cards',
-    body: 'Held as first-class fields with expiry tracking, because in the Gulf a lapsed document is an operational problem, not a data-entry detail.',
+    title: 'Identity papers that expire',
+    body: 'National IDs, work permits, visas and insurance are held as fields with expiry tracking, because a lapsed document is an operational problem, not a data-entry detail.',
   },
   {
     icon: Scale,
     title: 'Discipline stays human',
-    body: 'The system proposes a warning; it never issues one. Article 21.2 grants a hearing, so software that fired the warning itself would put you on the wrong side of the law.',
+    body: 'The system proposes a warning; it never issues one. An employee\'s right to be heard before a penalty runs through most labour codes, so software that fired the warning itself would put you on the wrong side of yours.',
   },
 ]
 
-function UAESection() {
+function ComplianceSection() {
   return (
-    <section id="uae" className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6">
+    <section id="compliance" className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-10 pt-24 lg:pt-32 pb-6">
       <Reveal className="max-w-[680px]">
-        <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">Built for the UAE</div>
+        <div className="text-[13px] tracking-[.2em] uppercase text-[#00D4A0] font-semibold">Built for local rules</div>
         <h2 className="text-[clamp(30px,4vw,50px)] font-extrabold tracking-tight leading-[1.06] mt-4">
           HR software that already speaks your labour law.
         </h2>
         <p className="text-lg leading-relaxed text-[#B5B5B5] mt-5">
-          Most HR platforms are built elsewhere and localised later — you find the gaps at month-end, in the
-          WPS file. BYOND starts here.
+          Most HR platforms are built for one market and localised later — you find the gaps at month-end,
+          in the file your bank rejects. BYOND starts from the rules.
         </p>
       </Reveal>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-14">
-        {UAE_POINTS.map((p, i) => (
+        {COMPLIANCE_POINTS.map((p, i) => (
           <Reveal key={p.title} delay={[0, 80, 160, 240][i]}>
             <div className="h-full flex gap-4 bg-[linear-gradient(160deg,#151515,#111)] border border-[#232323] hover:border-[#00D4A0] rounded-[18px] p-7 transition-colors duration-300">
               <div className="w-[42px] h-[42px] shrink-0 rounded-xl bg-[#00D4A0]/10 flex items-center justify-center">
@@ -866,7 +870,7 @@ function MobileSection() {
               <div className="h-1.5 w-16 mx-auto rounded-full bg-[#232323] mb-5" />
               <div className="text-[11px] tracking-widest uppercase text-[#6E6E6E] font-semibold">Today</div>
               <div className="text-2xl font-extrabold tracking-tight mt-1">Clocked in</div>
-              <div className="text-[13px] text-[#8A8A8A] mt-0.5">07:58 · Dubai HQ</div>
+              <div className="text-[13px] text-[#8A8A8A] mt-0.5">07:58 · Head office</div>
 
               <div className="mt-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#00D4A0]/10">
                 <MapPin size={14} className="text-[#00D4A0] shrink-0" />
@@ -912,7 +916,7 @@ const PRICING_INCLUDED = [
   'Every feature — nothing held back for a higher tier',
   'Unlimited employees during the trial quarter',
   'Web app and mobile app',
-  'WPS payroll export and document tracking',
+  'Bank-ready payroll export and document tracking',
   'Automatic KPI scoring and quarterly review cycles',
 ]
 
@@ -996,7 +1000,7 @@ function Pricing() {
 const FAQS = [
   {
     q: 'Where is our data stored?',
-    a: 'On managed infrastructure, in a single region we name in our Privacy Policy rather than leaving vague — an employer holding Emirates ID numbers and salaries needs to know it to meet their own obligations. Access is enforced in the database itself, not only in the app, so a person can read only what their role permits.',
+    a: 'On managed infrastructure, in a single region we name in our Privacy Policy rather than leaving vague — an employer holding national ID numbers and salaries needs to know it to meet their own obligations. Access is enforced in the database itself, not only in the app, so a person can read only what their role permits.',
   },
   {
     q: 'We run everything on spreadsheets. How hard is moving?',
@@ -1008,15 +1012,15 @@ const FAQS = [
   },
   {
     q: 'Can the system discipline an employee automatically?',
-    a: 'No, and it is built so it cannot. Recognition is issued automatically; a warning is only ever proposed to your HR team for a person to decide on. UAE labour law grants an employee the right to be heard, and software that skipped that would put you on the wrong side of it.',
+    a: 'No, and it is built so it cannot. Recognition is issued automatically; a warning is only ever proposed to your HR team for a person to decide on. The right to be heard before a penalty runs through most labour codes, and software that skipped that would put you on the wrong side of yours.',
   },
   {
     q: 'Does location tracking follow staff around?',
     a: 'No. A coordinate is recorded at the moment someone clocks in or out — not continuously, not in the background, not outside working hours. Whether it is enforced at all is your choice, per site.',
   },
   {
-    q: 'Is BYOND certified for MOHRE or WPS?',
-    a: 'BYOND generates the WPS SIF file your bank accepts and structures employment records around UAE labour law. It is not a government-certified system and we do not claim to be one — the filing remains yours, and the file is built to be accepted when you make it.',
+    q: 'Is BYOND certified by a labour ministry?',
+    a: 'No, and we do not claim to be. BYOND generates the salary transfer file your bank accepts — the UAE WPS SIF today — and structures employment records around real labour law. The filing remains yours; the file is built to be accepted when you make it.',
   },
 ]
 
@@ -1114,7 +1118,7 @@ function Footer() {
           <Logo size="lg" variant="dark" />
           <p className="text-sm text-[#8A8A8A] leading-relaxed mt-4">
             Better. Yield. Outstanding. Next-Level. Development. Human-centered HR &amp; performance for the teams
-            building the Gulf.
+            building real businesses.
           </p>
         </div>
         <div className="flex flex-wrap gap-16">
@@ -1190,10 +1194,10 @@ export default function Landing() {
       <Nav />
       <Hero />
       <LogoStrip />
-      {/* The UAE section sits directly after the hero: it is the reason to
+      {/* The compliance section sits directly after the hero: it is the reason to
           choose this over a cheaper generic HR tool, so it should not be
           four scrolls down behind a feature grid anyone could claim. */}
-      <UAESection />
+      <ComplianceSection />
       <Features />
       <HowItWorks />
       <MobileSection />

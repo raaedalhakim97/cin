@@ -238,9 +238,9 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard icon={FileCheck2} label="DSR Pending" value={String(complianceExtra.dsrPending)} tone={complianceExtra.dsrPending ? 'orange' : 'neutral'} />
             <StatCard icon={ShieldCheck} label="Consent This Month" value={String(complianceExtra.consentThisMonth)} tone="mint" />
-            <StatCard icon={AlertTriangle} label="Missing WPS Data" value={String(complianceExtra.missingWps)} tone={complianceExtra.missingWps ? 'red' : 'neutral'} />
+            <StatCard icon={AlertTriangle} label="Missing Payment Details" value={String(complianceExtra.missingWps)} tone={complianceExtra.missingWps ? 'red' : 'neutral'} />
             <div className="flex flex-col gap-2.5 p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
-              <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0]">Company WPS Readiness</p>
+              <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0]">Payroll File Readiness</p>
               <div className="flex items-center gap-2 text-sm">
                 {wps.mol ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
                 <span className="text-[#1A1A1A] dark:text-white">MOL Establishment ID</span>

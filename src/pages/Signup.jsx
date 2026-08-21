@@ -12,6 +12,7 @@ import {
   clearPendingSignup,
   isAlreadyOnboardedError,
   COUNTRY_DEFAULTS,
+  COUNTRY_OPTIONS,
 } from '../utils/onboarding'
 
 export default function Signup() {
@@ -235,8 +236,9 @@ export default function Signup() {
                 className="w-full px-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white border border-[#E8E8E8] dark:border-[#2A2A2A] focus:outline-none focus:border-[#00D4A0] transition-colors"
                 {...register('country', { required: true })}
               >
-                <option value="UAE">United Arab Emirates</option>
-                <option value="Nigeria">Nigeria</option>
+                {COUNTRY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>{c === 'UAE' ? 'United Arab Emirates' : c}</option>
+                ))}
               </select>
             </div>
 
