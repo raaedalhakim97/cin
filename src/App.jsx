@@ -29,6 +29,7 @@ import NewsFeed from './pages/NewsFeed'
 import Leads from './pages/Leads'
 import Platform from './pages/Platform'
 import PlatformCompany from './pages/PlatformCompany'
+import PlatformCountries from './pages/PlatformCountries'
 import WorkspaceSuspended from './pages/WorkspaceSuspended'
 import Permissions from './pages/Permissions'
 import Settings from './pages/Settings'
@@ -303,6 +304,18 @@ function App() {
             <Route path="/platform" element={
               <PrivateRoute platformOwner>
                 <Platform />
+              </PrivateRoute>
+            } />
+
+            {/* Country packs — reference data every workspace inherits from.
+                Declared BEFORE /platform/:companyId, because a dynamic segment
+                would otherwise match "countries" and try to load a company by
+                that id. React Router prefers the static path regardless of
+                order, but relying on that is a footgun for whoever adds the
+                next /platform/<word> route. */}
+            <Route path="/platform/countries" element={
+              <PrivateRoute platformOwner>
+                <PlatformCountries />
               </PrivateRoute>
             } />
 

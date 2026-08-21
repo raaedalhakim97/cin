@@ -18,6 +18,7 @@ import {
   X,
   UserCircle,
   Building2,
+  Globe2,
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { NAV } from '../../data/vocabulary'
@@ -58,6 +59,7 @@ const navItems = [
   // page could only ever come back empty for them.
   { label: NAV.platform,      icon: Building2,        path: '/platform',       live: true, platformOwner: true },
   { label: NAV.leads,         icon: Inbox,            path: '/leads',          live: true, platformOwner: true },
+  { label: NAV.countries,     icon: Globe2,           path: '/platform/countries', live: true, platformOwner: true },
   { label: NAV.settings,      icon: Settings,         path: '/settings',       live: true, roles: SETTINGS_NAV_ROLES },
   { label: NAV.access,        icon: ShieldCheck,      path: '/permissions',    live: true, roles: ['super_admin'] },
 ]
