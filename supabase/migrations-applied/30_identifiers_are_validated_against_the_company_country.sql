@@ -122,3 +122,18 @@ DROP TRIGGER IF EXISTS ab_company_identifiers ON public.company;
 CREATE TRIGGER ab_company_identifiers
   BEFORE INSERT OR UPDATE ON public.company
   FOR EACH ROW EXECUTE FUNCTION public.company_identifiers_fit_the_country();
+
+-- Follow-up, same day: the database linter flagged is_uae_country for a mutable
+-- search_path. It is called from inside two SECURITY DEFINER triggers, which is exactly
+-- where that matters — a schema earlier on the caller's path could shadow something the
+-- function resolves. It resolves nothing but a built-in today, which is why this was a
+-- WARN and not an incident, but the rule exists so nobody has to re-derive that argument
+-- each time the body changes.
+CREATE OR REPLACE FUNCTION public.is_uae_country(p_country text)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT lower(coalesce(p_country, '')) IN ('uae', 'ae', 'united arab emirates', 'u.a.e.', 'u.a.e');
+$function$;
