@@ -10,6 +10,7 @@ import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import Toast, { useToast } from '../components/Toast'
 import DocumentTypeGrid from '../components/documents/DocumentTypeGrid'
+import ChangePasswordCard from '../components/ChangePasswordCard'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -503,6 +504,13 @@ export default function Profile() {
                 />
               </div>
             )}
+
+            {/* Outside the employee check on purpose — an account with no linked
+                employee record still has a password, and is the likeliest one to
+                need changing it. */}
+            <div className="mt-6">
+              <ChangePasswordCard showToast={showToast} />
+            </div>
           </div>
         </main>
       </div>
