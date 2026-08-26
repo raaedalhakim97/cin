@@ -1132,6 +1132,51 @@ SELECT pg_temp.chk(76, 'country', 'country normalises before identifiers are che
                  AND tgfoid = 'public.company_identifiers_fit_the_country'::regproc)
        THEN 'ordered' ELSE 'OUT OF ORDER' END);
 
+-- ── Migrations 35-36: payroll and paperwork stop assuming the UAE ──────────
+
+-- 77. currency and timezone had the same shape country did — nullable, defaulting to the
+-- UAE. timezone is the sharp one: migration 27 derives an attendance row's date from it,
+-- so a company that never set one had clock-ins near midnight filed under Dubai's day.
+SELECT pg_temp.chk(77, 'country', 'currency and timezone cannot default to the UAE', 'both constrained',
+  (SELECT CASE WHEN count(*) = 2 THEN 'both constrained' ELSE 'STILL DEFAULTED' END
+     FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'company'
+      AND column_name IN ('currency', 'timezone')
+      AND is_nullable = 'NO' AND column_default IS NULL));
+
+-- 78. Document type seeding is gated on the country. Asserted on the body rather than by
+-- creating a company, same reasoning as 70: the fixture cannot guarantee a second country
+-- exists on every environment.
+SELECT pg_temp.chk(78, 'country', 'UAE document types are seeded only for AE', 'gated',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'seed_default_document_types')
+            LIKE '%v_code = ''AE''%'
+       THEN 'gated' ELSE 'SEEDED TO EVERYONE' END);
+
+-- 79. The identity and permit labels in country_rules exist so that one code can read
+-- "Emirates ID" in Dubai and "National ID" in Nairobi. They went unread for four
+-- migrations; this is what stops that happening again.
+SELECT pg_temp.chk(79, 'country', 'document labels come from the country pack', 'from pack',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'seed_default_document_types')
+            LIKE '%identity_label%'
+       THEN 'from pack' ELSE 'HARDCODED' END);
+
+-- 80. The salary transfer file asks which country before demanding UAE paperwork.
+-- country_rules.payment_file was added to decide this and had been read by nothing.
+SELECT pg_temp.chk(80, 'country', 'WPS SIF refuses a country with no bank file format', 'gated',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'generate_wps_sif')
+            LIKE '%payment_file%uae_wps_sif%'
+       THEN 'gated' ELSE 'UNGATED' END);
+
+-- 81. `text[] || <untyped literal>` resolves to array-to-array concatenation in Postgres
+-- and raises 22P02 trying to parse the sentence as an array. Both of these fired whenever
+-- a company was missing its establishment ID — which is to say, in exactly the case the
+-- validation existed to report. Found by calling the function, not by reading it.
+SELECT pg_temp.chk(81, 'country', 'WPS validation errors are cast to text', 'cast',
+  (SELECT CASE WHEN pg_get_functiondef(oid) LIKE '%establishment ID missing''::text%'
+                AND pg_get_functiondef(oid) LIKE '%routing code missing''::text%'
+               THEN 'cast' ELSE 'RAISES 22P02' END
+     FROM pg_proc WHERE proname = 'generate_wps_sif'));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
