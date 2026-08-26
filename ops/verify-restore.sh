@@ -19,9 +19,41 @@ CONTAINER=byond-restore-test
 TMPDIR_LOCAL=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_LOCAL"; docker rm -f "$CONTAINER" >/dev/null 2>&1 || true' EXIT
 
-SRC="${1:-$(ls -1t "$BACKUP_DIR"/byond-*.dump* 2>/dev/null | head -1)}"
+if [[ -n "${1:-}" ]]; then
+  SRC="$1"
+  AUTO_PICKED=0        # an explicit path means "test THIS one", age is the caller's business
+else
+  SRC="$(ls -1t "$BACKUP_DIR"/byond-*.dump* 2>/dev/null | head -1)"
+  AUTO_PICKED=1
+fi
 [[ -n "${SRC:-}" && -r "$SRC" ]] || { echo "no readable backup found in $BACKUP_DIR" >&2; exit 1; }
 echo "testing: $SRC"
+
+# ── Is this backup actually recent? ────────────────────────────────────────────
+# Without this the script answers the wrong question. It proves a dump can be
+# restored; it said nothing about WHEN that dump was taken. If the systemd timer
+# died three weeks ago, this restores the newest file it can find — a three-week-old
+# one — and prints RESTORE TEST PASSED. False reassurance is worse than no check,
+# because it is the one you act on.
+#
+# Only enforced when we picked the file ourselves. Passing a path explicitly is a
+# deliberate "test this old dump", so the gate would just be in the way.
+# MAX_AGE_HOURS=0 disables it.
+MAX_AGE_HOURS="${MAX_AGE_HOURS:-48}"
+AGE_HOURS=$(( ( $(date +%s) - $(stat -c %Y "$SRC") ) / 3600 ))
+echo "backup age: ${AGE_HOURS}h"
+
+if (( AUTO_PICKED == 1 )) && (( MAX_AGE_HOURS > 0 )) && (( AGE_HOURS > MAX_AGE_HOURS )); then
+  echo >&2
+  echo "STALE BACKUP — newest is ${AGE_HOURS}h old, limit is ${MAX_AGE_HOURS}h." >&2
+  echo "The dump may well restore fine. That is not the problem: nothing has been" >&2
+  echo "backed up since it was written, so the last ${AGE_HOURS}h are not protected." >&2
+  echo >&2
+  echo "Check the timer before trusting anything else here:" >&2
+  echo "    systemctl status byond-backup.timer byond-backup.service" >&2
+  echo "    journalctl -u byond-backup.service -n 50 --no-pager" >&2
+  exit 1
+fi
 
 # Decrypt if needed.
 DUMP="$TMPDIR_LOCAL/restore.dump"
@@ -82,9 +114,21 @@ docker exec "$CONTAINER" pg_restore -U postgres -d restored --no-owner \
 
 echo
 echo "── row counts in the restored copy ──"
+# Real counts, not pg_class.reltuples. reltuples is a planner estimate maintained by
+# VACUUM and ANALYZE, and pg_restore runs neither, so it reads -1 for a table nothing
+# has analysed yet. That is not a corner case: measured on the live Frankfurt database,
+# reltuples is -1 for all but one table — employees included, where the real count is 17.
+# So this block used to print a column of -1 and call it row counts. The one table with a
+# real estimate had it wrong anyway (781 against 874 actual).
+#
+# query_to_xml is the idiom for counting a table whose name you only learn at runtime.
+# Slower than an estimate, irrelevant at this size, and the whole job here is verification.
 docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c "
   select format('%-28s %s', table_name, n) from (
-    select c.relname as table_name, c.reltuples::bigint as n
+    select c.relname as table_name,
+           (xpath('/row/c/text()',
+                  query_to_xml(format('select count(*) as c from public.%I', c.relname),
+                               false, true, '')))[1]::text::bigint as n
     from pg_class c join pg_namespace ns on ns.oid=c.relnamespace
     where ns.nspname='public' and c.relkind='r'
     order by c.relname
@@ -94,6 +138,10 @@ TABLES=$(docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c \
   "select count(*) from pg_tables where schemaname='public';")
 EMPLOYEES=$(docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c \
   "select count(*) from public.employees;" 2>/dev/null || echo 0)
+# Employees alone is a weak signal: this database is multi-tenant, and a restore that
+# brought back staff but lost the company rows they hang off is not a usable backup.
+COMPANIES=$(docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c \
+  "select count(*) from public.company;" 2>/dev/null || echo 0)
 POLICIES=$(docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c \
   "select count(*) from pg_policies where schemaname='public';" 2>/dev/null || echo 0)
 RLS_OFF=$(docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c \
@@ -102,6 +150,7 @@ RLS_OFF=$(docker exec "$CONTAINER" psql -U postgres -d restored -qAt -c \
 
 echo
 echo "tables restored:      $TABLES"
+echo "companies restored:   $COMPANIES"
 echo "employees restored:   $EMPLOYEES"
 echo "RLS policies:         $POLICIES"
 echo "tables with RLS off:  $RLS_OFF"
@@ -110,8 +159,9 @@ echo
 # Tenant isolation is the property that matters most in this database, and it is
 # made of policies. A restore that brings the rows back without them is not a
 # usable backup — it is a data leak with the right row counts.
-if (( TABLES >= 30 )) && (( EMPLOYEES > 0 )) && (( POLICIES >= 100 )) && (( RLS_OFF == 0 )); then
-  echo "RESTORE TEST PASSED — rows, policies and RLS all present."
+if (( TABLES >= 30 )) && (( COMPANIES > 0 )) && (( EMPLOYEES > 0 )) \
+   && (( POLICIES >= 100 )) && (( RLS_OFF == 0 )); then
+  echo "RESTORE TEST PASSED — ${AGE_HOURS}h-old backup, rows, policies and RLS all present."
   echo
   echo "One thing this backup does NOT contain, by design: table and function"
   echo "GRANTs. backup-supabase.sh dumps with --no-privileges, so ACLs are absent."
@@ -123,11 +173,11 @@ if (( TABLES >= 30 )) && (( EMPLOYEES > 0 )) && (( POLICIES >= 100 )) && (( RLS_
   echo "    psql -v ON_ERROR_STOP=1 \"\$TARGET_DB_URL\" -f ops/post-restore-grants.sql"
   echo "    psql -v ON_ERROR_STOP=1 \"\$TARGET_DB_URL\" -f supabase/tests/guarantees.sql"
   echo
-  echo "The guarantee suite is the real proof: 32 assertions, and it rolls back"
-  echo "everything it writes."
+  echo "The guarantee suite is the real proof, and it rolls back everything it"
+  echo "writes. Deliberately no assertion count here — the last one went stale."
 else
   echo "RESTORE TEST FAILED"
-  echo "  tables=$TABLES (want >=30)  employees=$EMPLOYEES (want >0)"
+  echo "  tables=$TABLES (want >=30)  companies=$COMPANIES (want >0)  employees=$EMPLOYEES (want >0)"
   echo "  policies=$POLICIES (want >=100)  rls_off=$RLS_OFF (want 0)"
   echo
   if (( POLICIES < 100 )); then
