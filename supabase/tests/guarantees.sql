@@ -1072,6 +1072,66 @@ SELECT pg_temp.chk(70, 'country', 'no leave policy no longer means unlimited lea
             LIKE '%No % leave policy is set%'
        THEN 'refuses' ELSE 'STILL ALLOWS' END);
 
+-- ── Migration 34: a country is a code, not a sentence ──────────────────────
+
+-- 71. Every company holds an ISO 3166-1 alpha-2 code. The whole point of the change:
+-- 'UAE', 'uae' and 'U.A.E.' can no longer be three different countries.
+SELECT pg_temp.chk(71, 'country', 'every company country is a 2-letter code', '0',
+  (SELECT count(*)::text FROM company WHERE country IS NULL OR country !~ '^[A-Z]{2}$'));
+
+-- 72. The column cannot go back to being free text: NOT NULL, no default, and a foreign
+-- key to country_rules. Without the FK a typo is still a new country.
+SELECT pg_temp.chk(72, 'country', 'company.country is constrained', 'notnull+nodefault+fk',
+  (SELECT CASE WHEN a.attnotnull
+                AND NOT EXISTS (SELECT 1 FROM pg_attrdef d
+                                 WHERE d.adrelid = a.attrelid AND d.adnum = a.attnum)
+                AND EXISTS (SELECT 1 FROM pg_constraint fk
+                             WHERE fk.conrelid = 'public.company'::regclass
+                               AND fk.contype = 'f'
+                               AND fk.confrelid = 'public.country_rules'::regclass
+                               AND a.attnum = ANY (fk.conkey))
+               THEN 'notnull+nodefault+fk' ELSE 'UNCONSTRAINED' END
+     FROM pg_attribute a
+    WHERE a.attrelid = 'public.company'::regclass AND a.attname = 'country'));
+
+-- 73. A company created without naming a country used to become the UAE silently, and
+-- then inherit UAE labour law. The default is gone and must stay gone.
+SELECT pg_temp.chk(73, 'country', 'no silent UAE default on company.country', 'no default',
+  (SELECT CASE WHEN column_default IS NULL THEN 'no default' ELSE 'DEFAULT '||column_default END
+     FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'company' AND column_name = 'country'));
+
+-- 74. The resolver normalises what humans type and returns NULL for what it does not
+-- know. The NULL matters more than the matches: it is what stops an unrecognised
+-- country being filed under AE.
+SELECT pg_temp.chk(74, 'country', 'resolve_country_code maps labels and refuses guesses', 'AE|AE|AE|GB|SA|NULL|NULL',
+  concat_ws('|',
+    coalesce(resolve_country_code('UAE'), 'NULL'),
+    coalesce(resolve_country_code('  united arab emirates '), 'NULL'),
+    coalesce(resolve_country_code('AE'), 'NULL'),
+    coalesce(resolve_country_code('UK'), 'NULL'),
+    coalesce(resolve_country_code('KSA'), 'NULL'),
+    coalesce(resolve_country_code('Atlantis'), 'NULL'),
+    coalesce(resolve_country_code(''), 'NULL')));
+
+-- 75. The fuzzy matcher is gone. While it exists somebody will compare free text to a
+-- country again, which is the defect this whole migration removes.
+SELECT pg_temp.chk(75, 'country', 'is_uae_country is retired', '0',
+  (SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'is_uae_country'));
+
+-- 76. Normalisation has to happen before the identifier checks read NEW.country, and
+-- BEFORE triggers fire in name order. If someone renames either trigger, the UAE format
+-- rules stop firing for a company that was created with the label 'UAE'.
+SELECT pg_temp.chk(76, 'country', 'country normalises before identifiers are checked', 'ordered',
+  CASE WHEN (SELECT tgname FROM pg_trigger
+              WHERE tgrelid = 'public.company'::regclass AND NOT tgisinternal
+                AND tgfoid = 'public.company_country_is_a_code'::regproc)
+           < (SELECT tgname FROM pg_trigger
+               WHERE tgrelid = 'public.company'::regclass AND NOT tgisinternal
+                 AND tgfoid = 'public.company_identifiers_fit_the_country'::regproc)
+       THEN 'ordered' ELSE 'OUT OF ORDER' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

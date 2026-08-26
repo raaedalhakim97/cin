@@ -11,7 +11,7 @@ import {
   runSelfOnboard,
   clearPendingSignup,
   isAlreadyOnboardedError,
-  COUNTRY_DEFAULTS,
+  countryDefaultsFor,
   COUNTRY_OPTIONS,
 } from '../utils/onboarding'
 
@@ -29,7 +29,17 @@ export default function Signup() {
     setLoading(true)
     setServerError('')
 
-    const countryDefaults = COUNTRY_DEFAULTS[country] ?? COUNTRY_DEFAULTS.UAE
+    // No fallback to the UAE. The select can only offer countries we know, so a miss
+    // here means the list and this lookup have drifted apart — which is a bug to say
+    // out loud, not one to paper over by pricing the company in dirhams.
+    const countryDefaults = countryDefaultsFor(country)
+    if (!countryDefaults) {
+      console.error('[Signup] no defaults on file for country', country)
+      setServerError('That country is not supported yet. Please pick another.')
+      setLoading(false)
+      return
+    }
+
     const pending = {
       companyName,
       fullName,
@@ -232,12 +242,12 @@ export default function Signup() {
                 Country
               </label>
               <select
-                defaultValue="UAE"
+                defaultValue="AE"
                 className="w-full px-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white border border-[#E8E8E8] dark:border-[#2A2A2A] focus:outline-none focus:border-[#00D4A0] transition-colors"
                 {...register('country', { required: true })}
               >
-                {COUNTRY_OPTIONS.map((c) => (
-                  <option key={c} value={c}>{c === 'UAE' ? 'United Arab Emirates' : c}</option>
+                {COUNTRY_OPTIONS.map(({ code, name }) => (
+                  <option key={code} value={code}>{name}</option>
                 ))}
               </select>
             </div>

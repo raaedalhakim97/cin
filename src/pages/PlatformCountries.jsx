@@ -199,11 +199,10 @@ function CountryTable({ countries, rules, companies, openCode, onToggle, onChang
         <tbody>
           {countries.map((c) => {
             const ruleCount = rules.filter((r) => r.country_code === c.code).length
-            const using = companies.filter(
-              (co) => (co.country ?? '').toLowerCase() === c.name.toLowerCase()
-                   || (co.country ?? '').toUpperCase() === c.code
-                   || (c.code === 'AE' && /^(uae|u\.a\.e\.?|ae|united arab emirates)$/i.test(co.country ?? ''))
-            ).length
+            // Since migration 34 company.country IS the ISO code, with a foreign key to
+            // this very table, so this is an equality rather than the three-way guess it
+            // used to be. Nothing can reach the count by a spelling any more.
+            const using = companies.filter((co) => co.country === c.code).length
             const isOpen = openCode === c.code
             return (
               <tr key={c.code}

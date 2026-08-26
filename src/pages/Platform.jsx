@@ -8,7 +8,7 @@ import supabase from '../services/supabase'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import { SkeletonRow } from '../components/Skeleton'
-import { COUNTRY_DEFAULTS } from '../utils/onboarding'
+import { COUNTRY_OPTIONS, COUNTRY_DEFAULTS, countryDefaultsFor, countryNameFor } from '../utils/onboarding'
 
 // The operator console. Every tenant on the platform, what state it is in, and who
 // can administer it.
@@ -165,7 +165,7 @@ function InviteLink({ path, email }) {
 function NewCompany({ onCreated }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
-    company: '', ownerName: '', ownerEmail: '', country: 'UAE', trialMonths: 3,
+    company: '', ownerName: '', ownerEmail: '', country: 'AE', trialMonths: 3,
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -180,7 +180,14 @@ function NewCompany({ onCreated }) {
     // Currency and timezone follow the country rather than being asked for
     // separately — same table Signup uses, so a company created here and one that
     // signed itself up get identical defaults.
-    const d = COUNTRY_DEFAULTS[form.country] ?? COUNTRY_DEFAULTS.UAE
+    // No UAE fallback — see countryDefaultsFor. The select cannot offer an unknown
+    // country, so a miss means this list drifted from country_rules.
+    const d = countryDefaultsFor(form.country)
+    if (!d) {
+      setBusy(false)
+      setError(`No currency or timezone on file for country "${form.country}".`)
+      return
+    }
 
     const { data, error: rpcError } = await supabase.rpc('platform_create_company', {
       p_company_name:  form.company,
@@ -203,7 +210,7 @@ function NewCompany({ onCreated }) {
     }
 
     setResult(data)
-    setForm({ company: '', ownerName: '', ownerEmail: '', country: 'UAE', trialMonths: 3 })
+    setForm({ company: '', ownerName: '', ownerEmail: '', country: 'AE', trialMonths: 3 })
     onCreated()
   }
 
@@ -278,9 +285,9 @@ function NewCompany({ onCreated }) {
         <label className="block">
           <span className="block text-xs font-medium text-[#1A1A1A] dark:text-white mb-1">Country</span>
           <select value={form.country} onChange={set('country')} className={inputClass}>
-            {Object.keys(COUNTRY_DEFAULTS).map((c) => (
-              <option key={c} value={c}>
-                {c} · {COUNTRY_DEFAULTS[c].currency}
+            {COUNTRY_OPTIONS.map(({ code, name }) => (
+              <option key={code} value={code}>
+                {name} · {COUNTRY_DEFAULTS[code].currency}
               </option>
             ))}
           </select>
@@ -567,7 +574,7 @@ export default function Platform() {
                                     {c.name}
                                   </Link>
                                   <span className="block text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
-                                    {c.country ?? '—'} · {c.currency ?? '—'}
+                                    {countryNameFor(c.country) ?? '—'} · {c.currency ?? '—'}
                                     {c.created_via ? ` · via ${c.created_via}` : ''}
                                   </span>
                                   {/* Kept alongside the linked name rather than

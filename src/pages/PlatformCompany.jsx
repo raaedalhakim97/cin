@@ -9,6 +9,7 @@ import supabase from '../services/supabase'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import { SkeletonRow } from '../components/Skeleton'
+import { countryNameFor } from '../utils/onboarding'
 
 // BYOND's file on one customer.
 //
@@ -236,7 +237,7 @@ export default function PlatformCompany() {
                   <Badge value={c.plan} />
                 </div>
                 <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1">
-                  {c.country ?? '—'} · {c.currency ?? '—'} · joined {DATE(c.created_at)}
+                  {countryNameFor(c.country) ?? '—'} · {c.currency ?? '—'} · joined {DATE(c.created_at)}
                   {c.created_via ? ` · via ${c.created_via}` : ''}
                 </p>
               </div>

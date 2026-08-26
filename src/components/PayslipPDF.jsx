@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect } from '@react-pdf/renderer'
+import { countryNameFor } from '../utils/onboarding'
 
 // Design system colors (BYOND-Design-System.md) — react-pdf has no dark mode
 // concept, this document is always rendered against a white page.
@@ -264,7 +265,7 @@ export default function PayslipPDF({ run, employee, company }) {
             </Svg>
             <View>
               <Text style={styles.companyName}>{company?.name || 'BYOND BY SERVA'}</Text>
-              {company?.country && <Text style={styles.companyMeta}>{company.country}</Text>}
+              {company?.country && <Text style={styles.companyMeta}>{countryNameFor(company.country)}</Text>}
             </View>
           </View>
           <View>
