@@ -148,7 +148,8 @@ Still open:
 - [ ] Error monitoring — none at all, so a customer's bug reaches you only if
       they tell you
 - [ ] Billing — no payment provider in the codebase
-- [ ] 41 missing foreign-key indexes
+- [x] 41 missing foreign-key indexes — added in migration 38; all 100 foreign
+      keys in the schema now have a supporting index, guarded by assertion 83
 - [ ] `audit_logs` retention policy — it is the fastest-growing table
 
 ---

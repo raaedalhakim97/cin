@@ -293,8 +293,20 @@ this list is the deployment-shaped view of it.
   (`trial`, `active`, `suspended`) exist and suspension is enforced, so you can
   cut someone off; you cannot charge them. Bank transfer plus setting the plan
   by hand in the console works to roughly customer #10.
-- **Foreign-key indexes.** 41 of them are missing. Invisible at 17 employees,
-  and the thing that makes the app feel slow at forty companies.
+- **Foreign-key indexes.** Done — migration 38. Postgres never indexes the
+  referencing side of a foreign key, so 41 of them were a sequential scan on
+  any query filtering the column and on every delete of the parent, including
+  the PDPL erasure path. All 100 foreign keys now have one, and assertion 83
+  fails if a new one arrives without.
+- **RLS policy overlaps.** Deliberately left alone, and the number I quoted
+  earlier was wrong. The advisor reports 38 findings, but it counts one per
+  (table, role, action), so a single overlapping pair written `TO public` is
+  counted once per role. The real figure is 29 overlapping combinations in two
+  shapes, about eighteen of which are a `FOR SELECT` policy sitting alongside a
+  `FOR ALL` one. Fixing that means rewriting eighteen tables' security policies
+  for a gain that is unmeasurable at this size — worth doing against a measured
+  problem, one table at a time, not as housekeeping. Migration 39 records the
+  measurement.
 - **Mobile.** The Expo app is still in `mobile/` and was last updated on
   21 August with the internationalization work, so it is not abandoned — but no
   decision has been recorded either way. Part 2 below still works; decide
