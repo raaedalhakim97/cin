@@ -4,7 +4,7 @@ Supabase hosts the **backend only**. There are three things to deploy:
 
 | Piece | Where | Status |
 |---|---|---|
-| Database, auth, storage | Supabase (`rxkgnbvjywiqkgbbypfs`, region `ap-south-1`) | live |
+| Database, auth, storage | Supabase `BYOND-hr-eu` (`ududaetdwoqtchkvqewv`, `eu-central-1`, Frankfurt) | live |
 | Web app (Vite/React SPA) | Vercel / Netlify / Cloudflare Pages | not deployed |
 | Mobile app (Expo) | EAS build → App Store / Play | not deployed |
 
@@ -19,7 +19,11 @@ I cannot do these — they need dashboard access or accounts I do not hold.
 `.env` currently points at `placeholder.supabase.co`, so the web app is not
 connected to anything. Copy `.env.example` to `.env` and fill in:
 
-- `VITE_SUPABASE_URL` — `https://rxkgnbvjywiqkgbbypfs.supabase.co`
+- `VITE_SUPABASE_URL` — `https://ududaetdwoqtchkvqewv.supabase.co`
+  (Frankfurt. The old Mumbai project `rxkgnbvjywiqkgbbypfs` still exists as a
+  fallback and is roughly 20 migrations behind — pointing at it gives you a
+  working-looking app on a schema with no country packs and no leave policy
+  tables.)
 - `VITE_SUPABASE_ANON_KEY` — dashboard → Project Settings → API keys
 
 Then set the same two variables in the hosting provider's environment settings.
@@ -43,12 +47,20 @@ Dashboard → Authentication → Policies. Checks new passwords against
 HaveIBeenPwned. This is the last remaining item on the Supabase security
 advisor and no migration can reach it.
 
-### 4. Set a real backup
+### 4. Set a real backup — DONE
 
-The free plan has no automated daily backup and no point-in-time recovery.
-For payroll and employment records that is the weakest point in the whole
-setup. Either move to Pro (daily backups included) or schedule your own
-`pg_dump` to storage you control — and restore it once to prove it works.
+Solved, and worth recording how, because the words matter. An encrypted nightly
+`pg_dump` runs to Raaed's own Hetzner server via a systemd timer, and it has
+been restored into a throwaway Postgres container and checked for row counts,
+RLS policies and every table having RLS on. A backup nobody has restored is a
+guess.
+
+`ops/verify-restore.sh` runs that drill and refuses to pass a dump older than
+48 hours, so a dead timer shows up as a failure rather than as a green result on
+a three-week-old file.
+
+Ongoing duty: pull the repo on that server after any change to the ops scripts,
+then `sudo ./ops/verify-restore.sh`.
 
 ### 5. Delete the test accounts
 
@@ -76,8 +88,8 @@ First, report-only, and watch the browser console for a week:
 ```
 Content-Security-Policy-Report-Only:
   default-src 'self';
-  connect-src 'self' https://rxkgnbvjywiqkgbbypfs.supabase.co wss://rxkgnbvjywiqkgbbypfs.supabase.co;
-  img-src 'self' data: blob: https://rxkgnbvjywiqkgbbypfs.supabase.co;
+  connect-src 'self' https://ududaetdwoqtchkvqewv.supabase.co wss://ududaetdwoqtchkvqewv.supabase.co;
+  img-src 'self' data: blob: https://ududaetdwoqtchkvqewv.supabase.co;
   style-src 'self' 'unsafe-inline';
   font-src 'self' data:;
   script-src 'self';
@@ -103,7 +115,10 @@ Only once the console is clean, rename the header to
 Verified as part of the hosting audit:
 
 - [x] `.env` untracked and gitignored; no service_role key or JWT in git history
-- [x] All 36 tables have RLS enabled with at least one policy
+- [x] All **45** public tables have RLS enabled with at least one policy
+      (re-measured 27 Aug 2026: 45 tables, 45 with RLS on, 0 with RLS on and no
+      policy. It said 36 when the audit was first written — the number grows, so
+      re-measure rather than trusting this line)
 - [x] No table leaks any row to an unauthenticated caller
 - [x] `anon` holds exactly one table privilege: INSERT on `demo_requests`
 - [x] `TRUNCATE` and `TRIGGER` revoked from `anon` and `authenticated`
@@ -111,26 +126,54 @@ Verified as part of the hosting audit:
 - [x] No source maps in the production build
 - [x] Security headers configured (`vercel.json`)
 
+Settled since:
+
+- [x] Backup that has been restored at least once — nightly, encrypted, on our
+      own hardware, with a 48-hour staleness gate
+- [x] Region decision — Frankfurt, `eu-central-1`
+
 Still open:
 
 - [ ] `.env` pointed at the live project
-- [ ] Custom SMTP
-- [ ] Leaked-password protection
-- [ ] Backup that has been restored at least once
-- [ ] Test accounts removed
-- [ ] Region decision (see below)
+- [ ] Custom SMTP — parked with the domain decision
+- [ ] Leaked-password protection — still off, confirmed by the security advisor
+- [ ] Test accounts removed — all six still present, six of ten auth users
+- [ ] **Storage policies** — `storage.objects` has RLS on and zero policies
+      while the upload code claims the first path segment is checked against the
+      caller's company. Written as `supabase/migrations-pending/37_*.sql`; must
+      be applied through Storage → Policies in the dashboard, because
+      `storage.objects` is owned by `supabase_storage_admin` and `postgres` is
+      neither superuser nor a member, so `CREATE POLICY` is refused even in the
+      Dashboard SQL editor.
+- [ ] Error monitoring — none at all, so a customer's bug reaches you only if
+      they tell you
+- [ ] Billing — no payment provider in the codebase
+- [ ] 41 missing foreign-key indexes
 - [ ] `audit_logs` retention policy — it is the fastest-growing table
 
 ---
 
-## The region question
+## The region question — answered
 
-The project is in `ap-south-1` (Mumbai). UAE PDPL (Federal Decree-Law 45/2021)
-restricts transferring personal data outside the UAE without adequate
+Kept for the reasoning, not as an open question.
+
+The project started in `ap-south-1` (Mumbai). UAE PDPL (Federal Decree-Law
+45/2021) restricts transferring personal data outside the UAE without adequate
 protection or specific safeguards, and India is not covered by a UAE adequacy
 determination. The data includes Emirates ID numbers, IBANs and salaries.
 
-**A Supabase project's region cannot be changed after creation.** Moving means
-a new project and a full data migration. Today that is 17 MB, 15 employees and
-no paying customers — it will never be cheaper. Worth a lawyer's opinion before
-the first real tenant, not after.
+A Supabase project's region cannot be changed after creation, so the move meant
+a new project and a full data migration — done while it was 17 MB and nobody was
+paying, which is the only time that is cheap.
+
+Production is now **Frankfurt, `eu-central-1`**, with backups in Nuremberg. The
+Mumbai project has deliberately not been deleted: it is the fallback if
+something about Frankfurt turns out to be wrong. It is also roughly 20
+migrations behind and must never be connected to.
+
+One consequence worth remembering: restoring that dump into a fresh Supabase
+project lands with the *target* project's default privileges, because
+`backup-supabase.sh` dumps `--no-privileges`. Run
+`ops/post-restore-grants.sql` and then `supabase/tests/guarantees.sql`
+afterwards — that is exactly the state the Frankfurt migration was first found
+in.
