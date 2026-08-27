@@ -5,6 +5,10 @@ import supabase from './services/supabase'
 import useAuthStore from './store/authStore'
 import useThemeStore from './store/themeStore'
 import PrivateRoute from './components/PrivateRoute'
+import {
+  ADMIN_HR, ADMIN_HR_MGR, SUPER_ADMIN, SCHEDULE_ROLES,
+  DOCUMENTS_ROLES, EMPLOYEES_LIST_ROLES, SETTINGS_ROLES,
+} from './data/navigation'
 import SessionTimeoutModal from './components/SessionTimeoutModal'
 import { readPendingSignup, runSelfOnboard, clearPendingSignup, isAlreadyOnboardedError } from './utils/onboarding'
 import { readPendingInviteToken, clearPendingInviteToken, acceptEmployeeInvite } from './utils/invite'
@@ -69,21 +73,8 @@ function Unauthorized() {
 // 'admin' can now read `employees`, the page itself must still hide
 // edit/delete/add UI for that role — `emp_update`/`emp_delete`/`emp_insert`
 // were not extended, so writes would 400 if attempted.
-const ADMIN_HR      = ['super_admin', 'hr_manager']
-const ADMIN_HR_MGR  = ['super_admin', 'hr_manager', 'department_manager', 'admin']
-const SUPER_ADMIN   = ['super_admin']
-const SCHEDULE_ROLES = ['super_admin', 'hr_manager', 'admin']
-const DOCUMENTS_ROLES = ['super_admin', 'hr_manager', 'admin']
-const EMPLOYEES_LIST_ROLES = ['super_admin', 'hr_manager', 'admin']
-// Migration 42 excluded only 'employee' from Settings. Session 42 (a
-// frontend-only fix, no new migration) moved My Privacy & Data — the one
-// tab every other excluded role could still see — to /profile for
-// everyone, so 'admin'/'department_manager'/
-// 'read_only' now have zero visible tabs left in Settings (Data Requests/
-// Retention/Company/KPI Config/Document Types/Shift Settings are all
-// super_admin/hr_manager-only already) — narrowed to just those two roles
-// rather than leaving the other three a route that renders an empty tab bar.
-const SETTINGS_ROLES = ['super_admin', 'hr_manager']
+// Role sets live in data/navigation.js so /permissions can render a role preview from
+// the same definitions the router obeys, rather than a copy that drifts.
 
 function App() {
   const init       = useAuthStore((s) => s.init)

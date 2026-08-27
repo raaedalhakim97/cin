@@ -1,68 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Users,
-  CalendarCheck,
-  CalendarOff,
-  CreditCard,
-  BarChart3,
-  BarChart2,
-  Newspaper,
-  Inbox,
-  Settings,
-  ShieldCheck,
-  FileText,
-  Calendar,
-  CalendarClock,
-  LogOut,
-  X,
-  UserCircle,
-  Building2,
-  Globe2,
-} from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
-import { NAV } from '../../data/vocabulary'
+import { visibleNavFor } from '../../data/navigation'
 import useUiStore from '../../store/uiStore'
 import Logo from '../Logo'
-
-// `roles` is optional — items without it render for everyone (route-level
-// guards in App.jsx are what actually block access); only items that should
-// be hidden entirely from other roles (not just redirected) set it.
-// Migration 42 — 'employee' loses Employees-list access entirely (matches
-// EMPLOYEES_LIST_ROLES in App.jsx) and Settings access entirely (they keep
-// My Schedule/My KPI/Leave/News, plus the new My Profile page below).
-// Session 42: Settings narrowed further to just super_admin/hr_manager —
-// once My Privacy & Data moved to /profile for everyone, 'admin'/
-// 'department_manager'/'read_only' had nothing left to see there either
-// (matches SETTINGS_ROLES in App.jsx).
-const SETTINGS_NAV_ROLES = ['super_admin', 'hr_manager']
-
-// Labels come from the canonical vocabulary so the sidebar and the phone app say
-// the same word for the same thing — see docs/ui-parity.md.
-const navItems = [
-  { label: NAV.home,          icon: LayoutDashboard, path: '/dashboard',      live: true },
-  { label: NAV.profile,       icon: UserCircle,       path: '/profile',        live: true },
-  { label: NAV.employees,     icon: Users,            path: '/employees',      live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
-  { label: NAV.attendance,    icon: CalendarCheck,    path: '/attendance',     live: true },
-  { label: NAV.leave,         icon: CalendarOff,      path: '/leave',          live: true },
-  { label: NAV.payroll,       icon: CreditCard,       path: '/payroll',        live: true },
-  { label: NAV.kpi,           icon: BarChart3,        path: '/kpi',            live: true },
-  { label: NAV.teamAnalytics, icon: BarChart2,        path: '/team-analytics', live: true, roles: ['super_admin', 'hr_manager'] },
-  { label: NAV.documents,     icon: FileText,         path: '/documents',      live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
-  { label: NAV.schedule,      icon: Calendar,         path: '/schedule',       live: true, roles: ['super_admin', 'hr_manager', 'admin'] },
-  { label: NAV.mySchedule,    icon: CalendarClock,    path: '/my-schedule',    live: true },
-  { label: NAV.news,          icon: Newspaper,        path: '/news',           live: true },
-  // Platform-level items. Gated on `platformOwner`, not on a role: a tenant's own
-  // super_admin runs one company and must not be shown a list of all of them.
-  // /leads was previously roles:['super_admin'], which put the demo inbox in every
-  // tenant owner's sidebar even though its RLS requires is_platform_owner — so the
-  // page could only ever come back empty for them.
-  { label: NAV.platform,      icon: Building2,        path: '/platform',       live: true, platformOwner: true },
-  { label: NAV.leads,         icon: Inbox,            path: '/leads',          live: true, platformOwner: true },
-  { label: NAV.countries,     icon: Globe2,           path: '/platform/countries', live: true, platformOwner: true },
-  { label: NAV.settings,      icon: Settings,         path: '/settings',       live: true, roles: SETTINGS_NAV_ROLES },
-  { label: NAV.access,        icon: ShieldCheck,      path: '/permissions',    live: true, roles: ['super_admin'] },
-]
 
 export default function Sidebar() {
   const location = useLocation()
@@ -72,19 +13,9 @@ export default function Sidebar() {
   const mobileNavOpen = useUiStore(s => s.mobileNavOpen)
   const closeMobileNav = useUiStore(s => s.closeMobileNav)
 
-  // A platform owner sees ONLY the platform items. They run BYOND; they are not
-  // staff at one of its companies, so Attendance, KPI, Payroll and the employee
-  // list are not theirs to look at. The route guard enforces the same rule, so a
-  // hidden link is not the only thing standing between them and a tenant page.
-  //
-  // Deliberately not a "hide these few" list: written as "platform items only", a
-  // page added to the tenant app later cannot leak into the operator's sidebar by
-  // forgetting to exclude it.
-  const visibleItems = navItems.filter(item => {
-    if (isPlatformOwner) return item.platformOwner === true
-    if (item.platformOwner) return false
-    return !item.roles || item.roles.includes(role)
-  })
+  // Item list and the rule that filters it both live in data/navigation.js, so the
+  // role preview on /permissions can show exactly this and cannot drift from it.
+  const visibleItems = visibleNavFor({ role, isPlatformOwner })
 
   return (
     <>
