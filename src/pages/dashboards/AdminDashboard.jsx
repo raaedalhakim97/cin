@@ -28,11 +28,15 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 function num(v) { return Number(v || 0) }
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0 }
 
-// audit_logs.action is a plain 'INSERT'/'UPDATE'/'DELETE' verb, and
-// table_name is a separate column — not a single 'table.ACTION' string as
-// originally described. 'wps_sif_generated' doesn't appear anywhere in the
-// live data either (WPS export isn't built yet — see Known Gaps). Adapted
+// audit_logs.action is a plain 'INSERT'/'UPDATE'/'DELETE' verb, and table_name is a
+// separate column — not a single 'table.ACTION' string as originally described. Adapted
 // to what the schema actually has, confirmed live via Supabase MCP.
+//
+// 'wps_sif_generated' is deliberately still absent from this list. generate_wps_sif now
+// has a caller (Payroll > Bank File) and does write that audit row, but it writes one on
+// every attempt including the ones that come back with validation errors. Surfacing those
+// here would fill the activity feed with "someone checked whether payroll was ready",
+// which is noise, not activity. Revisit if the row ever records success separately.
 const ACTIVITY_TABLES = ['kpi_scores', 'payroll_runs', 'user_roles']
 
 const ACTIVITY_LABEL = {

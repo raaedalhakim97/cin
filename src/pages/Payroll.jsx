@@ -4,7 +4,7 @@ import {
   Eye, EyeOff, Download, Play, Check, X, Pencil, Loader2, AlertTriangle,
   Wallet, BarChart3, Building2, Users, TrendingUp, TrendingDown, Calendar,
   ChevronRight, Banknote, ClipboardCheck, CheckCircle2, CircleDollarSign,
-  FileSpreadsheet, Clock,
+  FileSpreadsheet, Clock, Landmark,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
@@ -15,6 +15,7 @@ import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import ToastComp, { useToast } from '../components/Toast'
 import { SkeletonBlock } from '../components/Skeleton'
+import BankFileTab from '../components/payroll/BankFileTab'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1039,6 +1040,10 @@ export default function Payroll() {
     { id: 'my-payslip', label: 'My Payslip', icon: Wallet },
     ...(canRun ? [{ id: 'payroll-run', label: 'Payroll Run', icon: Play }] : []),
     ...(canSummary ? [{ id: 'summary', label: 'Summary', icon: BarChart3 }] : []),
+    // Same roles as Payroll Run, matching generate_wps_sif's own authorization check —
+    // the RPC refuses anyone who is not super_admin or hr_manager, so offering the tab
+    // more widely would only produce a permission error.
+    ...(canRun ? [{ id: 'bank-file', label: 'Bank File', icon: Landmark }] : []),
   ]
 
   return (
@@ -1085,6 +1090,9 @@ export default function Payroll() {
           )}
           {activeTab === 'summary' && canSummary && (
             <SummaryTab canExport={RUN_ROLES.has(role)} showToast={showToast} />
+          )}
+          {activeTab === 'bank-file' && canRun && (
+            <BankFileTab showToast={showToast} />
           )}
         </main>
       </div>
