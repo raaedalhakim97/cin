@@ -1192,6 +1192,27 @@ SELECT pg_temp.chk(82, 'country', 'leave policy is read by all, written by HR on
                 AND qual LIKE '%hr_manager%' AND with_check LIKE '%hr_manager%') = 1
        THEN 'read-all/write-hr' ELSE 'GATE WRONG' END);
 
+-- ── Migration 38: every foreign key has something behind it ────────────────
+
+-- 83. Postgres indexes the referenced side of a foreign key automatically and never the
+-- referencing side, so an unindexed one is a sequential scan on every query that filters
+-- the column AND on every delete of the parent — including anonymize_employee, which this
+-- product is legally obliged to complete. 41 were missing; this is what stops the 42nd
+-- arriving unnoticed.
+SELECT pg_temp.chk(83, 'perf', 'every foreign key has a supporting index', '0',
+  (WITH fk AS (
+     SELECT c.conkey, c.conrelid
+       FROM pg_constraint c
+       JOIN pg_class t ON t.oid = c.conrelid
+       JOIN pg_namespace n ON n.oid = t.relnamespace
+      WHERE c.contype = 'f' AND n.nspname = 'public'
+   )
+   SELECT count(*)::text FROM fk
+    WHERE NOT EXISTS (
+      SELECT 1 FROM pg_index i
+       WHERE i.indrelid = fk.conrelid
+         AND (i.indkey::smallint[])[0:array_length(fk.conkey, 1) - 1] = fk.conkey)));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
