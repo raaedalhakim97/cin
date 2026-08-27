@@ -18,7 +18,14 @@ const useAuthStore = create((set, get) => ({
   // all. A tenant's super_admin is not a platform owner, which is exactly the
   // distinction the operator console depends on.
   isPlatformOwner: false,
-  company: null,       // { id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone } — for TrialBanner, Profile.jsx's Privacy & Data section, and money/time formatting
+  company: null,       // { id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone, country } — for TrialBanner, Profile.jsx's Privacy & Data section, and money/time formatting
+  // The country pack for company.country: { code, name, currency, default_timezone,
+  // weekend_days, payment_file, identity_label, permit_label, verified }. This is what
+  // lets a screen say "Emirates ID" in Dubai and "National ID" in Lagos off one field,
+  // and what tells the dashboard not to ask a Nigerian company for a MOHRE number.
+  // Null when the company has no country pack on file — treat that as "no local
+  // vocabulary known" and fall back to generic wording, never to the UAE's.
+  countryRules: null,
   // Set only when the ordinary queries came back with nothing — see loadProfile.
   // It is the one thing a suspended workspace can still read about itself:
   // { company_id, company_name, plan, plan_note, plan_changed_at, role, employee_id, platform_owner }
@@ -39,7 +46,7 @@ const useAuthStore = create((set, get) => ({
       if (session) {
         await get().loadProfile(session)
       } else {
-        set({ session: null, employee: null, role: null, companyId: null, company: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
+        set({ session: null, employee: null, role: null, companyId: null, company: null, countryRules: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
       }
     })
     return subscription
@@ -78,13 +85,35 @@ const useAuthStore = create((set, get) => ({
         // whole app needs: without currency in the store, every salary figure
         // fell back to a hardcoded 'AED', which is wrong for any tenant that
         // is not in that one country.
-        .select('id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone')
+        .select('id, name, plan, trial_ends_at, created_via, privacy_contact_email, currency, timezone, country')
         .eq('id', roleData.company_id)
         .maybeSingle()
       if (companyError) {
         console.error('[authStore] company fetch failed for company_id', roleData.company_id, companyError)
       }
       company = companyData ?? null
+    }
+
+    // The country pack for whatever country this company is in. Migration 31 put
+    // identity_label, permit_label and payment_file here precisely so screens could stop
+    // saying "Emirates ID" and "MOL Establishment ID" to companies that have neither, and
+    // until now nothing read them.
+    //
+    // A separate query rather than a PostgREST embed on the company row above. The embed
+    // would save a round trip, but if the relationship hint were ever wrong the whole
+    // company fetch fails and nobody can sign in. This can fail on its own and cost only
+    // the labels.
+    let countryRules = null
+    if (company?.country) {
+      const { data: cr, error: crError } = await supabase
+        .from('country_rules')
+        .select('code, name, currency, default_timezone, weekend_days, payment_file, identity_label, permit_label, verified')
+        .eq('code', company.country)
+        .maybeSingle()
+      if (crError) {
+        console.error('[authStore] country_rules fetch failed for code', company.country, crError)
+      }
+      countryRules = cr ?? null
     }
 
     // A missing user_roles row used to have one meaning — "this login was never
@@ -96,8 +125,7 @@ const useAuthStore = create((set, get) => ({
     //
     // my_workspace() is the one reader that answers while the gate is shut — it
     // reads user_roles and company directly and reports only the caller's own row.
-    // Called only on this branch: an ordinary login still makes exactly the three
-    // queries it made before.
+    // Called only on this branch: an ordinary login does not pay for it.
     let workspace = null
     if (!roleData) {
       const { data: ws, error: wsError } = await supabase.rpc('my_workspace')
@@ -131,6 +159,7 @@ const useAuthStore = create((set, get) => ({
       // gate reads this, and an absent flag must mean "no" and never "maybe".
       isPlatformOwner: platformOwner,
       company,
+      countryRules,
       workspace,
       suspended,
       sessionToken: session.access_token,
@@ -147,7 +176,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().sessionToken
     if (token) await endUserSession(token)
     await supabase.auth.signOut()
-    set({ session: null, employee: null, role: null, companyId: null, company: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
+    set({ session: null, employee: null, role: null, companyId: null, company: null, countryRules: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
   },
 }))
 

@@ -1177,6 +1177,21 @@ SELECT pg_temp.chk(81, 'country', 'WPS validation errors are cast to text', 'cas
                THEN 'cast' ELSE 'RAISES 22P02' END
      FROM pg_proc WHERE proname = 'generate_wps_sif'));
 
+-- ── The leave policy a company actually offers ─────────────────────────────
+
+-- 82. Settings > Leave Policy is a write path into company_leave_policies, so the gate
+-- matters. Everyone in the company may READ it — an employee is entitled to know how much
+-- leave they get — and only super_admin or hr_manager may change it. An employee who could
+-- edit this could grant themselves leave before requesting it.
+SELECT pg_temp.chk(82, 'country', 'leave policy is read by all, written by HR only', 'read-all/write-hr',
+  CASE WHEN (SELECT count(*) FROM pg_policies
+              WHERE tablename = 'company_leave_policies' AND cmd = 'SELECT'
+                AND qual LIKE '%get_user_company_id%') = 1
+        AND (SELECT count(*) FROM pg_policies
+              WHERE tablename = 'company_leave_policies' AND cmd = 'ALL'
+                AND qual LIKE '%hr_manager%' AND with_check LIKE '%hr_manager%') = 1
+       THEN 'read-all/write-hr' ELSE 'GATE WRONG' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

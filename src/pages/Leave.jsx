@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
   ChevronLeft, ChevronRight, Plus, Check, X, Loader2,
   AlertTriangle, CalendarDays, Users, FileText, CheckCircle2, Ban, Clock,
@@ -51,6 +51,13 @@ const LEAVE_TYPES = [
   { value: 'study',       label: 'Study Leave',       cls: 'bg-[#00BBF9]/10 text-[#00BBF9]', dot: 'bg-[#00BBF9]' },
 ]
 
+// LEAVE_TYPES is presentation only — the label and colour for a type. It is NOT the
+// list of leave a company offers. company_leave_policies decides that, per company,
+// seeded from its country pack and then owned by the company. A UK company must never
+// be offered Hajj Leave and a Nigerian one must never see a balance card for it.
+//
+// The full map stays because history has to render: a request submitted under a type
+// the company later stopped offering still needs its name and colour in the table.
 const LT = Object.fromEntries(LEAVE_TYPES.map(t => [t.value, t]))
 
 const STATUS_META = {
@@ -170,10 +177,13 @@ function BalanceCard({ type, balance }) {
 
 // ─── Request Modal ────────────────────────────────────────────────────────────
 
-function RequestModal({ onClose, onSubmit, saving }) {
+function RequestModal({ onClose, onSubmit, saving, offeredTypes }) {
   const today = localDateStr(new Date())
   const [form, setForm] = useState({
-    leave_type: 'annual',
+    // First type this company actually grants, not a hardcoded 'annual' — a company
+    // whose policy omits annual leave would otherwise open the form pre-set to
+    // something it will refuse.
+    leave_type: offeredTypes[0]?.value ?? 'annual',
     start_date: today,
     end_date:   today,
     reason:     '',
@@ -214,7 +224,7 @@ function RequestModal({ onClose, onSubmit, saving }) {
           <div>
             <label className="block text-sm font-semibold text-[#1A1A1A] dark:text-white mb-1.5">Leave Type</label>
             <select value={form.leave_type} onChange={e => set('leave_type', e.target.value)} className={INPUT}>
-              {LEAVE_TYPES.map(t => (
+              {offeredTypes.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
@@ -389,7 +399,7 @@ function RejectModal({ request, onClose, onConfirm, saving }) {
 
 // ─── My Leave Tab ─────────────────────────────────────────────────────────────
 
-function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, cancelLoadingId, canWrite }) {
+function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, cancelLoadingId, canWrite, offeredTypes, policiesLoaded }) {
   const balanceMap = Object.fromEntries((balances ?? []).map(b => [b.leave_type, b]))
 
   const pending  = (requests ?? []).filter(r => r.status === 'pending').length
@@ -415,13 +425,27 @@ function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, can
       {/* Balance Cards */}
       <section>
         <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white mb-4">Leave Balances — {new Date().getFullYear()}</h2>
-        {loading ? (
+        {loading || !policiesLoaded ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
             {[0, 1, 2, 3, 4, 5].map(i => <SkeletonBlock key={i} className="h-28" />)}
           </div>
+        ) : offeredTypes.length === 0 ? (
+          // A company whose country has no verified pack, and whose HR has not set a
+          // policy yet, genuinely has no leave types. Saying so is the honest answer —
+          // the alternative was showing all nine and letting the database refuse them.
+          <div className="flex items-start gap-3 p-5 rounded-xl bg-[#FF8C42]/10 border border-[#FF8C42]/20">
+            <AlertTriangle size={18} className="text-[#FF8C42] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-[#FF8C42]">No leave policy set yet</p>
+              <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1">
+                Your company has not defined which leave types it offers, so there is nothing
+                to request. Ask HR to set the policy — Settings, then Company Settings.
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {LEAVE_TYPES.map(t => (
+            {offeredTypes.map(t => (
               <BalanceCard key={t.value} type={t.value} balance={balanceMap[t.value] ?? null} />
             ))}
           </div>
@@ -595,7 +619,18 @@ function TeamRequestsTab({ requests, loading, onApprove, onReject, approveLoadin
 
 // ─── Leave Calendar ───────────────────────────────────────────────────────────
 
-function LeaveCalendar({ leaves, viewDate, onPrev, onNext, loading, isHR }) {
+function LeaveCalendar({ leaves, viewDate, onPrev, onNext, loading, isHR, offeredTypes }) {
+  // What this company offers, plus anything actually shown on this month's calendar.
+  // The union matters: a leave taken under a type the company has since dropped still
+  // appears as a coloured dot, and a dot with no key is a puzzle rather than information.
+  const legendTypes = useMemo(() => {
+    const shown = new Set([
+      ...offeredTypes.map(t => t.value),
+      ...(leaves ?? []).map(l => l.leave_type),
+    ])
+    return LEAVE_TYPES.filter(t => shown.has(t.value))
+  }, [offeredTypes, leaves])
+
   const year       = viewDate.getFullYear()
   const month      = viewDate.getMonth()
   const firstDay   = new Date(year, month, 1)
@@ -709,8 +744,10 @@ function LeaveCalendar({ leaves, viewDate, onPrev, onNext, loading, isHR }) {
       )}
 
       {/* Legend */}
+      {/* Legend covers what this company offers, plus any older type still visible in
+          the month being viewed — so a request made before a policy change keeps its key. */}
       <div className="flex flex-wrap gap-x-4 gap-y-2 mt-5 pt-4 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
-        {LEAVE_TYPES.map(t => (
+        {legendTypes.map(t => (
           <div key={t.value} className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full ${t.dot}`} />
             <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">{t.label}</span>
@@ -735,6 +772,8 @@ export default function Leave() {
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [rejectTarget,    setRejectTarget]    = useState(null)
 
+  const [policies,     setPolicies]     = useState([])
+  const [policiesLoaded, setPoliciesLoaded] = useState(false)
   const [balances,     setBalances]     = useState([])
   const [myRequests,   setMyRequests]   = useState([])
   const [teamRequests, setTeamRequests] = useState([])
@@ -756,7 +795,28 @@ export default function Leave() {
 
   const { toast, showToast } = useToast()
 
+  // The leave this company actually offers, in LEAVE_TYPES' order so the UI stays
+  // stable rather than following whatever order Postgres returned the policy rows in.
+  const offeredTypes = useMemo(() => {
+    const granted = new Set(policies.map(p => p.leave_type))
+    return LEAVE_TYPES.filter(t => granted.has(t.value))
+  }, [policies])
+
   // ── Fetchers ────────────────────────────────────────────────────────────────
+
+  // What this company grants. company_leave_policies is readable by everyone in the
+  // company — an employee is entitled to know how much leave they get — so this is the
+  // same query for every role.
+  const fetchPolicies = useCallback(async () => {
+    if (!companyId) return
+    const { data, error } = await supabase
+      .from('company_leave_policies')
+      .select('leave_type, days_per_year, accrual, min_service_months, source')
+      .eq('company_id', companyId)
+    if (error) console.error('[Leave] company_leave_policies fetch failed', error)
+    setPolicies(data ?? [])
+    setPoliciesLoaded(true)
+  }, [companyId])
 
   const fetchBalances = useCallback(async () => {
     if (!employee?.id) return
@@ -828,6 +888,7 @@ export default function Leave() {
     setLoadingCal(false)
   }, [])
 
+  useEffect(() => { fetchPolicies() },               [fetchPolicies])
   useEffect(() => { fetchBalances() },               [fetchBalances])
   useEffect(() => { fetchMyRequests() },             [fetchMyRequests])
   useEffect(() => { if (canManage) fetchTeamRequests() }, [canManage, fetchTeamRequests])
@@ -1019,9 +1080,16 @@ export default function Leave() {
                 Track balances, request leave, and manage team approvals
               </p>
             </div>
+            {/* Disabled until we know what this company offers, and stays disabled if the
+                answer is nothing. Opening the form on an empty policy would show an empty
+                Leave Type select and fail on submit — a dead end dressed as an action. */}
             <button
               onClick={() => setShowRequestModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors shadow-sm"
+              disabled={!policiesLoaded || offeredTypes.length === 0}
+              title={policiesLoaded && offeredTypes.length === 0
+                ? 'Your company has not set which leave types it offers yet'
+                : undefined}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00D4A0] transition-colors shadow-sm"
             >
               <Plus size={15} />
               Request Leave
@@ -1061,6 +1129,8 @@ export default function Leave() {
               onCancel={cancelRequest}
               cancelLoadingId={cancelLoadingId}
               canWrite
+              offeredTypes={offeredTypes}
+              policiesLoaded={policiesLoaded}
             />
           )}
 
@@ -1084,6 +1154,7 @@ export default function Leave() {
               onNext={() => setCalView(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
               loading={loadingCal}
               isHR={isHR}
+              offeredTypes={offeredTypes}
             />
           )}
         </main>
@@ -1096,6 +1167,7 @@ export default function Leave() {
           onClose={() => setShowRequestModal(false)}
           onSubmit={submitRequest}
           saving={requestSaving}
+          offeredTypes={offeredTypes}
         />
       )}
 

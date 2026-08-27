@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   FileText, Database, Mail,
-  X, Loader2, AlertTriangle, Building2, ClipboardList, Save, Sliders, CalendarClock,
+  X, Loader2, AlertTriangle, Building2, ClipboardList, Save, Sliders, CalendarClock, CalendarDays,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
@@ -10,6 +10,7 @@ import Header from '../components/layout/Header'
 import KpiConfigTab from '../components/kpi/KpiConfigTab'
 import DocumentTypesSettingsTab from '../components/documents/DocumentTypesSettingsTab'
 import ShiftSettingsTab from '../components/schedule/ShiftSettingsTab'
+import LeavePolicySettingsTab from '../components/leave/LeavePolicySettingsTab'
 import ToastComp, { useToast } from '../components/Toast'
 import { SkeletonBlock } from '../components/Skeleton'
 
@@ -47,6 +48,9 @@ const TABS = [
   { key: 'kpi-config', label: 'KPI Configuration', icon: Sliders,      roles: ['super_admin'] },
   { key: 'document-types', label: 'Document Types', icon: FileText,   roles: ['super_admin', 'hr_manager'] },
   { key: 'shift-settings', label: 'Shift Settings', icon: CalendarClock, roles: ['super_admin', 'hr_manager'] },
+  // Same roles as company_leave_policies_write allows — offering it to anyone else
+  // would render a screen whose every save is refused by RLS.
+  { key: 'leave-policy', label: 'Leave Policy', icon: CalendarDays, roles: ['super_admin', 'hr_manager'] },
 ]
 
 const INPUT =
@@ -558,6 +562,9 @@ export default function Settings() {
           )}
           {tab === 'shift-settings' && (role === 'super_admin' || role === 'hr_manager') && (
             <ShiftSettingsTab companyId={companyId} showToast={showToast} />
+          )}
+          {tab === 'leave-policy' && (role === 'super_admin' || role === 'hr_manager') && (
+            <LeavePolicySettingsTab companyId={companyId} showToast={showToast} />
           )}
         </main>
       </div>
