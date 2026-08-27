@@ -14,6 +14,7 @@ import {
   UserX,
 } from 'lucide-react'
 import supabase from '../../services/supabase'
+import useAuthStore from '../../store/authStore'
 import { localDateStr } from '../../utils/exportHelpers'
 import StatCard from '../../components/dashboard/StatCard'
 import LatestNewsWidget from '../../components/dashboard/LatestNewsWidget'
@@ -24,6 +25,10 @@ function fmtDate(d) {
 }
 
 export default function HRDashboard() {
+  // See AdminDashboard — 'none' means no bank salary file exists for this country, so
+  // counting employees against UAE payment fields would report permanent non-compliance.
+  const hasBankFile = (useAuthStore(s => s.countryRules?.payment_file) ?? 'none') !== 'none'
+
   const [loading, setLoading] = useState(true)
   const [activeCount, setActiveCount] = useState(0)
   const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
@@ -224,7 +229,12 @@ export default function HRDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={FileCheck2} label="Data Subject Requests Pending" value={String(compliance.dsrPending)} tone={compliance.dsrPending ? 'orange' : 'neutral'} />
           <StatCard icon={ShieldCheck} label="Consent Records This Month" value={String(compliance.consentThisMonth)} tone="mint" />
-          <StatCard icon={AlertTriangle} label="Employees Missing Payment Details" value={String(compliance.missingWps)} tone={compliance.missingWps ? 'red' : 'neutral'} />
+          {/* Counts employees missing a labour card, IBAN and agent routing code — the
+              three fields a UAE WPS SIF needs. Hidden where BYOND generates no bank file,
+              rather than reporting everyone as non-compliant forever. */}
+          {hasBankFile && (
+            <StatCard icon={AlertTriangle} label="Employees Missing Payment Details" value={String(compliance.missingWps)} tone={compliance.missingWps ? 'red' : 'neutral'} />
+          )}
           <Link to="/documents" className="block">
             <StatCard icon={FileText} label="Employees Non-Compliant" value={String(compliance.nonCompliantEmployees)} tone={compliance.nonCompliantEmployees ? 'red' : 'neutral'} />
           </Link>

@@ -200,7 +200,7 @@ export default function PlatformCompany() {
   }, [companyId, reloadKey])
 
   const c = state?.company
-  const ccy = c?.currency ?? 'AED'
+  const ccy = c?.currency ?? ''   // NOT NULL since migration 35 — see PayslipPDF
 
   return (
     <div className="flex min-h-screen bg-[#F5F5F0] dark:bg-[#0F0F0F]">
@@ -436,7 +436,7 @@ function Contacts({ companyId, rows, onChanged }) {
                  onChange={(e) => setF({ ...f, full_name: e.target.value })} />
           <input className={input} placeholder="Position (Managing Director)" value={f.position_title}
                  onChange={(e) => setF({ ...f, position_title: e.target.value })} />
-          <input className={input} placeholder="+971 50 000 0000" value={f.phone}
+          <input className={input} placeholder="Include the country code" value={f.phone}
                  onChange={(e) => setF({ ...f, phone: e.target.value })} />
           <input className={input} type="email" placeholder="name@company.com" value={f.email}
                  onChange={(e) => setF({ ...f, email: e.target.value })} />
@@ -900,7 +900,7 @@ function Support({ companyId, rows, onChanged }) {
 function Documents({ rows }) {
   return (
     <Section icon={FileText} title="Company documents"
-      subtitle="Trade licence, VAT certificate, the signed contract. Uploaded by the company, in their own app.">
+      subtitle="Registration, tax certificate, the signed contract. Uploaded by the company, in their own app.">
       {rows.length === 0 ? (
         <Empty>No company-level documents on file.</Empty>
       ) : (

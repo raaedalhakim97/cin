@@ -436,6 +436,10 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
 // ─── Profile tab ─────────────────────────────────────────────────────────────
 
 function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, onToggleCanPostFeed, togglingFeedAccess, onOpenDocuments, showToast }) {
+  // "Emirates ID" in Dubai, "National ID" in Lagos — same column, the country supplies
+  // the word. country_rules.identity_label existed since migration 31 and nothing read it.
+  const identityLabel = useAuthStore(s => s.countryRules?.identity_label) ?? 'National ID'
+
   return (
     <div className="space-y-6">
       {!employee.user_id && (
@@ -473,7 +477,7 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
             {/* Contact + sensitive */}
             <InfoRow icon={Mail}    label="Email"       value={employee.email} />
             <InfoRow icon={Phone}   label="Phone"       value={employee.phone} />
-            <InfoRow icon={Shield}  label="National ID" value={maskNationalId(employee.national_id)} />
+            <InfoRow icon={Shield}  label={identityLabel} value={maskNationalId(employee.national_id)} />
             <InfoRow icon={CreditCard} label="Bank Account" value={maskBankAccount()} />
           </div>
         </div>

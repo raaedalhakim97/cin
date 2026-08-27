@@ -230,7 +230,11 @@ function Row({ label, value, danger }) {
 export default function PayslipPDF({ run, employee, company }) {
   const gross = computeGross(run)
   const net   = computeNet(gross, run.deductions)
-  const currency = company?.currency || 'AED'
+  // No 'AED' fallback. company.currency has been NOT NULL since migration 35 and comes
+  // from the country pack, so the fallback could only ever fire for a company whose
+  // currency was unset — and printing dirhams on that company's payslip was the bug the
+  // fallback looked like it was preventing.
+  const currency = company?.currency ?? ''
   const generatedOn = new Date().toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
