@@ -1265,6 +1265,93 @@ SELECT pg_temp.chk(88, 'kpi', 'advice puts what you are failing above what you c
             LIKE '%shortfall%'
        THEN 'banded' ELSE 'NAIVE' END);
 
+-- ═══ 21. A manager manages their own department — migrations 44 to 47 ══════
+-- Raaed settled this after the engine was built: "Manager only responsible on their
+-- department, it is like employee reporting to department manager. HR the whole company,
+-- report to CEO." Every KPI table until then said role IN (super_admin, hr_manager,
+-- department_manager) and stopped, so a Sales manager could rate an Operations employee.
+--
+-- 89 and 90 are behavioural rather than structural, because the rule is a data question
+-- and a policy that merely mentions kpi_manages_employee could still be asking it about
+-- the wrong row.
+DO $$
+DECLARE
+  v_mgr_user uuid; v_mgr_emp uuid; v_mgr_dept uuid; v_other uuid;
+  v_hr_user uuid; v_hr_emp uuid;
+  v_ok text;
+BEGIN
+  SELECT ur.user_id, e.id, e.department_id INTO v_mgr_user, v_mgr_emp, v_mgr_dept
+    FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+   WHERE ur.role = 'department_manager' AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  SELECT e.id INTO v_other FROM employees e
+   WHERE e.department_id IS NOT NULL AND e.department_id <> v_mgr_dept
+     AND e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr_emp)
+   LIMIT 1;
+
+  -- 89. Somebody else's department is out of reach.
+  IF v_mgr_user IS NULL OR v_other IS NULL THEN
+    -- Vacuous rather than silently absent: this database has no department manager with
+    -- a second department to test against, and saying so is better than a green tick.
+    PERFORM pg_temp.chk(89, 'kpi', 'a manager cannot rate another department',
+      'no manager to test', 'no manager to test');
+    PERFORM pg_temp.chk(90, 'kpi', 'nobody manages themselves',
+      'no manager to test', 'no manager to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_ok := CASE WHEN public.kpi_manages_employee(v_other) THEN 'REACHES THEM' ELSE 'out of reach' END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(89, 'kpi', 'a manager cannot rate another department',
+      'out of reach', v_ok);
+
+    -- 90. And not themselves. This is what puts a manager's own review in HR's hands and
+    -- HR's in the owner's, which is the chain Raaed described.
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_ok := CASE WHEN public.kpi_manages_employee(v_mgr_emp) THEN 'RATES HIMSELF' ELSE 'not himself' END;
+    PERFORM pg_temp.as_nobody();
+
+    SELECT ur.user_id, e.id INTO v_hr_user, v_hr_emp
+      FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+     WHERE ur.role = 'hr_manager' LIMIT 1;
+    IF v_hr_user IS NOT NULL AND v_ok = 'not himself' THEN
+      PERFORM pg_temp.as_user(v_hr_user);
+      v_ok := CASE WHEN public.kpi_manages_employee(v_hr_emp) THEN 'HR RATES HERSELF' ELSE 'not himself' END;
+      PERFORM pg_temp.as_nobody();
+    END IF;
+    PERFORM pg_temp.chk(90, 'kpi', 'nobody manages themselves', 'not himself', v_ok);
+  END IF;
+END $$;
+
+-- 91. The three report functions are SECURITY DEFINER and take a review id. Until
+-- migration 45 that id was the only access control they had: hold one and you got the
+-- score, the ranked weaknesses and both sides' disagreements, whoever you were.
+SELECT pg_temp.chk(91, 'kpi', 'the review reports check who is asking', 'all three',
+  CASE WHEN (SELECT count(*) FROM pg_proc
+              WHERE proname IN ('kpi_review_score','kpi_review_opportunities','kpi_review_disagreements')
+                AND pg_get_functiondef(oid) LIKE '%kpi_review_is_visible%') = 3
+       THEN 'all three' ELSE 'UNGUARDED' END);
+
+-- 92. The review stages are enforced on the per-criterion ratings, not only on the old
+-- score column. Without this an employee could revise their self-rating after reading the
+-- manager's, which is the one thing a self-assessment must not allow.
+SELECT pg_temp.chk(92, 'kpi', 'ratings cannot be written out of stage', 'guarded',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+     WHERE t.tgrelid = 'public.kpi_review_lines'::regclass AND NOT t.tgisinternal
+       AND p.proname = 'kpi_review_line_stage_guard')
+  THEN 'guarded' ELSE 'UNGUARDED' END);
+
+-- 93. An "automatic" criterion is actually measured. The schema had auto_value and the
+-- thresholds from the start and nothing ever wrote a number into the column, so every
+-- automated criterion sat unrated forever behind a badge saying it was automatic.
+SELECT pg_temp.chk(93, 'kpi', 'automatic criteria are measured from real attendance', 'measured',
+  CASE WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'kpi_metric_value')
+        AND EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                     WHERE t.tgrelid = 'public.kpi_review_cycles'::regclass AND NOT t.tgisinternal
+                       AND p.proname = 'kpi_cycle_refresh_auto_lines')
+       THEN 'measured' ELSE 'DECORATIVE' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

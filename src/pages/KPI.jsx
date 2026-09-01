@@ -30,6 +30,8 @@ import PDPTab from '../components/kpi/PDPTab'
 import ReviewCyclesTab from '../components/kpi/ReviewCyclesTab'
 import ManagerReviewTab from '../components/kpi/ManagerReviewTab'
 import SelfReviewCard from '../components/kpi/SelfReviewCard'
+import ScorecardsTab from '../components/kpi/scorecard/ScorecardsTab'
+import EvaluationTab from '../components/kpi/scorecard/EvaluationTab'
 import ToastComp, { useToast } from '../components/Toast'
 import { SkeletonBlock } from '../components/Skeleton'
 
@@ -1723,6 +1725,11 @@ export default function KPI() {
 
   const tabs = [
     { id: 'my-kpi', label: 'My KPI', icon: Gauge },
+    // The custom scorecard system (migrations 40-46). Evaluation is for everybody —
+    // your own review lives there, and a manager's team appears alongside it. Scorecards
+    // is where the criteria, the weights and the approvals are, so it needs a team role.
+    { id: 'evaluation', label: 'Evaluation', icon: ClipboardCheck },
+    ...(canTeam ? [{ id: 'scorecards', label: 'Scorecards', icon: Target }] : []),
     { id: 'history', label: 'History', icon: History },
     ...(canTeam ? [{ id: 'team', label: 'Team KPI', icon: Users }] : []),
     // Scoring the team is canTeam, not canWarn: a department_manager is the
@@ -1772,6 +1779,12 @@ export default function KPI() {
               evalFreq={evalSettings.freq} evalAnchor={evalSettings.anchor}
               role={role}
             />
+          )}
+          {activeTab === 'evaluation' && (
+            <EvaluationTab me={employee} role={role} showToast={showToast} />
+          )}
+          {activeTab === 'scorecards' && canTeam && (
+            <ScorecardsTab companyId={companyId} role={role} me={employee} showToast={showToast} />
           )}
           {activeTab === 'history' && (
             <HistoryTab employee={employee} />
