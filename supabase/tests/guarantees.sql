@@ -1213,6 +1213,58 @@ SELECT pg_temp.chk(83, 'perf', 'every foreign key has a supporting index', '0',
        WHERE i.indrelid = fk.conrelid
          AND (i.indkey::smallint[])[0:array_length(fk.conkey, 1) - 1] = fk.conkey)));
 
+-- ── Migrations 40-43: the custom KPI system ────────────────────────────────
+
+-- 84. The five-level scale is fixed platform-wide. If a company could set its own point
+-- values, "Meets expectations" would mean a different number in every tenant and no score
+-- would be comparable to any other.
+SELECT pg_temp.chk(84, 'kpi', 'the level scale is 20/40/60/80/100', '20|40|60|80|100',
+  concat_ws('|', kpi_level_points(1::smallint), kpi_level_points(2::smallint),
+                 kpi_level_points(3::smallint), kpi_level_points(4::smallint),
+                 kpi_level_points(5::smallint)));
+
+-- 85. RLS decides which rows, never which columns. Without a trigger an employee could
+-- write their own manager_level and score themselves — the hole migration 26 closed on
+-- kpi_scores, which this table would otherwise have reopened.
+SELECT pg_temp.chk(85, 'kpi', 'an employee cannot write their own manager rating', 'guarded',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+     WHERE t.tgrelid = 'public.kpi_review_lines'::regclass AND NOT t.tgisinternal
+       AND p.proname = 'kpi_review_line_self_writes_self_only')
+  THEN 'guarded' ELSE 'UNGUARDED' END);
+
+-- 86. Both approval chains are enforced by a trigger, not by a status string the client
+-- sets. employee_scorecards shipped in migration 41 with the states and none of the
+-- enforcement, so any department_manager could approve their own exception — found by
+-- testing, fixed in 43.
+SELECT pg_temp.chk(86, 'kpi', 'both scorecard approval chains are enforced', 'both',
+  CASE WHEN EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                     WHERE t.tgrelid = 'public.kpi_templates'::regclass AND NOT t.tgisinternal
+                       AND p.proname = 'validate_kpi_template_transition')
+        AND EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                     WHERE t.tgrelid = 'public.employee_scorecards'::regclass AND NOT t.tgisinternal
+                       AND p.proname = 'validate_employee_scorecard_transition')
+       THEN 'both' ELSE 'MISSING ONE' END);
+
+-- 87. Nobody is scored against weights that do not total 100. Templates are checked at
+-- submission; an override bypassed that entirely until migration 43 added the check at
+-- activation and again where a review is opened.
+SELECT pg_temp.chk(87, 'kpi', 'weights must total 100 before scoring', 'checked',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'validate_employee_scorecard_transition') LIKE '%employee_scorecard_weight_total%'
+        AND (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'kpi_generate_review_lines') LIKE '%employee_scorecard_weight_total%'
+       THEN 'checked' ELSE 'UNCHECKED' END);
+
+-- 88. The recommendation engine ranks a shortfall above an upside. Because the scale is
+-- linear, "points gained by going up one level" is always 20 * weight / total, so a naive
+-- ranking is just "your heaviest criterion" and would tell someone at Exceeds to chase
+-- Outstanding while they sit at Poor elsewhere.
+SELECT pg_temp.chk(88, 'kpi', 'advice puts what you are failing above what you could polish', 'banded',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'kpi_review_opportunities')
+            LIKE '%shortfall%'
+       THEN 'banded' ELSE 'NAIVE' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
