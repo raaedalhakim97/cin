@@ -146,11 +146,6 @@ export default function EmployeeNew() {
       contract_end_date:   values.contract_type === 'fixed_term' ? (values.contract_end_date || null) : null,
       hire_date:           values.hire_date,
       probation_end_date:  values.probation_end_date || null,
-      basic_salary:        values.basic_salary        ? parseFloat(values.basic_salary)        : null,
-      housing_allowance:   values.housing_allowance   ? parseFloat(values.housing_allowance)   : null,
-      transport_allowance: values.transport_allowance ? parseFloat(values.transport_allowance) : null,
-      other_allowance:     values.other_allowance     ? parseFloat(values.other_allowance)     : null,
-      bank_account:        values.bank_account || null,
       // Profile-first invite flow (migration 42) — every employee created
       // from this form starts as 'invited', never 'active'. emp_code is
       // never set here — the aa_emp_code DB trigger assigns it on insert.
@@ -167,10 +162,39 @@ export default function EmployeeNew() {
       console.error('[EmployeeNew] insert failed', error)
       setServerError('Something went wrong saving this employee. Please check the fields and try again.')
       setSubmitting(false)
-    } else {
-      setSuccess(true)
-      setTimeout(() => navigate(`/employees/${data.id}`), 1200)
+      return
     }
+
+    // Pay is a second write because it is a second table (migration 52): the salary and
+    // bank details left the employee record so that reading an employee no longer means
+    // reading their pay. Only written when something was actually entered — an empty row
+    // would say "we hold pay data for this person" when we do not.
+    const pay = {
+      basic_salary:        values.basic_salary        ? parseFloat(values.basic_salary)        : null,
+      housing_allowance:   values.housing_allowance   ? parseFloat(values.housing_allowance)   : null,
+      transport_allowance: values.transport_allowance ? parseFloat(values.transport_allowance) : null,
+      other_allowance:     values.other_allowance     ? parseFloat(values.other_allowance)     : null,
+      bank_account:        values.bank_account || null,
+    }
+
+    if (Object.values(pay).some((v) => v != null)) {
+      const { error: payError } = await supabase
+        .from('employee_pay')
+        .insert({ employee_id: data.id, company_id: payload.company_id, ...pay })
+      if (payError) {
+        // The person exists; only their pay did not save. Saying so beats a generic
+        // failure that makes it look as though nothing was created — they would add the
+        // employee twice.
+        console.error('[EmployeeNew] employee_pay insert failed', payError)
+        setServerError('The employee was created, but their salary details did not save. Open their record and add them there.')
+        setSubmitting(false)
+        setTimeout(() => navigate(`/employees/${data.id}`), 2500)
+        return
+      }
+    }
+
+    setSuccess(true)
+    setTimeout(() => navigate(`/employees/${data.id}`), 1200)
   }
 
   return (

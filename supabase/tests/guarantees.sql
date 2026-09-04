@@ -1582,6 +1582,91 @@ SELECT pg_temp.chk(101, 'offboarding', 'employment status is a fixed set', 'cons
        AND pg_get_constraintdef(oid) LIKE '%terminated%')
   THEN 'constrained' ELSE 'FREE TEXT' END);
 
+-- ═══ 25. Pay is not part of the employee record — migration 52 ════════════
+-- Finding 1 of the logic audit, measured with the company's own "managers can see
+-- salaries" setting switched OFF: the auditor read all 12 salaries, operations read all 12,
+-- and a department manager read their team's. The setting guards payroll_runs; salary sat
+-- on the employee record, and RLS decides which rows you may read, never which columns.
+--
+-- 102 is behavioural because that is the only thing that settles it: the columns could be
+-- moved and a policy written and still hand the row to the wrong person.
+DO $$
+DECLARE
+  v_uid uuid; v_role text; v_seen int; v_ok text; v_bad text := '';
+BEGIN
+  FOR v_uid, v_role IN
+    SELECT ur.user_id, ur.role FROM user_roles ur
+     WHERE ur.role IN ('read_only', 'admin', 'department_manager', 'employee')
+  LOOP
+    PERFORM pg_temp.as_user(v_uid);
+    -- Their own pay is theirs; anything beyond one row is somebody else's.
+    SELECT count(*) INTO v_seen FROM employee_pay
+     WHERE employee_id IS DISTINCT FROM get_user_employee_id(v_uid);
+    PERFORM pg_temp.as_nobody();
+    IF v_seen > 0 THEN
+      v_bad := v_bad || format('%s reads %s others; ', v_role, v_seen);
+    END IF;
+  END LOOP;
+
+  PERFORM pg_temp.chk(102, 'privacy', 'only HR and the owner read other people''s pay',
+    'nobody else does', CASE WHEN v_bad = '' THEN 'nobody else does' ELSE v_bad END);
+END $$;
+
+-- 103. And HR can still do their job. A rule that hides pay from everyone is not a fix, it
+-- is an outage — this is the assertion that would fail if somebody "tightened" the policy
+-- by dropping the role check instead of narrowing it.
+DO $$
+DECLARE v_uid uuid; v_seen int;
+BEGIN
+  SELECT user_id INTO v_uid FROM user_roles WHERE role = 'hr_manager' LIMIT 1;
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(103, 'privacy', 'HR still reads pay', 'no HR to test', 'no HR to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_seen FROM employee_pay;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(103, 'privacy', 'HR still reads pay', 'some',
+      CASE WHEN v_seen > 0 THEN 'some' ELSE 'NONE - the fix broke payroll' END);
+  END IF;
+END $$;
+
+-- 104. Nobody edits their own salary. The read policy lets you see your own pay, which is
+-- right; the write policy must not, and the two are easy to write as one by accident.
+DO $$
+DECLARE v_uid uuid; v_emp uuid; v_before numeric; v_after numeric; v_ok text;
+BEGIN
+  SELECT e.user_id, e.id, p.basic_salary INTO v_uid, v_emp, v_before
+    FROM employee_pay p JOIN employees e ON e.id = p.employee_id
+    JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE p.basic_salary IS NOT NULL AND ur.role NOT IN ('super_admin', 'hr_manager')
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(104, 'privacy', 'nobody raises their own salary',
+      'no fixture to test', 'no fixture to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    BEGIN
+      UPDATE employee_pay SET basic_salary = v_before + 50000 WHERE employee_id = v_emp;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    PERFORM pg_temp.as_nobody();
+    SELECT basic_salary INTO v_after FROM employee_pay WHERE employee_id = v_emp;
+    PERFORM pg_temp.chk(104, 'privacy', 'nobody raises their own salary', 'unchanged',
+      CASE WHEN v_after = v_before THEN 'unchanged' ELSE 'CHANGED IT' END);
+  END IF;
+END $$;
+
+-- 105. And pay is gone from employees rather than duplicated there. Until the columns are
+-- actually dropped the data lives in two places and the old one is still readable by
+-- everyone entitled to the row, which is the finding, unfixed.
+SELECT pg_temp.chk(105, 'privacy', 'no pay columns left on the employee record', '0',
+  (SELECT count(*)::text FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'employees'
+      AND column_name IN ('basic_salary', 'housing_allowance', 'transport_allowance',
+                          'other_allowance', 'bank_account', 'iban',
+                          'agent_bank_routing_code')));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

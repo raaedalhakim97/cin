@@ -7,6 +7,15 @@ import {
   FileSpreadsheet, Clock, Landmark,
 } from 'lucide-react'
 import supabase from '../services/supabase'
+
+// employee_pay arrives as an embedded row (or an empty array when the caller may not read
+// it, or when nobody has entered pay for this person yet). Everything downstream wants a
+// plain object, and an absent row must read as zeroes rather than blow up mid-run.
+function payOf(emp) {
+  const pay = emp?.employee_pay
+  if (Array.isArray(pay)) return pay[0] ?? {}
+  return pay ?? {}
+}
 import useAuthStore from '../store/authStore'
 import { maskSalary } from '../utils/security'
 import { exportToExcel } from '../utils/exportHelpers'
@@ -538,7 +547,12 @@ function PayrollRunTab({ companyId, role, showToast }) {
     const [{ data: emps }, { data: runRows }] = await Promise.all([
       supabase
         .from('employees')
-        .select('id, full_name, job_title, department_id, status, basic_salary, housing_allowance, transport_allowance, other_allowance, departments!employees_department_id_fkey(name)')
+        // Pay moved off the employee record in migration 52 — the columns were readable by
+        // every role entitled to the row, including the auditor and operations. Embedded
+        // rather than fetched separately so a run is still built from one query; the
+        // employee_pay policy returns nothing here unless the caller is HR or the owner,
+        // which is exactly who may draft a payroll run.
+        .select('id, full_name, job_title, department_id, status, departments!employees_department_id_fkey(name), employee_pay!employee_pay_employee_id_fkey(basic_salary, housing_allowance, transport_allowance, other_allowance)')
         .neq('status', 'terminated')
         .order('full_name'),
       supabase
@@ -584,10 +598,10 @@ function PayrollRunTab({ companyId, role, showToast }) {
           employee_id:          r.emp.id,
           period_year:          period.year,
           period_month:         period.month,
-          basic_salary:         r.emp.basic_salary || 0,
-          housing_allowance:    r.emp.housing_allowance || 0,
-          transport_allowance:  r.emp.transport_allowance || 0,
-          other_allowance:      r.emp.other_allowance || 0,
+          basic_salary:         payOf(r.emp).basic_salary || 0,
+          housing_allowance:    payOf(r.emp).housing_allowance || 0,
+          transport_allowance:  payOf(r.emp).transport_allowance || 0,
+          other_allowance:      payOf(r.emp).other_allowance || 0,
           overtime_pay:         0,
           performance_bonus:    0,
           deductions:           0,

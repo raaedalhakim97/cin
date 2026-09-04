@@ -57,6 +57,17 @@ function timeAgo(iso) {
   return `${day}d ago`
 }
 
+// "Missing payment details" means the bank cannot be paid for this person: no labour card,
+// or no IBAN and routing code. Since migration 52 the bank fields live on employee_pay, so
+// a person with no pay row at all is missing them too — which the old `iban.is.null` filter
+// could not express once the column had gone.
+function countMissingPayDetails(rows) {
+  return (rows ?? []).filter((e) => {
+    const pay = (Array.isArray(e.employee_pay) ? e.employee_pay[0] : e.employee_pay) ?? {}
+    return !e.labour_card_number || !pay.iban || !pay.agent_bank_routing_code
+  }).length
+}
+
 export default function AdminDashboard() {
   const companyId = useAuthStore(s => s.companyId)
   // 'none' means BYOND produces no bank salary file for this country, so the UAE
@@ -89,7 +100,7 @@ export default function AdminDashboard() {
       { data: auditRows },
       { count: dsrPendingCount },
       { count: consentCount },
-      { count: missingWpsCount },
+      { data: payDetailRows },
       { count: docsExpiring },
       { count: todayShifts },
       { count: noShows },
@@ -105,8 +116,12 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('data_subject_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('consent_records').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
-      supabase.from('employees').select('id', { count: 'exact', head: true })
-        .or('iban.is.null,labour_card_number.is.null,agent_bank_routing_code.is.null'),
+      // Was one query against employees; iban and the routing code moved to employee_pay in
+      // migration 52, and a missing pay row counts as missing details just as a null column
+      // did. Counted here as "people with no bank details on file", which is what the card
+      // has always meant.
+      supabase.from('employees').select('id, labour_card_number, employee_pay!employee_pay_employee_id_fkey(iban, agent_bank_routing_code)')
+        .neq('status', 'terminated'),
       supabase.from('hr_documents_with_status').select('id', { count: 'exact', head: true })
         .in('expiry_status', ['expiring_soon', 'expiring_critical']),
       supabase.from('today_schedule').select('id', { count: 'exact', head: true }),
@@ -122,7 +137,7 @@ export default function AdminDashboard() {
     setComplianceExtra({
       dsrPending: dsrPendingCount ?? 0,
       consentThisMonth: consentCount ?? 0,
-      missingWps: missingWpsCount ?? 0,
+      missingWps: countMissingPayDetails(payDetailRows),
     })
 
     // Best-effort name lookup — audit_logs.user_id references auth.users,

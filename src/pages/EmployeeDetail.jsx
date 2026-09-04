@@ -437,6 +437,13 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
 // ─── Profile tab ─────────────────────────────────────────────────────────────
 
 function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, onToggleCanPostFeed, togglingFeedAccess, onOpenDocuments, showToast }) {
+  // Pay comes back as an embedded row and is absent for anyone whose role may not read it
+  // (migration 52). An empty object renders every SalaryCard as "not set", which is the
+  // honest thing to show an operations or auditor account: the app is not hiding a number
+  // from them, it never received one.
+  const pay = (Array.isArray(employee.employee_pay)
+    ? employee.employee_pay[0]
+    : employee.employee_pay) ?? {}
   // "Emirates ID" in Dubai, "National ID" in Lagos — same column, the country supplies
   // the word. country_rules.identity_label existed since migration 31 and nothing read it.
   const identityLabel = useAuthStore(s => s.countryRules?.identity_label) ?? 'National ID'
@@ -552,10 +559,10 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
               </span>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <SalaryCard label="Basic Salary"        value={employee.basic_salary} />
-              <SalaryCard label="Housing Allowance"   value={employee.housing_allowance} />
-              <SalaryCard label="Transport Allowance" value={employee.transport_allowance} />
-              <SalaryCard label="Other Allowance"     value={employee.other_allowance} />
+              <SalaryCard label="Basic Salary"        value={pay.basic_salary} />
+              <SalaryCard label="Housing Allowance"   value={pay.housing_allowance} />
+              <SalaryCard label="Transport Allowance" value={pay.transport_allowance} />
+              <SalaryCard label="Other Allowance"     value={pay.other_allowance} />
             </div>
           </div>
         </div>
@@ -1294,7 +1301,11 @@ export default function EmployeeDetail() {
     setFetchError('')
     const { data, error } = await supabase
       .from('employees')
-      .select('*, departments!employees_department_id_fkey(name)')
+      // employee_pay embedded rather than joined by hand: since migration 52 the salary
+      // and bank details are a separate table, and the policy on it answers for itself —
+      // an operations or auditor account gets the employee and no pay row at all, which
+      // is the whole point of the move. `select('*')` on employees no longer returns pay.
+      .select('*, departments!employees_department_id_fkey(name), employee_pay!employee_pay_employee_id_fkey(basic_salary, housing_allowance, transport_allowance, other_allowance, bank_account, iban, agent_bank_routing_code)')
       .eq('id', id)
       .single()
 
