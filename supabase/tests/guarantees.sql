@@ -1667,6 +1667,86 @@ SELECT pg_temp.chk(105, 'privacy', 'no pay columns left on the employee record',
                           'other_allowance', 'bank_account', 'iban',
                           'agent_bank_routing_code')));
 
+-- ═══ 26. A day nobody recorded is not a day off — migration 53 ═════════════
+-- Finding 6 of the logic audit. An attendance row exists only when somebody punched, so
+-- every attendance figure was computed over the days people came to work: attendance_pct
+-- was attended / days-with-a-row, which is 100% for anyone who ever clocked in, and
+-- absence_count counted rows marked absent, which nothing ever creates. Work five days,
+-- skip fifteen, score 100%. Since migration 47 that number also drives a KPI level.
+--
+-- 106 is the assertion that catches a regression to the old denominator: it builds a
+-- period the employee was measured in and attended part of, and insists the percentage is
+-- below 100.
+DO $$
+DECLARE
+  v_emp uuid; v_from date; v_to date; v_pct numeric; v_expected int; v_attended int; v_ok text;
+BEGIN
+  -- Somebody with attendance rows, and a window wide enough to contain working days they
+  -- did not attend. A quarter around their own records is guaranteed to be that.
+  SELECT a.employee_id, date_trunc('quarter', min(a.date))::date,
+         (date_trunc('quarter', min(a.date)) + interval '3 months - 1 day')::date
+    INTO v_emp, v_from, v_to
+    FROM attendance a
+   GROUP BY a.employee_id
+   ORDER BY count(*) DESC
+   LIMIT 1;
+
+  IF v_emp IS NULL THEN
+    PERFORM pg_temp.chk(106, 'attendance', 'attendance is measured against expected days',
+      'no attendance to test', 'no attendance to test');
+  ELSE
+    v_expected := public.employee_expected_days(v_emp, v_from, v_to);
+    SELECT count(DISTINCT date) INTO v_attended FROM attendance
+     WHERE employee_id = v_emp AND date BETWEEN v_from AND v_to
+       AND status IN ('present','late_minor','late_moderate','late_major');
+    v_pct := public.kpi_metric_value(v_emp, 'attendance_pct', v_from, v_to);
+
+    v_ok := CASE
+              WHEN v_expected IS NULL THEN 'NO DENOMINATOR'
+              WHEN v_attended >= v_expected THEN 'attended everything expected'
+              WHEN v_pct IS NULL THEN 'NO PERCENTAGE'
+              WHEN v_pct >= 100 THEN 'STILL 100% WITH DAYS UNACCOUNTED FOR'
+              ELSE 'measured against expected days'
+            END;
+    PERFORM pg_temp.chk(106, 'attendance', 'attendance is measured against expected days',
+      'measured against expected days', v_ok);
+  END IF;
+END $$;
+
+-- 107. Nobody is scored on attendance they had no way to record. Four people in production
+-- have no login: they cannot clock in, so a percentage for them would be an accusation
+-- rather than a measurement. Unrated is the honest output, and it is the same principle as
+-- kpi_level_for_value returning NULL instead of a bottom score nobody earned.
+DO $$
+DECLARE v_emp uuid; v_pct numeric; v_ok text;
+BEGIN
+  SELECT e.id INTO v_emp FROM employees e
+   WHERE e.user_id IS NULL AND e.status <> 'terminated'
+     AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id)
+   LIMIT 1;
+
+  IF v_emp IS NULL THEN
+    PERFORM pg_temp.chk(107, 'attendance', 'no score without a way to clock in',
+      'nobody unmeasured to test', 'nobody unmeasured to test');
+  ELSE
+    v_pct := public.kpi_metric_value(v_emp, 'attendance_pct',
+                                     CURRENT_DATE - 90, CURRENT_DATE);
+    PERFORM pg_temp.chk(107, 'attendance', 'no score without a way to clock in', 'unrated',
+      CASE WHEN v_pct IS NULL THEN 'unrated' ELSE 'SCORED THEM ' || v_pct::text END);
+  END IF;
+END $$;
+
+-- 108. The weekend is the country's, and read the way the packs are written. weekend_days
+-- is EXTRACT(DOW) — Sunday 0 through Saturday 6 — so {5,6} is Friday and Saturday for the
+-- Gulf and {6,0} is Saturday and Sunday for the UK, Nigeria, India, Kenya and Pakistan.
+-- Read as ISODOW instead, {6,0} would mean Saturday and an eighth day that does not exist,
+-- and every non-Gulf company would gain a working Sunday. The two conventions agree on 5
+-- and 6, which is exactly why a Gulf-only test would not catch it.
+SELECT pg_temp.chk(108, 'attendance', 'the weekend is read as day-of-week, not ISO', 'dow',
+  CASE WHEN EXISTS (SELECT 1 FROM country_rules
+                     WHERE code = 'GB' AND weekend_days @> ARRAY[0]::smallint[])
+       THEN 'dow' ELSE 'PACKS DISAGREE WITH THE READER' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

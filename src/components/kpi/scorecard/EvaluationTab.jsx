@@ -221,6 +221,8 @@ export default function EvaluationTab({ me, role, showToast }) {
   const [lines, setLines] = useState([])
   const [anchors, setAnchors] = useState([])
   const [report, setReport] = useState({ score: null, coverage: 0, opportunities: [], disagreements: [] })
+  // The attendance figures behind an automated criterion, for the quarter being reviewed.
+  const [attendance, setAttendance] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadingReview, setLoadingReview] = useState(false)
   const [savingKey, setSavingKey] = useState(null)
@@ -313,8 +315,25 @@ export default function EvaluationTab({ me, role, showToast }) {
       opportunities: opps.data ?? [],
       disagreements: dis.data ?? [],
     })
+
+    // What an automated criterion is made of, for the quarter under review. Fetched only
+    // when there is one — most scorecards are entirely hand-rated and would be paying for
+    // a round trip that renders nothing.
+    const employeeId = reviews.find((r) => r.id === selectedId)?.employee_id
+    if (rows.some((l) => l.source === 'automated') && employeeId && cycle) {
+      const from = `${cycle.period_year}-${String((cycle.period_quarter - 1) * 3 + 1).padStart(2, '0')}-01`
+      const endMonth = cycle.period_quarter * 3
+      const lastDay = new Date(cycle.period_year, endMonth, 0).getDate()
+      const to = `${cycle.period_year}-${String(endMonth).padStart(2, '0')}-${lastDay}`
+      const { data: att } = await supabase.rpc('employee_attendance_summary', {
+        p_employee_id: employeeId, p_from: from, p_to: to,
+      })
+      setAttendance((Array.isArray(att) ? att[0] : att) ?? null)
+    } else {
+      setAttendance(null)
+    }
     setLoadingReview(false)
-  }, [selectedId])
+  }, [selectedId, reviews, cycle])
 
   useEffect(() => { loadReview() }, [loadReview])
 
@@ -538,12 +557,22 @@ export default function EvaluationTab({ me, role, showToast }) {
                       </div>
 
                       {auto ? (
-                        <div className="px-5 py-4">
+                        <div className="px-5 py-4 space-y-1.5">
                           <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">
                             {line.auto_value == null
-                              ? 'No measurement recorded for this period yet, so it is unrated. Nothing is assumed in either direction.'
+                              ? 'Not measured for this period, so it is unrated. Nothing is assumed in either direction — an employee with no way to clock in, or a quarter the company was not tracking, is not the same as a bad attendance record.'
                               : `Measured ${Number(line.auto_value)} — ${LEVEL_BY_NUMBER[line.final_level]?.label ?? 'below every threshold, so unrated'}.`}
                           </p>
+                          {/* What the percentage is made of. A figure nobody can take apart
+                              is a figure nobody trusts, and this one decides a level. */}
+                          {attendance && attendance.expected_days != null && (
+                            <p className="text-[11px] text-[#AAAAAA] dark:text-[#555555]">
+                              {attendance.attended_days} of {attendance.expected_days} expected days attended
+                              {attendance.absent_days > 0 && ` · ${attendance.absent_days} with no record`}
+                              {attendance.leave_days > 0 && ` · ${attendance.leave_days} on approved leave, not counted`}
+                              {attendance.late_days > 0 && ` · late on ${attendance.late_days}`}
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
