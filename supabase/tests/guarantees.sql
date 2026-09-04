@@ -1516,6 +1516,72 @@ SELECT pg_temp.chk(99, 'leave', 'no blanket manager write on leave requests', 'n
        AND coalesce(qual, '') NOT LIKE '%manages_employee%')
   THEN 'A BLANKET POLICY IS BACK' ELSE 'none' END);
 
+-- ═══ 24. Termination ends access — migration 51 ════════════════════════════
+-- Finding 3 of the logic audit. Nothing in the schema or the app looked at
+-- employees.status when deciding what a signed-in person may do: access comes from a
+-- user_roles row, and terminating somebody never touched it. An ex-employee kept their
+-- login, their team's data and their notifications until a human remembered to delete the
+-- role by hand.
+--
+-- Enforced in get_user_company_id, the same function suspension uses, for the same reason:
+-- around a hundred policies already ask it, so the rule cannot be forgotten by the next
+-- table somebody adds. 100 asserts it through one of those policies rather than by calling
+-- the function, because what matters is that the policies inherit it.
+DO $$
+DECLARE
+  v_uid uuid; v_emp uuid; v_before int; v_after int; v_status text; v_ok text;
+BEGIN
+  -- Anyone with a login who is not an owner: an owner's own termination is an edge case
+  -- nobody sensible runs, and the interesting subject is an ordinary employee.
+  SELECT e.user_id, e.id INTO v_uid, v_emp
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE e.status = 'active' AND ur.role NOT IN ('super_admin')
+     AND coalesce(ur.is_platform_owner, false) = false
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(100, 'offboarding', 'termination ends access',
+      'no employee to test', 'no employee to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_before FROM employees;
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET status = 'terminated' WHERE id = v_emp;
+
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_after FROM employees;
+    -- my_workspace() is the reader that still answers once the gate is shut, and it has to
+    -- say WHICH gate: without the employment status the app tells an ex-employee their
+    -- login was never linked to an employee record, which is untrue and unactionable.
+    SELECT employment_status INTO v_status FROM public.my_workspace();
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET status = 'active' WHERE id = v_emp;
+
+    v_ok := CASE
+              WHEN v_before = 0 THEN 'FIXTURE READ NOTHING WHILE EMPLOYED'
+              WHEN v_after > 0 THEN 'STILL READING AFTER TERMINATION'
+              WHEN v_status IS DISTINCT FROM 'terminated' THEN 'CANNOT TELL THEM WHY'
+              ELSE 'locked out, and told why'
+            END;
+    PERFORM pg_temp.chk(100, 'offboarding', 'termination ends access',
+      'locked out, and told why', v_ok);
+  END IF;
+END $$;
+
+-- 101. And 'terminated' is a value the database checks. employees.status had no CHECK
+-- constraint at all — it was free text, and the three values in use were a convention.
+-- Survivable while nothing read the column; not survivable now that this exact string is
+-- what ends someone's access, because 'Terminated' with a capital T would look right in
+-- every list and revoke nothing.
+SELECT pg_temp.chk(101, 'offboarding', 'employment status is a fixed set', 'constrained',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.employees'::regclass AND contype = 'c'
+       AND pg_get_constraintdef(oid) LIKE '%terminated%')
+  THEN 'constrained' ELSE 'FREE TEXT' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

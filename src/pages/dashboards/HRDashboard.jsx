@@ -14,6 +14,7 @@ import {
   UserX,
 } from 'lucide-react'
 import supabase from '../../services/supabase'
+import { FEATURES } from '../../data/features'
 import useAuthStore from '../../store/authStore'
 import { localDateStr } from '../../utils/exportHelpers'
 import StatCard from '../../components/dashboard/StatCard'
@@ -141,7 +142,7 @@ export default function HRDashboard() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${FEATURES.payroll ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
           {[0, 1, 2, 3, 4].map(i => <SkeletonBlock key={i} className="h-19" />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -160,7 +161,9 @@ export default function HRDashboard() {
         <StatCard icon={Users} label="Active Employees" value={String(activeCount)} tone="neutral" />
         <StatCard icon={CalendarOff} label="Pending Leave Requests" value={pendingLeaveCount ? String(pendingLeaveCount) : null} tone={pendingLeaveCount ? 'orange' : 'neutral'} />
         <StatCard icon={UserMinus} label="On Leave Today" value={String(onLeaveTodayCount)} tone="blue" />
-        <StatCard icon={Wallet} label="Payroll This Month" value={payrollSummary} tone="mint" />
+        {FEATURES.payroll && (
+          <StatCard icon={Wallet} label="Payroll This Month" value={payrollSummary} tone="mint" />
+        )}
         <Link to="/documents?tab=expiry" className="block">
           <StatCard icon={FileText} label="Documents Expiring (30 days)" value={String(docsExpiringCount)} tone={docsExpiringCount ? 'orange' : 'neutral'} />
         </Link>

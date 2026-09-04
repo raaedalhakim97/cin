@@ -16,6 +16,7 @@ import {
   UserX,
 } from 'lucide-react'
 import supabase from '../../services/supabase'
+import { FEATURES } from '../../data/features'
 import useAuthStore from '../../store/authStore'
 import { localDateStr } from '../../utils/exportHelpers'
 import StatCard from '../../components/dashboard/StatCard'
@@ -37,6 +38,8 @@ function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.len
 // every attempt including the ones that come back with validation errors. Surfacing those
 // here would fill the activity feed with "someone checked whether payroll was ready",
 // which is noise, not activity. Revisit if the row ever records success separately.
+// payroll_runs stays in the list: with payroll postponed nothing writes to it, so it
+// contributes nothing rather than needing to be removed and remembered later.
 const ACTIVITY_TABLES = ['kpi_scores', 'payroll_runs', 'user_roles']
 
 const ACTIVITY_LABEL = {
@@ -252,7 +255,7 @@ export default function AdminDashboard() {
                 generates no bank file for has none of those, and showing it a permanent
                 red count of "missing" documents it will never possess is the country mix
                 this release exists to remove. country_rules.payment_file decides. */}
-            {hasBankFile && (
+            {hasBankFile && FEATURES.payroll && (
               <>
                 <StatCard icon={AlertTriangle} label="Missing Payment Details" value={String(complianceExtra.missingWps)} tone={complianceExtra.missingWps ? 'red' : 'neutral'} />
                 <div className="flex flex-col gap-2.5 p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">

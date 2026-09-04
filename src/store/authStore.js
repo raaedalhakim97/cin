@@ -28,9 +28,12 @@ const useAuthStore = create((set, get) => ({
   countryRules: null,
   // Set only when the ordinary queries came back with nothing — see loadProfile.
   // It is the one thing a suspended workspace can still read about itself:
-  // { company_id, company_name, plan, plan_note, plan_changed_at, role, employee_id, platform_owner }
+  // { company_id, company_name, plan, plan_note, plan_changed_at, role, employee_id,
+  //   platform_owner, employment_status }
   workspace: null,
   suspended: false,
+  // Employment closed rather than plan stopped — the other thing that shuts the same gate.
+  accessEnded: false,
   sessionToken: null, // Supabase access token — in memory only, never persisted
   loading: true,
 
@@ -46,7 +49,7 @@ const useAuthStore = create((set, get) => ({
       if (session) {
         await get().loadProfile(session)
       } else {
-        set({ session: null, employee: null, role: null, companyId: null, company: null, countryRules: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
+        set({ session: null, employee: null, role: null, companyId: null, company: null, countryRules: null, workspace: null, suspended: false, accessEnded: false, sessionToken: null, isPlatformOwner: false })
       }
     })
     return subscription
@@ -149,6 +152,14 @@ const useAuthStore = create((set, get) => ({
     const suspended = workspace != null && !platformOwner
       && !['trial', 'active'].includes(workspace.plan)
 
+    // The second thing that closes the same gate (migration 51). It has to be told apart
+    // from suspension: the plan is fine, the company is running, and this person's
+    // employment record is closed. Sending them to the suspension screen would tell them
+    // their employer has stopped paying, and sending them to the "not linked" message
+    // would tell them to ask HR to finish setting them up.
+    const accessEnded = workspace != null && !platformOwner
+      && workspace.employment_status === 'terminated'
+
     // sanitizeEmployee is a belt-and-suspenders guard — SAFE_SELECT already excludes sensitive fields
     set({
       session,
@@ -162,6 +173,7 @@ const useAuthStore = create((set, get) => ({
       countryRules,
       workspace,
       suspended,
+      accessEnded,
       sessionToken: session.access_token,
     })
   },
@@ -176,7 +188,7 @@ const useAuthStore = create((set, get) => ({
     const token = get().sessionToken
     if (token) await endUserSession(token)
     await supabase.auth.signOut()
-    set({ session: null, employee: null, role: null, companyId: null, company: null, countryRules: null, workspace: null, suspended: false, sessionToken: null, isPlatformOwner: false })
+    set({ session: null, employee: null, role: null, companyId: null, company: null, countryRules: null, workspace: null, suspended: false, accessEnded: false, sessionToken: null, isPlatformOwner: false })
   },
 }))
 

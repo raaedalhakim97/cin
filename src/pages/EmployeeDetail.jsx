@@ -37,6 +37,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import supabase from '../services/supabase'
+import { FEATURES } from '../data/features'
 import useAuthStore from '../store/authStore'
 import { maskBankAccount, maskNationalId, maskSalary } from '../utils/security'
 import Sidebar from '../components/layout/Sidebar'
@@ -53,9 +54,9 @@ const TABS = [
   { key: 'attendance', label: 'Attendance', icon: CalendarCheck },
   { key: 'leave',      label: 'Leave',      icon: CalendarOff },
   { key: 'kpi',        label: 'KPI',        icon: BarChart3 },
-  { key: 'payroll',    label: 'Payroll',    icon: CreditCard },
+  { key: 'payroll',    label: 'Payroll',    icon: CreditCard, feature: 'payroll' },
   { key: 'documents',  label: 'Documents',  icon: FileText },
-]
+].filter((t) => !t.feature || FEATURES[t.feature])
 
 const STATUS_STYLES = {
   invited:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',

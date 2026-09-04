@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { FEATURES } from '../../data/features'
 import { Link } from 'react-router-dom'
 import {
   CalendarCheck,
@@ -29,11 +30,13 @@ const RATING_META = {
 }
 const NOT_RATED_META = { cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' }
 
+// The payslip shortcut is filtered rather than deleted: payroll is postponed, not gone
+// (data/features.js). A shortcut to a route that redirects is worse than no shortcut.
 const QUICK_ACTIONS = [
   { label: 'Clock in/out', icon: CalendarCheck, to: '/attendance' },
   { label: 'Request leave', icon: CalendarOff, to: '/leave' },
-  { label: 'View payslip', icon: CreditCard, to: '/payroll' },
-]
+  { label: 'View payslip', icon: CreditCard, to: '/payroll', feature: 'payroll' },
+].filter((a) => !a.feature || FEATURES[a.feature])
 
 function fmtDate(d) {
   if (!d) return '—'

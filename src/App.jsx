@@ -9,6 +9,7 @@ import {
   ADMIN_HR, ADMIN_HR_MGR, SUPER_ADMIN, SCHEDULE_ROLES,
   DOCUMENTS_ROLES, EMPLOYEES_LIST_ROLES, SETTINGS_ROLES,
 } from './data/navigation'
+import { FEATURES } from './data/features'
 import SessionTimeoutModal from './components/SessionTimeoutModal'
 import { readPendingSignup, runSelfOnboard, clearPendingSignup, isAlreadyOnboardedError } from './utils/onboarding'
 import { readPendingInviteToken, clearPendingInviteToken, acceptEmployeeInvite } from './utils/invite'
@@ -35,6 +36,7 @@ import Platform from './pages/Platform'
 import PlatformCompany from './pages/PlatformCompany'
 import PlatformCountries from './pages/PlatformCountries'
 import WorkspaceSuspended from './pages/WorkspaceSuspended'
+import AccessEnded from './pages/AccessEnded'
 import Permissions from './pages/Permissions'
 import Settings from './pages/Settings'
 import Documents from './pages/Documents'
@@ -82,6 +84,7 @@ function App() {
   const session    = useAuthStore((s) => s.session)
   const role       = useAuthStore((s) => s.role)
   const suspended  = useAuthStore((s) => s.suspended)
+  const accessEnded = useAuthStore((s) => s.accessEnded)
   const loadProfile = useAuthStore((s) => s.loadProfile)
   const isDark     = useThemeStore((s) => s.isDark)
   const [onboarding, setOnboarding] = useState(false)
@@ -208,6 +211,16 @@ function App() {
                 : <Navigate to="/dashboard" replace />
             } />
 
+            {/* Same shape, same reason, different sentence: the company is fine and this
+                person's employment record is closed (migration 51). Also unwrapped, and
+                also bounces anyone whose access is intact so a stale bookmark cannot
+                tell a working employee they have been let go. */}
+            <Route path="/access-ended" element={
+              !session ? <Navigate to="/login" replace />
+                : accessEnded ? <AccessEnded />
+                : <Navigate to="/dashboard" replace />
+            } />
+
             {/* All authenticated users */}
             <Route path="/dashboard" element={
               <PrivateRoute>
@@ -274,11 +287,16 @@ function App() {
               </PrivateRoute>
             } />
 
-            {/* Payroll: all authenticated users see their own payslip; Payroll Run + Summary tabs are role-gated inside the page */}
+            {/* Payroll: all authenticated users see their own payslip; Payroll Run + Summary
+                tabs are role-gated inside the page. Postponed for now (data/features.js) —
+                the route answers with a redirect rather than 404 so an old bookmark or a
+                link in an email lands somewhere sensible instead of on an error. */}
             <Route path="/payroll" element={
-              <PrivateRoute>
-                <Payroll />
-              </PrivateRoute>
+              FEATURES.payroll ? (
+                <PrivateRoute>
+                  <Payroll />
+                </PrivateRoute>
+              ) : <Navigate to="/dashboard" replace />
             } />
 
             {/* Settings: super_admin/hr_manager only (SETTINGS_ROLES, narrowed session 42) — admin/department_manager/read_only/employee all use /profile instead now that My Privacy & Data lives there for every role. The 6 remaining tabs here are each further role-gated inside the page. */}

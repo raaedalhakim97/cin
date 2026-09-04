@@ -1,3 +1,4 @@
+import { FEATURES } from './features'
 // SOURCE OF TRUTH: BYOND-HR_Access_Control_Standard.md §3. If you change
 // one, change the other in the same session.
 //
@@ -40,7 +41,7 @@ export const LEGEND = {
   '-': 'No access',
 }
 
-export const ACCESS_MATRIX = [
+const ALL_ROWS = [
   {
     module: 'Own profile & documents',
     access: { super_admin: 'F', hr_manager: 'F', department_manager: 'F', admin: 'F', employee: 'F', read_only: 'R' },
@@ -100,19 +101,23 @@ export const ACCESS_MATRIX = [
   },
   {
     module: 'Payroll — draft/edit',
+    feature: 'payroll',
     access: { super_admin: 'F', hr_manager: 'W', department_manager: '-', admin: '-', employee: '-', read_only: '-' },
   },
   {
     module: 'Payroll — approve',
+    feature: 'payroll',
     access: { super_admin: 'F', hr_manager: '-', department_manager: '-', admin: '-', employee: '-', read_only: '-' },
     notes: { super_admin: 'only role' },
   },
   {
     module: 'Payroll — mark paid',
+    feature: 'payroll',
     access: { super_admin: 'F', hr_manager: 'W', department_manager: '-', admin: '-', employee: '-', read_only: '-' },
   },
   {
     module: 'Payroll — view',
+    feature: 'payroll',
     access: { super_admin: 'F', hr_manager: 'F', department_manager: 'B', admin: '-', employee: 'O', read_only: 'R' },
     notes: { department_manager: 'toggle-gated', employee: 'own payslip' },
   },
@@ -221,3 +226,9 @@ export const ACCESS_MATRIX = [
     rowNote: 'Platform owner only, regardless of role',
   },
 ]
+
+// Rows for a postponed feature are dropped rather than shown as "nobody can do this".
+// This table is the answer to "what can this role do", and payroll being switched off is
+// not a fact about any role — leaving the rows in would describe a permission boundary
+// where there is currently no feature at all.
+export const ACCESS_MATRIX = ALL_ROWS.filter((r) => !r.feature || FEATURES[r.feature])

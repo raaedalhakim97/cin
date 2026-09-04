@@ -28,8 +28,16 @@ export default function PrivateRoute({ children, roles, platformOwner }) {
   const role = useAuthStore((s) => s.role)
   const isPlatformOwner = useAuthStore((s) => s.isPlatformOwner)
   const suspended = useAuthStore((s) => s.suspended)
+  const accessEnded = useAuthStore((s) => s.accessEnded)
 
   if (!session) return <Navigate to="/login" replace />
+
+  // Termination closes the same gate as suspension (migration 51) and needs a different
+  // sentence: the company is running and paying, this person's employment has ended.
+  // Checked before `suspended` because both are read from my_workspace() and only one of
+  // them is true — but if a suspended company also terminated somebody, the employment is
+  // the reason that concerns them.
+  if (accessEnded) return <Navigate to="/access-ended" replace />
 
   // Before the role checks, because a suspended workspace has no role to check: RLS
   // denies the user_roles read once the plan stops granting access, so `role` is

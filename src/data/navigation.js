@@ -4,6 +4,7 @@ import {
   CalendarClock, UserCircle, Building2, Globe2, UserPlus, FileSpreadsheet,
 } from 'lucide-react'
 import { NAV } from './vocabulary'
+import { FEATURES } from './features'
 
 // Who can reach what, defined once.
 //
@@ -45,7 +46,9 @@ export const NAV_ITEMS = [
   { label: NAV.employees,     icon: Users,           path: '/employees',          live: true, roles: EMPLOYEES_LIST_ROLES },
   { label: NAV.attendance,    icon: CalendarCheck,   path: '/attendance',         live: true },
   { label: NAV.leave,         icon: CalendarOff,     path: '/leave',              live: true },
-  { label: NAV.payroll,       icon: CreditCard,      path: '/payroll',            live: true },
+  // feature: 'payroll' — postponed, see data/features.js. Left in place rather than
+  // deleted so turning it back on is one constant, not an archaeology exercise.
+  { label: NAV.payroll,       icon: CreditCard,      path: '/payroll',            live: true, feature: 'payroll' },
   { label: NAV.kpi,           icon: BarChart3,       path: '/kpi',                live: true },
   { label: NAV.teamAnalytics, icon: BarChart2,       path: '/team-analytics',     live: true, roles: ADMIN_HR },
   { label: NAV.documents,     icon: FileText,        path: '/documents',          live: true, roles: DOCUMENTS_ROLES },
@@ -70,6 +73,9 @@ export const NAV_ITEMS = [
 // exclude it.
 export function visibleNavFor({ role, isPlatformOwner }) {
   return NAV_ITEMS.filter((item) => {
+    // A switched-off feature is hidden from everyone, including the owner. It is not a
+    // permission question, so it is answered before them.
+    if (item.feature && !FEATURES[item.feature]) return false
     if (isPlatformOwner) return item.platformOwner === true
     if (item.platformOwner) return false
     return !item.roles || item.roles.includes(role)
@@ -90,7 +96,7 @@ export const ROUTE_ACCESS = [
   { path: '/attendance',         label: 'Attendance',            icon: CalendarCheck,   roles: null },
   { path: '/leave',              label: 'Leave',                 icon: CalendarOff,     roles: null },
   { path: '/kpi',                label: 'KPI',                   icon: BarChart3,       roles: null },
-  { path: '/payroll',            label: 'Payroll',               icon: CreditCard,      roles: null },
+  { path: '/payroll',            label: 'Payroll',               icon: CreditCard,      roles: null, feature: 'payroll' },
   { path: '/my-schedule',        label: 'My schedule',           icon: CalendarClock,   roles: null },
   { path: '/news',               label: 'News',                  icon: Newspaper,       roles: null },
   { path: '/employees',          label: 'Employee list',         icon: Users,           roles: EMPLOYEES_LIST_ROLES },
@@ -115,6 +121,10 @@ export function routeAccessFor({ role, isPlatformOwner = false }) {
   const allowed = []
   const denied  = []
   for (const route of ROUTE_ACCESS) {
+    // Same reasoning as the sidebar: a postponed feature is not a route anyone reaches,
+    // and listing it as "denied" in the role preview would describe a permission that is
+    // not the reason it is unavailable.
+    if (route.feature && !FEATURES[route.feature]) continue
     const ok = route.platformOwner
       ? isPlatformOwner === true
       : !isPlatformOwner && (!route.roles || route.roles.includes(role))

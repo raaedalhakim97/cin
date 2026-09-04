@@ -472,7 +472,11 @@ function CompanySettingsTab({ companyId, showToast }) {
         </p>
       </div>
 
-      <div className="border-t border-[#E8E8E8] dark:border-[#2A2A2A] pt-1">
+      {/* Payroll is postponed (data/features.js), and this setting only widens who can see
+          a payroll run — with payroll off it would be a switch that changes nothing
+          visible. The stored value is untouched, so turning payroll back on restores
+          whatever the company had chosen. */}
+      <div className={FEATURES.payroll ? 'border-t border-[#E8E8E8] dark:border-[#2A2A2A] pt-1' : 'hidden'}>
         <Toggle
           checked={!!form.manager_salary_visibility}
           onChange={v => set('manager_salary_visibility', v)}
