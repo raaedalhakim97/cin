@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  AlertTriangle, Check, ChevronRight, Loader2, Lock, RotateCcw, ShieldCheck, Users,
+  AlertTriangle, Check, ChevronRight, GitBranch, Loader2, Lock, RotateCcw, ShieldCheck,
+  Users,
 } from 'lucide-react'
 import supabase from '../../../services/supabase'
 import { weightVerdict } from './levels'
@@ -32,6 +33,12 @@ function manageReason(target, me, role) {
   }
   if (role === 'hr_manager') return null
   if (role === 'department_manager') {
+    // Explicit beats implicit, same order as the database asks it in.
+    if (target.reports_to) {
+      return target.reports_to === me?.id
+        ? null
+        : 'HR named somebody else as their manager.'
+    }
     if (!target.department_id || target.department_id !== me?.department_id) {
       return 'Another department — their own manager or HR handles this.'
     }
@@ -193,20 +200,27 @@ export default function Assignments({ companyId, role, me, showToast }) {
   const [openId, setOpenId] = useState(null)
   const [picking, setPicking] = useState({})
   const [busyId, setBusyId] = useState(null)
+  const [managerRoles, setManagerRoles] = useState({})
+
+  const isHr = role === 'super_admin' || role === 'hr_manager'
 
   const load = useCallback(async () => {
-    const [{ data: emps }, { data: cards }, { data: tpls }] = await Promise.all([
+    const [{ data: emps }, { data: cards }, { data: tpls }, { data: roles }] = await Promise.all([
       supabase.from('employees')
-        .select('id, full_name, job_title, department_id, departments!employees_department_id_fkey(name)')
+        .select('id, full_name, job_title, user_id, department_id, reports_to, departments!employees_department_id_fkey(name)')
         .neq('status', 'terminated').order('full_name'),
       supabase.from('employee_scorecards')
         .select('*, kpi_templates!employee_scorecards_template_id_fkey(name)')
         .neq('status', 'archived'),
       supabase.from('kpi_templates').select('id, name').eq('status', 'approved').order('name'),
+      // roles_select only lets HR and the owner read this, which is exactly who can set
+      // reports_to. For everyone else it comes back empty and the control is not drawn.
+      supabase.from('user_roles').select('user_id, role'),
     ])
     setEmployees(emps ?? [])
     setScorecards(cards ?? [])
     setTemplates(tpls ?? [])
+    setManagerRoles(Object.fromEntries((roles ?? []).map((r) => [r.user_id, r.role])))
     setLoading(false)
   }, [])
 
@@ -232,6 +246,25 @@ export default function Assignments({ companyId, role, me, showToast }) {
     load()
   }
 
+  // Naming a manager for somebody. The database refuses a loop, a self-reference and a
+  // manager from another company; the messages it sends back are already written for a
+  // person, so they are shown as they are.
+  async function setReportsTo(employee, value) {
+    setBusyId(employee.id)
+    const { error } = await supabase.from('employees')
+      .update({ reports_to: value || null }).eq('id', employee.id)
+    setBusyId(null)
+    if (error) {
+      console.error('[Assignments] reports_to failed', error)
+      showToast('error', error.message)
+      return
+    }
+    showToast('success', value
+      ? `${employee.full_name} now reports to their named manager for performance.`
+      : `${employee.full_name} goes back to their department manager.`)
+    load()
+  }
+
   async function replace(scorecard, employee) {
     setBusyId(employee.id)
     const { error } = await supabase.from('employee_scorecards')
@@ -252,6 +285,16 @@ export default function Assignments({ companyId, role, me, showToast }) {
 
   const byEmployee = Object.fromEntries(scorecards.map((s) => [s.employee_id, s]))
   const unassigned = employees.filter((e) => !byEmployee[e.id]).length
+  const nameById = Object.fromEntries(employees.map((e) => [e.id, e.full_name]))
+
+  // Only a department_manager can be named. HR and the owner already reach the whole
+  // company, so pointing somebody at them would change nothing, and naming a manager whose
+  // role is 'employee' would grant nothing at all — the predicate asks the rater's role
+  // first. Offering names that do nothing is how a setting gets a reputation for being
+  // broken.
+  const namableManagers = employees.filter(
+    (e) => e.user_id && managerRoles[e.user_id] === 'department_manager'
+  )
 
   return (
     <div className="space-y-5 max-w-4xl">
@@ -314,6 +357,12 @@ export default function Assignments({ companyId, role, me, showToast }) {
                           {emp.job_title ? ` · ${emp.job_title}` : ''}
                           {card ? ` · ${card.kpi_templates?.name ?? 'scorecard'}` : ' · no scorecard'}
                         </p>
+                        {emp.reports_to && (
+                          <p className="flex items-center gap-1 text-[11px] text-[#4D9FFF] mt-0.5 truncate">
+                            <GitBranch size={10} />
+                            reports to {nameById[emp.reports_to] ?? 'someone who has left'}
+                          </p>
+                        )}
                       </div>
                     </button>
 
@@ -347,6 +396,41 @@ export default function Assignments({ companyId, role, me, showToast }) {
                       </div>
                     )}
                   </div>
+
+                  {/* Who reviews this person. HR and the owner only — the column is behind
+                      emp_update, which has been restricted to those two roles since the
+                      table was built. */}
+                  {isHr && (
+                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
+                      <span className="text-[11px] font-semibold text-[#666666] dark:text-[#A0A0A0]">
+                        Reviewed by
+                      </span>
+                      <select
+                        value={emp.reports_to ?? ''}
+                        onChange={(e) => setReportsTo(emp, e.target.value)}
+                        disabled={busyId === emp.id || namableManagers.length === 0}
+                        className={`${INPUT} w-auto min-w-[14rem] py-1.5 text-xs`}
+                      >
+                        <option value="">
+                          {emp.departments?.name
+                            ? `Their department manager (${emp.departments.name})`
+                            : 'Their department manager'}
+                        </option>
+                        {namableManagers
+                          .filter((m) => m.id !== emp.id)
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.full_name}{m.departments?.name ? ` — ${m.departments.name}` : ''}
+                            </option>
+                          ))}
+                      </select>
+                      {namableManagers.length === 0 && (
+                        <span className="text-[11px] text-[#AAAAAA] dark:text-[#555555]">
+                          Nobody holds the manager role yet — set one in Permissions first.
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {open && card && (

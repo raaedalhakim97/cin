@@ -30,6 +30,10 @@ function canRate(review, me, role) {
   if (review.employee_id === me.id) return false      // nobody rates themselves
   if (role === 'super_admin' || role === 'hr_manager') return true
   if (role === 'department_manager') {
+    // Explicit beats implicit (migration 48): once HR names somebody's manager, only they
+    // have them, and the department they sit in stops mattering. This is what lets one
+    // manager hold people across several units.
+    if (review.reports_to) return review.reports_to === me.id
     return !!review.department_id && review.department_id === me.department_id
   }
   return false
@@ -246,7 +250,7 @@ export default function EvaluationTab({ me, role, showToast }) {
   const loadReviews = useCallback(async () => {
     if (!cycleId) { setReviews([]); return }
     const { data, error } = await supabase.from('kpi_reviews')
-      .select('id, employee_id, employees!kpi_reviews_employee_id_fkey(full_name, job_title, department_id, departments!employees_department_id_fkey(name))')
+      .select('id, employee_id, employees!kpi_reviews_employee_id_fkey(full_name, job_title, department_id, reports_to, departments!employees_department_id_fkey(name))')
       .eq('cycle_id', cycleId)
     if (error) {
       console.error('[EvaluationTab] reviews failed', error)
@@ -259,6 +263,7 @@ export default function EvaluationTab({ me, role, showToast }) {
       name: r.employees?.full_name ?? 'Unknown',
       job_title: r.employees?.job_title ?? null,
       department_id: r.employees?.department_id ?? null,
+      reports_to: r.employees?.reports_to ?? null,
       department: r.employees?.departments?.name ?? null,
     }))
     mapped.sort((a, b) => {

@@ -1352,6 +1352,92 @@ SELECT pg_temp.chk(93, 'kpi', 'automatic criteria are measured from real attenda
                        AND p.proname = 'kpi_cycle_refresh_auto_lines')
        THEN 'measured' ELSE 'DECORATIVE' END);
 
+-- ═══ 22. A manager can hold more than one unit — migrations 48 and 49 ══════
+-- Raaed: "Aisha Manager. Khalid (Admin) reports to Aisha (Ganache chocolate). Amir (Sales)
+-- reports to Aisha (Carpo chocolate). It's like Aisha is a multi-unit manager, if the HR
+-- manager allowed her by adding the employees report to specific manager."
+--
+-- So reporting is something HR states rather than something the department implies, and
+-- the rule is explicit beats implicit. 94 asserts both halves in one go, because the half
+-- that is easy to forget is the second one: naming a manager has to MOVE somebody, not
+-- widen the set of people who can rate them.
+DO $$
+DECLARE
+  v_mgr_user uuid; v_mgr_emp uuid; v_mgr_dept uuid;
+  v_outsider uuid; v_insider uuid;
+  v_reach_before boolean; v_reach_after boolean; v_lost boolean;
+  v_ok text;
+BEGIN
+  SELECT ur.user_id, e.id, e.department_id INTO v_mgr_user, v_mgr_emp, v_mgr_dept
+    FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+   WHERE ur.role = 'department_manager' AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  -- Somebody outside their department, and somebody inside it.
+  SELECT e.id INTO v_outsider FROM employees e
+   WHERE e.department_id IS NOT NULL AND e.department_id <> v_mgr_dept
+     AND e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr_emp)
+   LIMIT 1;
+  SELECT e.id INTO v_insider FROM employees e
+   WHERE e.department_id = v_mgr_dept AND e.id <> v_mgr_emp
+   LIMIT 1;
+
+  IF v_mgr_user IS NULL OR v_outsider IS NULL OR v_insider IS NULL THEN
+    PERFORM pg_temp.chk(94, 'kpi', 'a named manager moves somebody rather than widening access',
+      'no fixture to test', 'no fixture to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_reach_before := public.kpi_manages_employee(v_outsider);
+    PERFORM pg_temp.as_nobody();
+
+    -- HR names them for the outsider, and names somebody else for the insider.
+    UPDATE employees SET reports_to = v_mgr_emp WHERE id = v_outsider;
+    UPDATE employees SET reports_to = v_outsider WHERE id = v_insider;
+
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_reach_after := public.kpi_manages_employee(v_outsider);
+    v_lost        := NOT public.kpi_manages_employee(v_insider);
+    PERFORM pg_temp.as_nobody();
+
+    v_ok := CASE
+              WHEN v_reach_before THEN 'REACHED THE OTHER DEPARTMENT ALREADY'
+              WHEN NOT v_reach_after THEN 'NAMING DID NOTHING'
+              WHEN NOT v_lost THEN 'KEPT SOMEBODY HR REASSIGNED'
+              ELSE 'moved'
+            END;
+    PERFORM pg_temp.chk(94, 'kpi', 'a named manager moves somebody rather than widening access',
+      'moved', v_ok);
+
+    UPDATE employees SET reports_to = NULL WHERE id IN (v_outsider, v_insider);
+  END IF;
+END $$;
+
+-- 95. "The employee can't rate the manager" — and is told so. Both guards used to pin the
+-- forbidden column back to its old value, which is safe and dishonest: the write returned
+-- success, the screen said "Saved", and the rating was not there. Structural rather than
+-- behavioural because proving it needs a whole approved scorecard and an open cycle, which
+-- this suite does not build; the behaviour was verified by hand against production.
+SELECT pg_temp.chk(95, 'kpi', 'a forbidden write is refused, not silently dropped', 'both refuse',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'kpi_review_line_self_writes_self_only')
+            LIKE '%Only your manager can write the manager rating%'
+        AND (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'kpi_self_write_is_self_score_only')
+            LIKE '%Only your manager or HR can write those scores%'
+       THEN 'both refuse' ELSE 'STILL PINS' END);
+
+-- 96. Every table on the path asks the same question. This is the assertion that would have
+-- caught migration 48's failure: kpi_manages_employee said yes, the review-lines policy
+-- said yes, and kpi_reviews still filtered by department — so the write matched zero rows
+-- and reported success. A permission that spans tables is only as wide as the narrowest
+-- policy on the path.
+SELECT pg_temp.chk(96, 'kpi', 'no KPI policy still decides by department alone', '0',
+  (SELECT count(*)::text FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('kpi_reviews', 'kpi_review_lines', 'employee_scorecards',
+                        'employee_scorecard_overrides', 'warning_recommendations')
+      AND (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%get_user_department_id%'));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
