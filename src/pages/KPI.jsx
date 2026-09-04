@@ -862,7 +862,7 @@ const REC_STATUS_META = {
 
 // ─── Team KPI Tab ─────────────────────────────────────────────────────────────
 
-function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId, managerDeptId }) {
+function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId }) {
   const now = new Date()
   const [period, setPeriod] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 })
   const [employees, setEmployees] = useState([])
@@ -902,19 +902,16 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
         .eq('period_year', period.year)
         .eq('period_month', period.month),
     ])
-    // Confirmation audit (2026-07-19) — kpi_scores/emp_select RLS grants
-    // department_manager company-wide read here (unlike leave_select, which
-    // Leave.jsx's Team Requests tab already compensates for the same way),
-    // so without this filter every department manager saw and could score
-    // the entire company roster, not just their own team. Client-side only,
-    // mirrors Leave.jsx's `role === 'department_manager'` filter exactly.
-    const scoped = role === 'department_manager'
-      ? (emps ?? []).filter(e => e.department_id === managerDeptId)
-      : (emps ?? [])
-    setEmployees(scoped)
+    // The client-side department filter that used to be here was the only thing stopping
+    // a department manager scoring the whole company — kpi_select, kpi_insert and
+    // kpi_update all granted the role company-wide, and this filter only decided what was
+    // drawn. Migration 50 put the rule in those three policies, so emps is already the
+    // right set, and it now includes anyone HR named this manager for in another
+    // department, which a department filter would have hidden.
+    setEmployees(emps ?? [])
     setRows(scoreRows ?? [])
     setLoading(false)
-  }, [period.year, period.month, role, managerDeptId])
+  }, [period.year, period.month])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -1793,7 +1790,7 @@ export default function KPI() {
             <TeamKPITab
               companyId={companyId} showToast={showToast}
               evalFreq={evalSettings.freq} evalAnchor={evalSettings.anchor}
-              role={role} issuerId={employee?.id} managerDeptId={employee?.department_id}
+              role={role} issuerId={employee?.id}
             />
           )}
           {activeTab === 'warnings' && canWarn && (

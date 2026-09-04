@@ -855,17 +855,14 @@ export default function Leave() {
       .in('status', ['pending', 'manager_approved'])
       .order('created_at', { ascending: true })
 
-    // leave_select RLS grants department_manager company-wide read (no
-    // department filter at the DB layer, confirmed live) — same pattern as
-    // ManagerDashboard.jsx's belt-and-suspenders client filter, except here
-    // it's the only scoping that exists at all for this role.
-    const rows = role === 'department_manager'
-      ? (data ?? []).filter(r => r.employees?.department_id === employee?.department_id)
-      : (data ?? [])
-
-    setTeamRequests(rows)
+    // The client-side department filter that used to be here was the only scoping this
+    // role had — a filter in JavaScript decides what is drawn, not what the API returns.
+    // Migration 50 moved it into leave_select, so this is now a plain read of exactly the
+    // requests this person is responsible for, including anyone HR named them for in
+    // another department.
+    setTeamRequests(data ?? [])
     setLoadingTeam(false)
-  }, [canManage, role, employee?.department_id])
+  }, [canManage])
 
   const fetchCalLeaves = useCallback(async (vd, empId, showAll) => {
     setLoadingCal(true)

@@ -1438,6 +1438,84 @@ SELECT pg_temp.chk(96, 'kpi', 'no KPI policy still decides by department alone',
                         'employee_scorecard_overrides', 'warning_recommendations')
       AND (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%get_user_department_id%'));
 
+-- ═══ 23. Responsibility reaches leave, pay and files — migration 50 ════════
+-- Raaed said extend it, so the named manager now approves leave, sees a pay run and reads
+-- a file for the people HR gave them. Reading those three policies to make the change
+-- turned up three holes that had nothing to do with named managers, and 97 pins the worst
+-- of them.
+--
+-- 97. A department_manager could give the first approval to their OWN leave request.
+-- validate_leave_transition compared the employee's department to the caller's and never
+-- asked whether they were the same person, and a manager is in their own department. HR
+-- still had to give the final approval, so nobody could award themselves holiday — but the
+-- first signature on your own request is the exact thing a two-step approval exists to
+-- prevent, and it had been true since the day the guard was written.
+DO $$
+DECLARE
+  v_mgr_user uuid; v_mgr_emp uuid; v_co uuid; v_req uuid; v_ok text;
+BEGIN
+  SELECT ur.user_id, e.id, e.company_id INTO v_mgr_user, v_mgr_emp, v_co
+    FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+   WHERE ur.role = 'department_manager' AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  IF v_mgr_user IS NULL THEN
+    PERFORM pg_temp.chk(97, 'leave', 'a manager cannot sign off their own leave',
+      'no manager to test', 'no manager to test');
+  ELSE
+    INSERT INTO leave_requests (company_id, employee_id, leave_type, start_date, end_date,
+                                days_requested, status, reason)
+    VALUES (v_co, v_mgr_emp, 'annual', CURRENT_DATE + 400, CURRENT_DATE + 401, 2,
+            'pending', 'assertion 97')
+    RETURNING id INTO v_req;
+
+    PERFORM pg_temp.as_user(v_mgr_user);
+    BEGIN
+      UPDATE leave_requests SET status = 'manager_approved' WHERE id = v_req;
+      -- Zero rows updated raises nothing, so the verdict is read from the data rather than
+      -- from whether an exception fired. (An earlier version of a test in this suite got
+      -- that wrong and reported a working guard as broken.)
+      SELECT CASE WHEN status = 'manager_approved' THEN 'SIGNED THEIR OWN' ELSE 'refused' END
+        INTO v_ok FROM leave_requests WHERE id = v_req;
+    EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+    END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(97, 'leave', 'a manager cannot sign off their own leave',
+      'refused', v_ok);
+  END IF;
+END $$;
+
+-- 98. And the scope of a manager is one question asked in one place. Two of these were
+-- worse than wrong before migration 50: leave_update granted a department_manager UPDATE
+-- on every leave request in the company, which made the careful leave_mgr_update policy
+-- beside it do nothing at all, and kpi_scores granted the role the whole company with a
+-- filter in JavaScript standing in for the permission.
+--
+-- The count is of policies that still decide a manager's reach from the department alone.
+-- emp_select is the one legitimate exception: it names both the department and reports_to,
+-- and it cannot go through manages_employee because that predicate excludes yourself and
+-- reading your own row is the first thing emp_select has to allow.
+SELECT pg_temp.chk(98, 'isolation', 'a manager''s reach is one question in one place', '0',
+  (SELECT count(*)::text FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('leave_requests', 'payroll_runs', 'hr_documents', 'kpi_scores',
+                        'kpi_reviews', 'kpi_review_lines', 'employee_scorecards',
+                        'employee_scorecard_overrides', 'warning_recommendations')
+      AND (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%get_user_department_id%'));
+
+-- 99. The wide policy that cancelled out the narrow one is gone. A permissive policy is
+-- ORed with every other permissive policy on the same command, so one that names the role
+-- and stops there makes every careful policy beside it decorative — this is the shape of
+-- mistake that hides best, because the restrictive policy is still sitting there looking
+-- like it works.
+SELECT pg_temp.chk(99, 'leave', 'no blanket manager write on leave requests', 'none',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_policies
+     WHERE schemaname = 'public' AND tablename = 'leave_requests' AND cmd = 'UPDATE'
+       AND coalesce(qual, '') LIKE '%department_manager%'
+       AND coalesce(qual, '') NOT LIKE '%manages_employee%')
+  THEN 'A BLANKET POLICY IS BACK' ELSE 'none' END);
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
