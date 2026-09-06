@@ -1880,6 +1880,34 @@ BEGIN
   END IF;
 END $$;
 
+-- 114. Every kind the notifiers can send is a kind the table will accept. notifications.kind
+-- is a CHECK constraint and every notify function swallows its own exceptions so that a
+-- failed notification never breaks the punch or the leave request it was reporting on.
+-- Those two facts together mean a kind missing from the constraint does not error — it
+-- sends nothing, silently, forever, and looks exactly like the bug migration 56 was written
+-- to fix. So this probes the constraint with a real insert of each kind rather than reading
+-- the definition, which is the same distinction as measuring instead of asserting.
+DO $$
+DECLARE f record; k text; v_bad text := '';
+BEGIN
+  SELECT * INTO f FROM fx;
+  FOREACH k IN ARRAY ARRAY[
+    'review_self_open', 'review_self_due', 'review_manager_open',
+    'review_manager_due', 'review_published',
+    'leave_submitted', 'attendance_missing_clockout', 'shift_published', 'feed_post'
+  ] LOOP
+    BEGIN
+      INSERT INTO notifications (company_id, employee_id, kind, title)
+      VALUES (f.company_id, f.emp_id, k, 'guarantee 114 probe');
+    EXCEPTION WHEN check_violation THEN
+      v_bad := v_bad || k || ' ';
+    END;
+  END LOOP;
+
+  PERFORM pg_temp.chk(114, 'notifications', 'every notification kind sent is a kind accepted',
+    'all accepted', CASE WHEN v_bad = '' THEN 'all accepted' ELSE 'REJECTED: ' || v_bad END);
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

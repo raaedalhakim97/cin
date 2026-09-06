@@ -31,6 +31,21 @@ function quarterOf(date) {
   return Math.floor(date.getMonth() / 3) + 1
 }
 
+// Local date, not toISOString(). A <input type="date"> holds a calendar day with no
+// timezone, and toISOString() converts through UTC — east of Greenwich that turns
+// "today" into yesterday for anyone opening a cycle before their UTC offset has
+// elapsed, which in the Gulf is the whole morning.
+function isoDay(d) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function inDays(n) {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return isoDay(d)
+}
+
 function StageBadge({ status }) {
   const map = {
     draft:          'bg-[#A0A0A0]/10 text-[#A0A0A0]',
@@ -59,6 +74,14 @@ export default function ReviewCyclesTab({ showToast }) {
   const prev = new Date(now.getFullYear(), now.getMonth() - 3, 1)
   const [year, setYear] = useState(prev.getFullYear())
   const [quarter, setQuarter] = useState(quarterOf(prev))
+
+  // Pre-filled rather than blank. Both columns and both "Due 15 October" labels have
+  // existed since the KPI schema was written, and every cycle ever opened has left them
+  // NULL because this form only ever sent the year and the quarter — so the deadline the
+  // UI was built to show has never been shown once. A default that is merely reasonable
+  // beats a field HR has to remember to fill in, and it can still be cleared.
+  const [selfDue, setSelfDue] = useState(inDays(7))
+  const [managerDue, setManagerDue] = useState(inDays(14))
 
   useEffect(() => {
     let cancelled = false
@@ -98,10 +121,19 @@ export default function ReviewCyclesTab({ showToast }) {
   const reload = () => setReloadKey((k) => k + 1)
 
   async function openCycle() {
+    // The manager cannot start until self-assessment closes, so a manager deadline that
+    // falls first is not a deadline anybody can meet.
+    if (selfDue && managerDue && managerDue < selfDue) {
+      showToast('error', 'The manager deadline cannot be before the self-assessment deadline.')
+      return
+    }
+
     setOpening(true)
     const { data, error } = await supabase.rpc('open_kpi_review_cycle', {
       p_year: Number(year),
       p_quarter: Number(quarter),
+      p_self_due: selfDue || null,
+      p_manager_due: managerDue || null,
     })
     setOpening(false)
     if (error) {
@@ -144,8 +176,10 @@ export default function ReviewCyclesTab({ showToast }) {
           <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Open a review cycle</h3>
         </div>
         <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mb-4 max-w-lg">
-          Opening a quarter creates a review for every active employee and lets them start scoring
-          themselves. Until you do this, nobody can self-assess.
+          Opening a quarter creates a review for every active employee, notifies each of them,
+          and lets them start scoring themselves. Until you do this, nobody can self-assess.
+          The two deadlines are shown on everyone&rsquo;s scorecard, and anyone who has not
+          filled theirs in is reminded once a day for the two days before.
         </p>
 
         <div className="flex flex-wrap items-end gap-3">
@@ -165,6 +199,22 @@ export default function ReviewCyclesTab({ showToast }) {
             >
               {[1, 2, 3, 4].map((q) => <option key={q} value={q}>Q{q}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">Self-assessment due</label>
+            <input
+              type="date" value={selfDue}
+              onChange={(e) => setSelfDue(e.target.value)}
+              className="px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">Manager review due</label>
+            <input
+              type="date" value={managerDue}
+              onChange={(e) => setManagerDue(e.target.value)}
+              className="px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0]"
+            />
           </div>
           <button
             type="button" onClick={openCycle} disabled={opening}
