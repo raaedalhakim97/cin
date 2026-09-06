@@ -24,6 +24,24 @@ import { SkeletonRow } from '../components/Skeleton'
 //      broken country — it is an honest one, and its companies are told to set their own
 //      policy rather than handed an entitlement nobody sourced.
 
+// How long since a person last read the statute. Whole months, because "412 days" is a
+// number nobody acts on and "13 months" is.
+function monthsSince(iso) {
+  if (!iso) return Infinity
+  const then = new Date(`${iso}T00:00:00`)
+  const now = new Date()
+  return (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth())
+}
+
+function ageLabel(iso) {
+  if (!iso) return 'checked — date unknown'
+  const m = monthsSince(iso)
+  if (m <= 0) return 'checked this month'
+  if (m === 1) return 'checked last month'
+  if (m < 12) return `checked ${m} months ago`
+  return `checked ${m} months ago — due a re-read`
+}
+
 const LEAVE_TYPES = [
   'annual', 'sick', 'emergency', 'marriage',
   'paternity', 'maternity', 'hajj', 'bereavement', 'study',
@@ -254,6 +272,24 @@ function CountryTable({ countries, rules, companies, openCode, onToggle, onChang
                     {c.verified ? <ShieldCheck size={12} /> : <AlertTriangle size={12} />}
                     {c.verified ? 'Verified' : 'Unverified'}
                   </button>
+                  {/* A boolean cannot go stale, which is why the date is here. A pack
+                      checked eighteen months ago is not wrong — it is unreviewed, and
+                      that is a different word. Nothing expires; this only makes the age
+                      visible so a person can decide whether to look again. */}
+                  {c.verified && (
+                    <span
+                      className={`block mt-1 text-[11px] ${
+                        monthsSince(c.verified_on) >= 12
+                          ? 'text-[#FF8C42]'
+                          : 'text-[#666666] dark:text-[#A0A0A0]'}`}
+                    >
+                      {ageLabel(c.verified_on)}
+                      {c.source_url
+                        ? <> · <a href={c.source_url} target="_blank" rel="noreferrer"
+                                  className="underline hover:text-[#00A57D] dark:hover:text-[#00D4A0]">statute</a></>
+                        : <> · <span className="text-[#FF8C42]">no source on file</span></>}
+                    </span>
+                  )}
                 </td>
               </tr>
             )
@@ -273,7 +309,7 @@ function NewCountry({ onDone }) {
   const [f, setF] = useState({
     code: '', name: '', currency: '', default_timezone: '',
     payment_file: 'none', identity_label: 'National ID', permit_label: 'Work permit',
-    weekend: '5,6', verified_note: '',
+    weekend: '5,6', verified_note: '', source_url: '',
   })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -297,6 +333,7 @@ function NewCountry({ onDone }) {
       // on the button. A country that arrives verified is a country nobody checked.
       verified: false,
       verified_note: f.verified_note.trim() || null,
+      source_url: f.source_url.trim() || null,
     })
     setBusy(false)
     if (error) { console.error('[NewCountry] insert failed', error); setErr(error.message); return }
@@ -343,6 +380,15 @@ function NewCountry({ onDone }) {
       <label className="block sm:col-span-2">
         <span className="block text-xs font-medium text-[#1A1A1A] dark:text-white mb-1">Which law this pack follows</span>
         <input className={input} placeholder="e.g. Saudi Labour Law, Royal Decree M/51" value={f.verified_note} onChange={set('verified_note')} />
+      </label>
+      <label className="block sm:col-span-2">
+        <span className="block text-xs font-medium text-[#1A1A1A] dark:text-white mb-1">
+          Where it can be read
+        </span>
+        {/* The link is what makes the second check cheaper than the first. Optional here
+            because a country can be added before anyone has found the official text —
+            but a pack marked verified with no source is flagged in the table. */}
+        <input className={input} type="url" placeholder="https://…" value={f.source_url} onChange={set('source_url')} />
       </label>
 
       {err && <p className="sm:col-span-2 text-xs text-[#FF4D4D]">{err}</p>}

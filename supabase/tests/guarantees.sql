@@ -1908,6 +1908,32 @@ BEGIN
     'all accepted', CASE WHEN v_bad = '' THEN 'all accepted' ELSE 'REJECTED: ' || v_bad END);
 END $$;
 
+-- 115. Verifying a country pack records the day somebody read the statute. A boolean cannot
+-- go stale: a pack marked verified once stays verified for as long as the row exists, and
+-- with thirteen packs and one person maintaining them the first sign of drift would be a
+-- customer's wrong gratuity calculation. The CHECK constraint makes a dateless verified pack
+-- impossible to store; this asserts the half that a constraint cannot — that the date
+-- arrives on its own, so nobody has to remember it.
+DO $$
+DECLARE v_code text; v_on date;
+BEGIN
+  SELECT code INTO v_code FROM country_rules WHERE NOT verified LIMIT 1;
+
+  IF v_code IS NULL THEN
+    PERFORM pg_temp.chk(115, 'country packs', 'verifying a pack records when it was read',
+      'no unverified pack to test', 'no unverified pack to test');
+  ELSE
+    UPDATE country_rules SET verified = true WHERE code = v_code;
+    SELECT verified_on INTO v_on FROM country_rules WHERE code = v_code;
+    UPDATE country_rules SET verified = false WHERE code = v_code;
+
+    PERFORM pg_temp.chk(115, 'country packs', 'verifying a pack records when it was read',
+      'stamped today',
+      CASE WHEN v_on = CURRENT_DATE THEN 'stamped today'
+           ELSE coalesce(v_on::text, 'NO DATE RECORDED') END);
+  END IF;
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
