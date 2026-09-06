@@ -1809,6 +1809,77 @@ SELECT pg_temp.chk(111, 'responsibility', 'responsibility stops at the company',
      FROM employees mgr JOIN employees emp ON emp.company_id <> mgr.company_id
     WHERE public.manager_covers(mgr.id, emp.id)));
 
+-- 112. A manager reads their own team's attendance and nobody else's. att_select listed
+-- department_manager in a flat role list until migration 55, so the Standard's "team only"
+-- was never applied: measured on production, a Sales manager could read 24 rows belonging
+-- to six people in Finance, HR, IT and Operations — including the HR manager's own record
+-- and the owner's. Attendance is also what attendance_pct is computed from, so this is
+-- somebody's performance history, not a list of times.
+DO $$
+DECLARE v_uid uuid; v_emp uuid; v_leak int;
+BEGIN
+  SELECT e.user_id, e.id INTO v_uid, v_emp
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role = 'department_manager' AND e.status = 'active'
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(112, 'responsibility', 'a manager reads only their team''s attendance',
+      'no department_manager to test', 'no department_manager to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    -- manager_covers takes both ids explicitly, so it answers the same way here as it does
+    -- inside the policy — this counts what got through, not what should have.
+    SELECT count(*) INTO v_leak
+      FROM attendance a
+     WHERE a.employee_id IS DISTINCT FROM v_emp
+       AND NOT public.manager_covers(v_emp, a.employee_id);
+    PERFORM pg_temp.as_nobody();
+
+    PERFORM pg_temp.chk(112, 'responsibility', 'a manager reads only their team''s attendance',
+      '0', v_leak::text);
+  END IF;
+END $$;
+
+-- 113. And the named manager can actually see them. The mirror of 112, and the reason it
+-- matters: shifts_select compared department ids directly, so Aisha could review Khalid,
+-- approve his leave and read his file while being unable to see the shift she was approving
+-- that leave against. A scoping fix that only ever narrows is half a fix.
+DO $$
+DECLARE v_uid uuid; v_mgr uuid; v_emp uuid; v_seen int;
+BEGIN
+  SELECT e.user_id, e.id INTO v_uid, v_mgr
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role = 'department_manager' AND e.status = 'active'
+   LIMIT 1;
+
+  SELECT e.id INTO v_emp
+    FROM employees e
+   WHERE e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr)
+     AND e.id <> v_mgr
+     AND e.status = 'active'
+     AND e.reports_to IS NULL
+     AND e.department_id IS DISTINCT FROM (SELECT department_id FROM employees WHERE id = v_mgr)
+     AND EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id)
+   LIMIT 1;
+
+  IF v_uid IS NULL OR v_emp IS NULL THEN
+    PERFORM pg_temp.chk(113, 'responsibility', 'the named manager sees the record they answer for',
+      'no cross-department pair with attendance', 'no cross-department pair with attendance');
+  ELSE
+    UPDATE employees SET reports_to = v_mgr WHERE id = v_emp;
+
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_seen FROM attendance a WHERE a.employee_id = v_emp;
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET reports_to = NULL WHERE id = v_emp;
+
+    PERFORM pg_temp.chk(113, 'responsibility', 'the named manager sees the record they answer for',
+      'sees them', CASE WHEN v_seen > 0 THEN 'sees them' ELSE 'SAW NOTHING' END);
+  END IF;
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
