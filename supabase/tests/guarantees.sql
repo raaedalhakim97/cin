@@ -1747,6 +1747,68 @@ SELECT pg_temp.chk(108, 'attendance', 'the weekend is read as day-of-week, not I
                      WHERE code = 'GB' AND weekend_days @> ARRAY[0]::smallint[])
        THEN 'dow' ELSE 'PACKS DISAGREE WITH THE READER' END);
 
+-- 109. The person who has to approve is the person who is told. Migrations 48 and 50 made
+-- a named manager responsible for someone in another department; migration 54 made the
+-- notification ask the same question. The failure this catches is silent — a leave request
+-- sitting in a queue nobody was told about looks, to the employee, exactly like a system
+-- that does not work. Written as a real reports_to, because the whole bug was that the
+-- department comparison agreed with the permission right up until HR named somebody.
+DO $$
+DECLARE v_mgr uuid; v_emp uuid; v_told uuid[];
+BEGIN
+  SELECT e.id INTO v_mgr
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role = 'department_manager' AND e.status = 'active'
+     AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  SELECT e.id INTO v_emp
+    FROM employees e
+   WHERE e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr)
+     AND e.status = 'active'
+     AND e.id <> v_mgr
+     AND e.reports_to IS NULL
+     AND e.department_id IS DISTINCT FROM (SELECT department_id FROM employees WHERE id = v_mgr)
+   LIMIT 1;
+
+  IF v_mgr IS NULL OR v_emp IS NULL THEN
+    PERFORM pg_temp.chk(109, 'responsibility', 'the named manager is the one told',
+      'no cross-department pair to test', 'no cross-department pair to test');
+  ELSE
+    -- Before HR names anybody, a different department means not their business.
+    IF public.manager_covers(v_mgr, v_emp) THEN
+      PERFORM pg_temp.chk(109, 'responsibility', 'the named manager is the one told',
+        'named manager only', 'COVERED SOMEONE IN ANOTHER DEPARTMENT UNASKED');
+    ELSE
+      UPDATE employees SET reports_to = v_mgr WHERE id = v_emp;
+      SELECT array_agg(m ORDER BY m) INTO v_told
+        FROM public.employee_managers(v_emp) m;
+      PERFORM pg_temp.chk(109, 'responsibility', 'the named manager is the one told',
+        'named manager only',
+        CASE WHEN v_told = ARRAY[v_mgr] THEN 'named manager only'
+             ELSE 'TOLD ' || coalesce(array_length(v_told,1),0)::text || ' PEOPLE' END);
+      UPDATE employees SET reports_to = NULL WHERE id = v_emp;
+    END IF;
+  END IF;
+END $$;
+
+-- 110. Nobody manages themselves. This is the one line standing between a manager and the
+-- first signature on their own leave request — the thing the two-step approval exists to
+-- prevent — and it lives in the predicate rather than in each caller precisely so that a
+-- new caller cannot forget it.
+SELECT pg_temp.chk(110, 'responsibility', 'nobody manages themselves', '0',
+  (SELECT count(*)::text FROM employees e WHERE public.manager_covers(e.id, e.id)));
+
+-- 111. Responsibility stops at the company. Two companies share this database and both
+-- have a department called Operations; a manager whose department id happened to collide,
+-- or a reports_to written across the boundary, would otherwise reach a stranger's leave and
+-- pay. The tenant check is inside manager_covers, so it holds for the permission and the
+-- notification at once.
+SELECT pg_temp.chk(111, 'responsibility', 'responsibility stops at the company', '0',
+  (SELECT count(*)::text
+     FROM employees mgr JOIN employees emp ON emp.company_id <> mgr.company_id
+    WHERE public.manager_covers(mgr.id, emp.id)));
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

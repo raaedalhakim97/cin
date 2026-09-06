@@ -184,7 +184,7 @@ REVOKE ALL ON FUNCTION public.validate_payroll_transition() FROM PUBLIC, anon, a
 REVOKE ALL ON FUNCTION public.validate_shift() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_employee(uuid,uuid,text,text,text,text,text,uuid,interval) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notifications_only_read_at_is_editable() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.notify_roles(uuid,text[],text,text,text,text,text,uuid,uuid,uuid,interval) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_roles(uuid,text[],text,text,text,text,text,uuid,uuid,uuid,interval,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_attendance_change() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_feed_post() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_leave_change() FROM PUBLIC, anon, authenticated;
@@ -246,4 +246,14 @@ SELECT 'get_user_role/company_id executable by authenticated (want 2)', count(*)
 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
   AND p.proname IN ('get_user_role', 'get_user_company_id')
+  AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+UNION ALL
+-- Same reason, one layer up. These are the predicates the KPI, leave, payroll and document
+-- policies are written in terms of; a restore that leaves them unreachable does not fail
+-- loudly, it just returns nobody's rows to everybody.
+SELECT 'responsibility predicates executable by authenticated (want 5)', count(*)::text
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN ('manages_employee', 'kpi_manages_employee', 'manager_covers',
+                    'employee_managers', 'get_user_employee_id')
   AND has_function_privilege('authenticated', p.oid, 'EXECUTE');
