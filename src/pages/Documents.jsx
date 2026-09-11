@@ -343,6 +343,24 @@ export default function Documents() {
   // role too — no frontend change was needed for either, since neither ever
   // special-cased the role; they just return real rows instead of an
   // RLS-empty set now.
+  // ── Employees do not upload their own documents. Decided, not overlooked. ──
+  //
+  // Raaed, 11 September 2026, asked and answered: keep it HR-only.
+  //
+  // The case for widening it is real — HR chasing forty people for passport copies is the
+  // actual daily pain, and self-service is what every other HR product does. The case
+  // against is this catalogue. It contains Warning Letter and Resignation Letter, so a
+  // policy of the obvious shape — "an employee may manage documents where employee_id is
+  // their own" — lets somebody delete their own warning. That is evidence, and the hole
+  // only shows itself during a dispute, which is the worst moment to find it.
+  //
+  // If this is revisited, the safe shape is already worked out: a per-type flag on
+  // document_types saying whether an employee may submit it (passport and certificates
+  // yes, warning and contract no), INSERT only, never UPDATE or DELETE, and the uploader
+  // recorded so HR can see what arrived unverified. Anything less careful than that is a
+  // regression wearing the clothes of a feature.
+  //
+  // Until then this list is the whole authority, and /profile passes the same expression.
   const canManage = role === 'super_admin' || role === 'hr_manager' || role === 'admin'
 
   const tabs = [
