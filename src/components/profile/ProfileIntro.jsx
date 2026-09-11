@@ -17,27 +17,21 @@ import { useEffect, useMemo, useState } from 'react'
 // never travels, which is the only reason the handoff to the settled avatar looks like one
 // continuous object rather than two elements swapping.
 //
-// ── Three rules it has to obey ─────────────────────────────────────────────
+// ── Two rules it has to obey ───────────────────────────────────────────────
 //
-// 1. Once per person, not once per page load. A flourish you cannot get past is a tax on
-//    everybody who visits twice, and /profile is where people go to check a date. The
-//    localStorage key carries the employee id, so a shared machine does not hand one
-//    person's "seen" flag to the next.
+// It plays on every visit, at Raaed's instruction. It was once per person behind a
+// localStorage key, on the reasoning that a flourish you cannot get past is a tax on
+// somebody who came to check a date. She was seeing it rarely enough that it read as
+// broken rather than as restraint, which is a fair answer: a gesture nobody reliably sees
+// is not a gesture. If it ever starts to grate, the gate is one constant, not a rewrite.
 //
-// 2. prefers-reduced-motion skips it entirely — not a faster version, not a fade. The
+// 1. prefers-reduced-motion skips it entirely — not a faster version, not a fade. The
 //    settled band renders immediately with no motion at all. Vestibular disorders are not
 //    a preference about taste.
 //
-// 3. It never blocks the page. The rest of /profile is mounted and readable underneath
+// 2. It never blocks the page. The rest of /profile is mounted and readable underneath
 //    while this plays. If the timers never fire, the intro is simply absent and the band
 //    below is already correct.
-//
-// Storage can throw before it can return — a private window, cleared site data, a browser
-// set to block it — so every read and write is wrapped. A throwing localStorage means the
-// intro plays again, which is survivable. An unwrapped read means a blank profile, which
-// is not.
-
-const SEEN_PREFIX = 'byond.profileIntro.seen.'
 
 const BYOND_LETTERS = ['B', 'Y', 'O', 'N', 'D']
 
@@ -49,22 +43,6 @@ const STAGE_AT = [0, 420, 1280, 1820, 2600]
 // puts its bowl exactly on the ring's stroke, so the cross-fade between them has nothing
 // to give away.
 const O_GROWTH = 3.1
-
-function hasSeen(employeeId) {
-  try {
-    return localStorage.getItem(SEEN_PREFIX + employeeId) === '1'
-  } catch {
-    return false
-  }
-}
-
-function markSeen(employeeId) {
-  try {
-    localStorage.setItem(SEEN_PREFIX + employeeId, '1')
-  } catch {
-    /* A browser that refuses to remember means the intro plays again. Acceptable. */
-  }
-}
 
 function prefersReducedMotion() {
   try {
@@ -79,8 +57,7 @@ export default function ProfileIntro({ employeeId, initial, photoUrl, onDone }) 
   // would show one frame of the intro to somebody who asked never to see one.
   const shouldPlay = useMemo(() => {
     if (!employeeId) return false
-    if (prefersReducedMotion()) return false
-    return !hasSeen(employeeId)
+    return !prefersReducedMotion()
   }, [employeeId])
 
   const [stage, setStage] = useState(shouldPlay ? 0 : STAGE_AT.length - 1)
@@ -90,8 +67,6 @@ export default function ProfileIntro({ employeeId, initial, photoUrl, onDone }) 
       onDone?.()
       return
     }
-
-    markSeen(employeeId)
 
     let finished = false
     const timers = STAGE_AT.slice(1).map((at, i) =>
