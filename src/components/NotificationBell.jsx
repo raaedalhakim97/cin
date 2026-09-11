@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell, Loader2, Clock, UserX, CalendarClock, CalendarOff,
-  Newspaper, Umbrella, CheckCheck, TimerOff,
+  Newspaper, Umbrella, CheckCheck, TimerOff, ClipboardList, Award,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 
@@ -31,6 +31,11 @@ const KIND_META = {
   leave_cancelled:             { icon: Umbrella,      tint: 'text-[#A0A0A0]' },
   shift_published:             { icon: CalendarClock, tint: 'text-[#00D4A0]' },
   shift_day_off:               { icon: CalendarOff,   tint: 'text-[#4D9FFF]' },
+  review_self_open:            { icon: ClipboardList, tint: 'text-[#4D9FFF]' },
+  review_self_due:             { icon: ClipboardList, tint: 'text-[#FF8C42]' },
+  review_manager_open:         { icon: ClipboardList, tint: 'text-[#4D9FFF]' },
+  review_manager_due:          { icon: ClipboardList, tint: 'text-[#FF8C42]' },
+  review_published:            { icon: Award,         tint: 'text-[#00D4A0]' },
 }
 
 // Matches newsTimeAgo in LatestNewsWidget rather than inventing a second format,

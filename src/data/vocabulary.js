@@ -30,5 +30,6 @@ export const NAV = {
   operations: 'Operations',
   platform: 'Platform',
   leads: 'Leads',
+  countries: 'Country packs',
   signOut: 'Sign out',
 }

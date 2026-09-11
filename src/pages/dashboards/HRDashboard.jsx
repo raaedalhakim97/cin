@@ -14,6 +14,8 @@ import {
   UserX,
 } from 'lucide-react'
 import supabase from '../../services/supabase'
+import { FEATURES } from '../../data/features'
+import useAuthStore from '../../store/authStore'
 import { localDateStr } from '../../utils/exportHelpers'
 import StatCard from '../../components/dashboard/StatCard'
 import LatestNewsWidget from '../../components/dashboard/LatestNewsWidget'
@@ -23,7 +25,22 @@ function fmtDate(d) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// "Missing payment details" means the bank cannot be paid for this person: no labour card,
+// or no IBAN and routing code. Since migration 52 the bank fields live on employee_pay, so
+// a person with no pay row at all is missing them too — which the old `iban.is.null` filter
+// could not express once the column had gone.
+function countMissingPayDetails(rows) {
+  return (rows ?? []).filter((e) => {
+    const pay = (Array.isArray(e.employee_pay) ? e.employee_pay[0] : e.employee_pay) ?? {}
+    return !e.labour_card_number || !pay.iban || !pay.agent_bank_routing_code
+  }).length
+}
+
 export default function HRDashboard() {
+  // See AdminDashboard — 'none' means no bank salary file exists for this country, so
+  // counting employees against UAE payment fields would report permanent non-compliance.
+  const hasBankFile = (useAuthStore(s => s.countryRules?.payment_file) ?? 'none') !== 'none'
+
   const [loading, setLoading] = useState(true)
   const [activeCount, setActiveCount] = useState(0)
   const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
@@ -51,7 +68,7 @@ export default function HRDashboard() {
       { data: upcomingEmployees },
       { count: dsrPendingCount },
       { count: consentCount },
-      { count: missingWpsCount },
+      { data: payDetailRows },
       { count: docsExpiring },
       { data: nonCompliantRows },
       { count: todayShifts },
@@ -66,8 +83,12 @@ export default function HRDashboard() {
       supabase.from('employees').select('id, full_name, hire_date, contract_type, contract_end_date').eq('status', 'active'),
       supabase.from('data_subject_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('consent_records').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
-      supabase.from('employees').select('id', { count: 'exact', head: true })
-        .or('iban.is.null,labour_card_number.is.null,agent_bank_routing_code.is.null'),
+      // Was one query against employees; iban and the routing code moved to employee_pay in
+      // migration 52, and a missing pay row counts as missing details just as a null column
+      // did. Counted here as "people with no bank details on file", which is what the card
+      // has always meant.
+      supabase.from('employees').select('id, labour_card_number, employee_pay!employee_pay_employee_id_fkey(iban, agent_bank_routing_code)')
+        .neq('status', 'terminated'),
       supabase.from('hr_documents_with_status').select('id', { count: 'exact', head: true })
         .in('expiry_status', ['expiring_soon', 'expiring_critical']),
       supabase.from('employee_compliance_status').select('employee_id').in('compliance_status', ['missing', 'expired']),
@@ -118,7 +139,7 @@ export default function HRDashboard() {
     setCompliance({
       dsrPending: dsrPendingCount ?? 0,
       consentThisMonth: consentCount ?? 0,
-      missingWps: missingWpsCount ?? 0,
+      missingWps: countMissingPayDetails(payDetailRows),
       nonCompliantEmployees: new Set((nonCompliantRows ?? []).map((r) => r.employee_id)).size,
     })
 
@@ -136,7 +157,7 @@ export default function HRDashboard() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${FEATURES.payroll ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
           {[0, 1, 2, 3, 4].map(i => <SkeletonBlock key={i} className="h-19" />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -155,7 +176,9 @@ export default function HRDashboard() {
         <StatCard icon={Users} label="Active Employees" value={String(activeCount)} tone="neutral" />
         <StatCard icon={CalendarOff} label="Pending Leave Requests" value={pendingLeaveCount ? String(pendingLeaveCount) : null} tone={pendingLeaveCount ? 'orange' : 'neutral'} />
         <StatCard icon={UserMinus} label="On Leave Today" value={String(onLeaveTodayCount)} tone="blue" />
-        <StatCard icon={Wallet} label="Payroll This Month" value={payrollSummary} tone="mint" />
+        {FEATURES.payroll && (
+          <StatCard icon={Wallet} label="Payroll This Month" value={payrollSummary} tone="mint" />
+        )}
         <Link to="/documents?tab=expiry" className="block">
           <StatCard icon={FileText} label="Documents Expiring (30 days)" value={String(docsExpiringCount)} tone={docsExpiringCount ? 'orange' : 'neutral'} />
         </Link>
@@ -224,7 +247,12 @@ export default function HRDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={FileCheck2} label="Data Subject Requests Pending" value={String(compliance.dsrPending)} tone={compliance.dsrPending ? 'orange' : 'neutral'} />
           <StatCard icon={ShieldCheck} label="Consent Records This Month" value={String(compliance.consentThisMonth)} tone="mint" />
-          <StatCard icon={AlertTriangle} label="Employees Missing Payment Details" value={String(compliance.missingWps)} tone={compliance.missingWps ? 'red' : 'neutral'} />
+          {/* Counts employees missing a labour card, IBAN and agent routing code — the
+              three fields a UAE WPS SIF needs. Hidden where BYOND generates no bank file,
+              rather than reporting everyone as non-compliant forever. */}
+          {hasBankFile && (
+            <StatCard icon={AlertTriangle} label="Employees Missing Payment Details" value={String(compliance.missingWps)} tone={compliance.missingWps ? 'red' : 'neutral'} />
+          )}
           <Link to="/documents" className="block">
             <StatCard icon={FileText} label="Employees Non-Compliant" value={String(compliance.nonCompliantEmployees)} tone={compliance.nonCompliantEmployees ? 'red' : 'neutral'} />
           </Link>

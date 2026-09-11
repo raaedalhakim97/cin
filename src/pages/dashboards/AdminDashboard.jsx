@@ -16,6 +16,7 @@ import {
   UserX,
 } from 'lucide-react'
 import supabase from '../../services/supabase'
+import { FEATURES } from '../../data/features'
 import useAuthStore from '../../store/authStore'
 import { localDateStr } from '../../utils/exportHelpers'
 import StatCard from '../../components/dashboard/StatCard'
@@ -28,11 +29,17 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 function num(v) { return Number(v || 0) }
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0 }
 
-// audit_logs.action is a plain 'INSERT'/'UPDATE'/'DELETE' verb, and
-// table_name is a separate column — not a single 'table.ACTION' string as
-// originally described. 'wps_sif_generated' doesn't appear anywhere in the
-// live data either (WPS export isn't built yet — see Known Gaps). Adapted
+// audit_logs.action is a plain 'INSERT'/'UPDATE'/'DELETE' verb, and table_name is a
+// separate column — not a single 'table.ACTION' string as originally described. Adapted
 // to what the schema actually has, confirmed live via Supabase MCP.
+//
+// 'wps_sif_generated' is deliberately still absent from this list. generate_wps_sif now
+// has a caller (Payroll > Bank File) and does write that audit row, but it writes one on
+// every attempt including the ones that come back with validation errors. Surfacing those
+// here would fill the activity feed with "someone checked whether payroll was ready",
+// which is noise, not activity. Revisit if the row ever records success separately.
+// payroll_runs stays in the list: with payroll postponed nothing writes to it, so it
+// contributes nothing rather than needing to be removed and remembered later.
 const ACTIVITY_TABLES = ['kpi_scores', 'payroll_runs', 'user_roles']
 
 const ACTIVITY_LABEL = {
@@ -50,8 +57,23 @@ function timeAgo(iso) {
   return `${day}d ago`
 }
 
+// "Missing payment details" means the bank cannot be paid for this person: no labour card,
+// or no IBAN and routing code. Since migration 52 the bank fields live on employee_pay, so
+// a person with no pay row at all is missing them too — which the old `iban.is.null` filter
+// could not express once the column had gone.
+function countMissingPayDetails(rows) {
+  return (rows ?? []).filter((e) => {
+    const pay = (Array.isArray(e.employee_pay) ? e.employee_pay[0] : e.employee_pay) ?? {}
+    return !e.labour_card_number || !pay.iban || !pay.agent_bank_routing_code
+  }).length
+}
+
 export default function AdminDashboard() {
   const companyId = useAuthStore(s => s.companyId)
+  // 'none' means BYOND produces no bank salary file for this country, so the UAE
+  // payroll-file widgets below have nothing to report on. Missing rather than empty:
+  // an empty card still asks a question the company cannot answer.
+  const hasBankFile = (useAuthStore(s => s.countryRules?.payment_file) ?? 'none') !== 'none'
 
   const [loading, setLoading] = useState(true)
   const [totalEmployees, setTotalEmployees] = useState(0)
@@ -78,7 +100,7 @@ export default function AdminDashboard() {
       { data: auditRows },
       { count: dsrPendingCount },
       { count: consentCount },
-      { count: missingWpsCount },
+      { data: payDetailRows },
       { count: docsExpiring },
       { count: todayShifts },
       { count: noShows },
@@ -94,8 +116,12 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('data_subject_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('consent_records').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
-      supabase.from('employees').select('id', { count: 'exact', head: true })
-        .or('iban.is.null,labour_card_number.is.null,agent_bank_routing_code.is.null'),
+      // Was one query against employees; iban and the routing code moved to employee_pay in
+      // migration 52, and a missing pay row counts as missing details just as a null column
+      // did. Counted here as "people with no bank details on file", which is what the card
+      // has always meant.
+      supabase.from('employees').select('id, labour_card_number, employee_pay!employee_pay_employee_id_fkey(iban, agent_bank_routing_code)')
+        .neq('status', 'terminated'),
       supabase.from('hr_documents_with_status').select('id', { count: 'exact', head: true })
         .in('expiry_status', ['expiring_soon', 'expiring_critical']),
       supabase.from('today_schedule').select('id', { count: 'exact', head: true }),
@@ -111,7 +137,7 @@ export default function AdminDashboard() {
     setComplianceExtra({
       dsrPending: dsrPendingCount ?? 0,
       consentThisMonth: consentCount ?? 0,
-      missingWps: missingWpsCount ?? 0,
+      missingWps: countMissingPayDetails(payDetailRows),
     })
 
     // Best-effort name lookup — audit_logs.user_id references auth.users,
@@ -238,18 +264,28 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard icon={FileCheck2} label="DSR Pending" value={String(complianceExtra.dsrPending)} tone={complianceExtra.dsrPending ? 'orange' : 'neutral'} />
             <StatCard icon={ShieldCheck} label="Consent This Month" value={String(complianceExtra.consentThisMonth)} tone="mint" />
-            <StatCard icon={AlertTriangle} label="Missing Payment Details" value={String(complianceExtra.missingWps)} tone={complianceExtra.missingWps ? 'red' : 'neutral'} />
-            <div className="flex flex-col gap-2.5 p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
-              <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0]">Payroll File Readiness</p>
-              <div className="flex items-center gap-2 text-sm">
-                {wps.mol ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
-                <span className="text-[#1A1A1A] dark:text-white">MOL Establishment ID</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                {wps.bankRouting ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
-                <span className="text-[#1A1A1A] dark:text-white">Employer Bank Routing Code</span>
-              </div>
-            </div>
+            {/* Both of these are artefacts of one country's salary transfer scheme. The
+                stat counts employees missing a labour card, IBAN and agent routing code;
+                the card checks a MOHRE establishment ID. A company in a country BYOND
+                generates no bank file for has none of those, and showing it a permanent
+                red count of "missing" documents it will never possess is the country mix
+                this release exists to remove. country_rules.payment_file decides. */}
+            {hasBankFile && FEATURES.payroll && (
+              <>
+                <StatCard icon={AlertTriangle} label="Missing Payment Details" value={String(complianceExtra.missingWps)} tone={complianceExtra.missingWps ? 'red' : 'neutral'} />
+                <div className="flex flex-col gap-2.5 p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+                  <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0]">Payroll File Readiness</p>
+                  <div className="flex items-center gap-2 text-sm">
+                    {wps.mol ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
+                    <span className="text-[#1A1A1A] dark:text-white">MOL Establishment ID</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {wps.bankRouting ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
+                    <span className="text-[#1A1A1A] dark:text-white">Employer Bank Routing Code</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

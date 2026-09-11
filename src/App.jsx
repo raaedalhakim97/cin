@@ -5,6 +5,11 @@ import supabase from './services/supabase'
 import useAuthStore from './store/authStore'
 import useThemeStore from './store/themeStore'
 import PrivateRoute from './components/PrivateRoute'
+import {
+  ADMIN_HR, ADMIN_HR_MGR, SUPER_ADMIN, SCHEDULE_ROLES,
+  DOCUMENTS_ROLES, EMPLOYEES_LIST_ROLES, SETTINGS_ROLES,
+} from './data/navigation'
+import { FEATURES } from './data/features'
 import SessionTimeoutModal from './components/SessionTimeoutModal'
 import { readPendingSignup, runSelfOnboard, clearPendingSignup, isAlreadyOnboardedError } from './utils/onboarding'
 import { readPendingInviteToken, clearPendingInviteToken, acceptEmployeeInvite } from './utils/invite'
@@ -29,7 +34,9 @@ import NewsFeed from './pages/NewsFeed'
 import Leads from './pages/Leads'
 import Platform from './pages/Platform'
 import PlatformCompany from './pages/PlatformCompany'
+import PlatformCountries from './pages/PlatformCountries'
 import WorkspaceSuspended from './pages/WorkspaceSuspended'
+import AccessEnded from './pages/AccessEnded'
 import Permissions from './pages/Permissions'
 import Settings from './pages/Settings'
 import Documents from './pages/Documents'
@@ -68,21 +75,8 @@ function Unauthorized() {
 // 'admin' can now read `employees`, the page itself must still hide
 // edit/delete/add UI for that role — `emp_update`/`emp_delete`/`emp_insert`
 // were not extended, so writes would 400 if attempted.
-const ADMIN_HR      = ['super_admin', 'hr_manager']
-const ADMIN_HR_MGR  = ['super_admin', 'hr_manager', 'department_manager', 'admin']
-const SUPER_ADMIN   = ['super_admin']
-const SCHEDULE_ROLES = ['super_admin', 'hr_manager', 'admin']
-const DOCUMENTS_ROLES = ['super_admin', 'hr_manager', 'admin']
-const EMPLOYEES_LIST_ROLES = ['super_admin', 'hr_manager', 'admin']
-// Migration 42 excluded only 'employee' from Settings. Session 42 (a
-// frontend-only fix, no new migration) moved My Privacy & Data — the one
-// tab every other excluded role could still see — to /profile for
-// everyone, so 'admin'/'department_manager'/
-// 'read_only' now have zero visible tabs left in Settings (Data Requests/
-// Retention/Company/KPI Config/Document Types/Shift Settings are all
-// super_admin/hr_manager-only already) — narrowed to just those two roles
-// rather than leaving the other three a route that renders an empty tab bar.
-const SETTINGS_ROLES = ['super_admin', 'hr_manager']
+// Role sets live in data/navigation.js so /permissions can render a role preview from
+// the same definitions the router obeys, rather than a copy that drifts.
 
 function App() {
   const init       = useAuthStore((s) => s.init)
@@ -90,6 +84,7 @@ function App() {
   const session    = useAuthStore((s) => s.session)
   const role       = useAuthStore((s) => s.role)
   const suspended  = useAuthStore((s) => s.suspended)
+  const accessEnded = useAuthStore((s) => s.accessEnded)
   const loadProfile = useAuthStore((s) => s.loadProfile)
   const isDark     = useThemeStore((s) => s.isDark)
   const [onboarding, setOnboarding] = useState(false)
@@ -216,6 +211,16 @@ function App() {
                 : <Navigate to="/dashboard" replace />
             } />
 
+            {/* Same shape, same reason, different sentence: the company is fine and this
+                person's employment record is closed (migration 51). Also unwrapped, and
+                also bounces anyone whose access is intact so a stale bookmark cannot
+                tell a working employee they have been let go. */}
+            <Route path="/access-ended" element={
+              !session ? <Navigate to="/login" replace />
+                : accessEnded ? <AccessEnded />
+                : <Navigate to="/dashboard" replace />
+            } />
+
             {/* All authenticated users */}
             <Route path="/dashboard" element={
               <PrivateRoute>
@@ -282,11 +287,16 @@ function App() {
               </PrivateRoute>
             } />
 
-            {/* Payroll: all authenticated users see their own payslip; Payroll Run + Summary tabs are role-gated inside the page */}
+            {/* Payroll: all authenticated users see their own payslip; Payroll Run + Summary
+                tabs are role-gated inside the page. Postponed for now (data/features.js) —
+                the route answers with a redirect rather than 404 so an old bookmark or a
+                link in an email lands somewhere sensible instead of on an error. */}
             <Route path="/payroll" element={
-              <PrivateRoute>
-                <Payroll />
-              </PrivateRoute>
+              FEATURES.payroll ? (
+                <PrivateRoute>
+                  <Payroll />
+                </PrivateRoute>
+              ) : <Navigate to="/dashboard" replace />
             } />
 
             {/* Settings: super_admin/hr_manager only (SETTINGS_ROLES, narrowed session 42) — admin/department_manager/read_only/employee all use /profile instead now that My Privacy & Data lives there for every role. The 6 remaining tabs here are each further role-gated inside the page. */}
@@ -303,6 +313,18 @@ function App() {
             <Route path="/platform" element={
               <PrivateRoute platformOwner>
                 <Platform />
+              </PrivateRoute>
+            } />
+
+            {/* Country packs — reference data every workspace inherits from.
+                Declared BEFORE /platform/:companyId, because a dynamic segment
+                would otherwise match "countries" and try to load a company by
+                that id. React Router prefers the static path regardless of
+                order, but relying on that is a footgun for whoever adds the
+                next /platform/<word> route. */}
+            <Route path="/platform/countries" element={
+              <PrivateRoute platformOwner>
+                <PlatformCountries />
               </PrivateRoute>
             } />
 

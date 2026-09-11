@@ -81,6 +81,10 @@ export default function EmployeeNew() {
   const navigate    = useNavigate()
   const companyId   = useAuthStore((s) => s.companyId)
   const currency    = useAuthStore((s) => s.company?.currency) ?? ''
+  // "Emirates ID" in Dubai, "National ID" in Lagos — one column, the country supplies
+  // the word. This is what country_rules.identity_label was added for.
+  const identityLabel = useAuthStore((s) => s.countryRules?.identity_label) ?? 'National ID'
+  const countryCode   = useAuthStore((s) => s.countryRules?.code) ?? null
   const [departments, setDepartments] = useState([])
   const [submitting,  setSubmitting]  = useState(false)
   const [serverError, setServerError] = useState('')
@@ -142,11 +146,6 @@ export default function EmployeeNew() {
       contract_end_date:   values.contract_type === 'fixed_term' ? (values.contract_end_date || null) : null,
       hire_date:           values.hire_date,
       probation_end_date:  values.probation_end_date || null,
-      basic_salary:        values.basic_salary        ? parseFloat(values.basic_salary)        : null,
-      housing_allowance:   values.housing_allowance   ? parseFloat(values.housing_allowance)   : null,
-      transport_allowance: values.transport_allowance ? parseFloat(values.transport_allowance) : null,
-      other_allowance:     values.other_allowance     ? parseFloat(values.other_allowance)     : null,
-      bank_account:        values.bank_account || null,
       // Profile-first invite flow (migration 42) — every employee created
       // from this form starts as 'invited', never 'active'. emp_code is
       // never set here — the aa_emp_code DB trigger assigns it on insert.
@@ -163,10 +162,39 @@ export default function EmployeeNew() {
       console.error('[EmployeeNew] insert failed', error)
       setServerError('Something went wrong saving this employee. Please check the fields and try again.')
       setSubmitting(false)
-    } else {
-      setSuccess(true)
-      setTimeout(() => navigate(`/employees/${data.id}`), 1200)
+      return
     }
+
+    // Pay is a second write because it is a second table (migration 52): the salary and
+    // bank details left the employee record so that reading an employee no longer means
+    // reading their pay. Only written when something was actually entered — an empty row
+    // would say "we hold pay data for this person" when we do not.
+    const pay = {
+      basic_salary:        values.basic_salary        ? parseFloat(values.basic_salary)        : null,
+      housing_allowance:   values.housing_allowance   ? parseFloat(values.housing_allowance)   : null,
+      transport_allowance: values.transport_allowance ? parseFloat(values.transport_allowance) : null,
+      other_allowance:     values.other_allowance     ? parseFloat(values.other_allowance)     : null,
+      bank_account:        values.bank_account || null,
+    }
+
+    if (Object.values(pay).some((v) => v != null)) {
+      const { error: payError } = await supabase
+        .from('employee_pay')
+        .insert({ employee_id: data.id, company_id: payload.company_id, ...pay })
+      if (payError) {
+        // The person exists; only their pay did not save. Saying so beats a generic
+        // failure that makes it look as though nothing was created — they would add the
+        // employee twice.
+        console.error('[EmployeeNew] employee_pay insert failed', payError)
+        setServerError('The employee was created, but their salary details did not save. Open their record and add them there.')
+        setSubmitting(false)
+        setTimeout(() => navigate(`/employees/${data.id}`), 2500)
+        return
+      }
+    }
+
+    setSuccess(true)
+    setTimeout(() => navigate(`/employees/${data.id}`), 1200)
   }
 
   return (
@@ -235,13 +263,22 @@ export default function EmployeeNew() {
                     />
                   </Field>
                   <Field label="Phone">
-                    <Input {...register('phone')} placeholder="+971 50 123 4567" />
+                    {/* No country dialling code in the placeholder — a Kenyan HR manager
+                        typing over "+971" is a small thing that says the product was not
+                        built for them. */}
+                    <Input {...register('phone')} placeholder="Include the country code" />
                   </Field>
                   <Field
-                    label="National ID"
+                    label={identityLabel}
                     hint="Stored encrypted — displayed masked to all users"
                   >
-                    <Input {...register('national_id')} placeholder="784-1990-1234567-1" />
+                    {/* The example format is shown only where we actually know it. Anywhere
+                        else the field takes whatever that country issues, and inventing a
+                        pattern would be a guess printed as an instruction. */}
+                    <Input
+                      {...register('national_id')}
+                      placeholder={countryCode === 'AE' ? '784-1990-1234567-1' : undefined}
+                    />
                   </Field>
                 </div>
               </Section>

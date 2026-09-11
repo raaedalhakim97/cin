@@ -33,14 +33,18 @@ export default function ManagerDashboard() {
   const [kpiScores, setKpiScores] = useState([])
 
   async function fetchAll() {
-    if (!employee?.department_id) { setLoading(false); return }
     setLoading(true)
     const today = localDateStr()
 
+    // No department filter here any more. Since migration 48 a manager's team is whoever
+    // HR named them for, which can span departments, and emp_select returns exactly that
+    // set. Filtering by department as well would hide the people HR moved to them — and
+    // the guard this replaced (return early if the manager has no department) would have
+    // shown an empty dashboard to a manager whose whole team was named rather than
+    // inherited.
     const { data: teamRows } = await supabase
       .from('employees')
       .select('id, full_name, job_title, status, emp_code')
-      .eq('department_id', employee.department_id)
       .eq('status', 'active')
       .order('full_name')
 
@@ -68,7 +72,10 @@ export default function ManagerDashboard() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchAll() }, [employee?.department_id])
+  // Keyed on the signed-in employee rather than their department: the team is now whoever
+  // RLS returns for this person, and that changes when HR renames a manager, not when a
+  // department changes.
+  useEffect(() => { fetchAll() }, [employee?.id])
 
   const attendanceByEmployee = useMemo(() => {
     const map = {}

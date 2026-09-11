@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ShieldCheck, Sparkles, X, Check, Minus } from 'lucide-react'
+import { ShieldCheck, X, Check, Minus } from 'lucide-react'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import { ROLES, ROLE_LABELS, LEGEND, ACCESS_MATRIX } from '../data/accessMatrix'
+import RolePreview from '../components/permissions/RolePreview'
 
 // Static documentation view only — no Supabase calls, no impersonation, no
 // RLS bypass. Everything on this page is derived from accessMatrix.js.
@@ -178,21 +179,17 @@ export default function Permissions() {
             </div>
           </div>
 
-          {/* Explainer + role-preview placeholder */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] mb-6">
+          {/* Explainer */}
+          <div className="p-4 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] mb-6">
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0] max-w-2xl">
               This shows what each role is allowed to do, enforced at the database level.
-              To preview a role's actual screens, <span className="font-medium text-[#1A1A1A] dark:text-white">role preview</span> is coming soon.
+              The preview below shows the screens each role actually sees.
             </p>
-            <button
-              type="button"
-              disabled
-              title="Role preview — coming soon"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#AAAAAA] dark:text-[#555555] border border-[#E8E8E8] dark:border-[#2A2A2A] cursor-not-allowed shrink-0"
-            >
-              <Sparkles size={14} />
-              Role preview — coming soon
-            </button>
+          </div>
+
+          {/* Role preview */}
+          <div className="mb-6">
+            <RolePreview />
           </div>
 
           {/* Legend */}

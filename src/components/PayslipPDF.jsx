@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect } from '@react-pdf/renderer'
+import { countryNameFor } from '../utils/onboarding'
 
 // Design system colors (BYOND-Design-System.md) — react-pdf has no dark mode
 // concept, this document is always rendered against a white page.
@@ -229,7 +230,11 @@ function Row({ label, value, danger }) {
 export default function PayslipPDF({ run, employee, company }) {
   const gross = computeGross(run)
   const net   = computeNet(gross, run.deductions)
-  const currency = company?.currency || 'AED'
+  // No 'AED' fallback. company.currency has been NOT NULL since migration 35 and comes
+  // from the country pack, so the fallback could only ever fire for a company whose
+  // currency was unset — and printing dirhams on that company's payslip was the bug the
+  // fallback looked like it was preventing.
+  const currency = company?.currency ?? ''
   const generatedOn = new Date().toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
@@ -264,7 +269,7 @@ export default function PayslipPDF({ run, employee, company }) {
             </Svg>
             <View>
               <Text style={styles.companyName}>{company?.name || 'BYOND BY SERVA'}</Text>
-              {company?.country && <Text style={styles.companyMeta}>{company.country}</Text>}
+              {company?.country && <Text style={styles.companyMeta}>{countryNameFor(company.country)}</Text>}
             </View>
           </View>
           <View>

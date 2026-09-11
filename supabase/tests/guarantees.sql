@@ -1072,6 +1072,921 @@ SELECT pg_temp.chk(70, 'country', 'no leave policy no longer means unlimited lea
             LIKE '%No % leave policy is set%'
        THEN 'refuses' ELSE 'STILL ALLOWS' END);
 
+-- ── Migration 34: a country is a code, not a sentence ──────────────────────
+
+-- 71. Every company holds an ISO 3166-1 alpha-2 code. The whole point of the change:
+-- 'UAE', 'uae' and 'U.A.E.' can no longer be three different countries.
+SELECT pg_temp.chk(71, 'country', 'every company country is a 2-letter code', '0',
+  (SELECT count(*)::text FROM company WHERE country IS NULL OR country !~ '^[A-Z]{2}$'));
+
+-- 72. The column cannot go back to being free text: NOT NULL, no default, and a foreign
+-- key to country_rules. Without the FK a typo is still a new country.
+SELECT pg_temp.chk(72, 'country', 'company.country is constrained', 'notnull+nodefault+fk',
+  (SELECT CASE WHEN a.attnotnull
+                AND NOT EXISTS (SELECT 1 FROM pg_attrdef d
+                                 WHERE d.adrelid = a.attrelid AND d.adnum = a.attnum)
+                AND EXISTS (SELECT 1 FROM pg_constraint fk
+                             WHERE fk.conrelid = 'public.company'::regclass
+                               AND fk.contype = 'f'
+                               AND fk.confrelid = 'public.country_rules'::regclass
+                               AND a.attnum = ANY (fk.conkey))
+               THEN 'notnull+nodefault+fk' ELSE 'UNCONSTRAINED' END
+     FROM pg_attribute a
+    WHERE a.attrelid = 'public.company'::regclass AND a.attname = 'country'));
+
+-- 73. A company created without naming a country used to become the UAE silently, and
+-- then inherit UAE labour law. The default is gone and must stay gone.
+SELECT pg_temp.chk(73, 'country', 'no silent UAE default on company.country', 'no default',
+  (SELECT CASE WHEN column_default IS NULL THEN 'no default' ELSE 'DEFAULT '||column_default END
+     FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'company' AND column_name = 'country'));
+
+-- 74. The resolver normalises what humans type and returns NULL for what it does not
+-- know. The NULL matters more than the matches: it is what stops an unrecognised
+-- country being filed under AE.
+SELECT pg_temp.chk(74, 'country', 'resolve_country_code maps labels and refuses guesses', 'AE|AE|AE|GB|SA|NULL|NULL',
+  concat_ws('|',
+    coalesce(resolve_country_code('UAE'), 'NULL'),
+    coalesce(resolve_country_code('  united arab emirates '), 'NULL'),
+    coalesce(resolve_country_code('AE'), 'NULL'),
+    coalesce(resolve_country_code('UK'), 'NULL'),
+    coalesce(resolve_country_code('KSA'), 'NULL'),
+    coalesce(resolve_country_code('Atlantis'), 'NULL'),
+    coalesce(resolve_country_code(''), 'NULL')));
+
+-- 75. The fuzzy matcher is gone. While it exists somebody will compare free text to a
+-- country again, which is the defect this whole migration removes.
+SELECT pg_temp.chk(75, 'country', 'is_uae_country is retired', '0',
+  (SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'is_uae_country'));
+
+-- 76. Normalisation has to happen before the identifier checks read NEW.country, and
+-- BEFORE triggers fire in name order. If someone renames either trigger, the UAE format
+-- rules stop firing for a company that was created with the label 'UAE'.
+SELECT pg_temp.chk(76, 'country', 'country normalises before identifiers are checked', 'ordered',
+  CASE WHEN (SELECT tgname FROM pg_trigger
+              WHERE tgrelid = 'public.company'::regclass AND NOT tgisinternal
+                AND tgfoid = 'public.company_country_is_a_code'::regproc)
+           < (SELECT tgname FROM pg_trigger
+               WHERE tgrelid = 'public.company'::regclass AND NOT tgisinternal
+                 AND tgfoid = 'public.company_identifiers_fit_the_country'::regproc)
+       THEN 'ordered' ELSE 'OUT OF ORDER' END);
+
+-- ── Migrations 35-36: payroll and paperwork stop assuming the UAE ──────────
+
+-- 77. currency and timezone had the same shape country did — nullable, defaulting to the
+-- UAE. timezone is the sharp one: migration 27 derives an attendance row's date from it,
+-- so a company that never set one had clock-ins near midnight filed under Dubai's day.
+SELECT pg_temp.chk(77, 'country', 'currency and timezone cannot default to the UAE', 'both constrained',
+  (SELECT CASE WHEN count(*) = 2 THEN 'both constrained' ELSE 'STILL DEFAULTED' END
+     FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'company'
+      AND column_name IN ('currency', 'timezone')
+      AND is_nullable = 'NO' AND column_default IS NULL));
+
+-- 78. Document type seeding is gated on the country. Asserted on the body rather than by
+-- creating a company, same reasoning as 70: the fixture cannot guarantee a second country
+-- exists on every environment.
+SELECT pg_temp.chk(78, 'country', 'UAE document types are seeded only for AE', 'gated',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'seed_default_document_types')
+            LIKE '%v_code = ''AE''%'
+       THEN 'gated' ELSE 'SEEDED TO EVERYONE' END);
+
+-- 79. The identity and permit labels in country_rules exist so that one code can read
+-- "Emirates ID" in Dubai and "National ID" in Nairobi. They went unread for four
+-- migrations; this is what stops that happening again.
+SELECT pg_temp.chk(79, 'country', 'document labels come from the country pack', 'from pack',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'seed_default_document_types')
+            LIKE '%identity_label%'
+       THEN 'from pack' ELSE 'HARDCODED' END);
+
+-- 80. The salary transfer file asks which country before demanding UAE paperwork.
+-- country_rules.payment_file was added to decide this and had been read by nothing.
+SELECT pg_temp.chk(80, 'country', 'WPS SIF refuses a country with no bank file format', 'gated',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'generate_wps_sif')
+            LIKE '%payment_file%uae_wps_sif%'
+       THEN 'gated' ELSE 'UNGATED' END);
+
+-- 81. `text[] || <untyped literal>` resolves to array-to-array concatenation in Postgres
+-- and raises 22P02 trying to parse the sentence as an array. Both of these fired whenever
+-- a company was missing its establishment ID — which is to say, in exactly the case the
+-- validation existed to report. Found by calling the function, not by reading it.
+SELECT pg_temp.chk(81, 'country', 'WPS validation errors are cast to text', 'cast',
+  (SELECT CASE WHEN pg_get_functiondef(oid) LIKE '%establishment ID missing''::text%'
+                AND pg_get_functiondef(oid) LIKE '%routing code missing''::text%'
+               THEN 'cast' ELSE 'RAISES 22P02' END
+     FROM pg_proc WHERE proname = 'generate_wps_sif'));
+
+-- ── The leave policy a company actually offers ─────────────────────────────
+
+-- 82. Settings > Leave Policy is a write path into company_leave_policies, so the gate
+-- matters. Everyone in the company may READ it — an employee is entitled to know how much
+-- leave they get — and only super_admin or hr_manager may change it. An employee who could
+-- edit this could grant themselves leave before requesting it.
+SELECT pg_temp.chk(82, 'country', 'leave policy is read by all, written by HR only', 'read-all/write-hr',
+  CASE WHEN (SELECT count(*) FROM pg_policies
+              WHERE tablename = 'company_leave_policies' AND cmd = 'SELECT'
+                AND qual LIKE '%get_user_company_id%') = 1
+        AND (SELECT count(*) FROM pg_policies
+              WHERE tablename = 'company_leave_policies' AND cmd = 'ALL'
+                AND qual LIKE '%hr_manager%' AND with_check LIKE '%hr_manager%') = 1
+       THEN 'read-all/write-hr' ELSE 'GATE WRONG' END);
+
+-- ── Migration 38: every foreign key has something behind it ────────────────
+
+-- 83. Postgres indexes the referenced side of a foreign key automatically and never the
+-- referencing side, so an unindexed one is a sequential scan on every query that filters
+-- the column AND on every delete of the parent — including anonymize_employee, which this
+-- product is legally obliged to complete. 41 were missing; this is what stops the 42nd
+-- arriving unnoticed.
+SELECT pg_temp.chk(83, 'perf', 'every foreign key has a supporting index', '0',
+  (WITH fk AS (
+     SELECT c.conkey, c.conrelid
+       FROM pg_constraint c
+       JOIN pg_class t ON t.oid = c.conrelid
+       JOIN pg_namespace n ON n.oid = t.relnamespace
+      WHERE c.contype = 'f' AND n.nspname = 'public'
+   )
+   SELECT count(*)::text FROM fk
+    WHERE NOT EXISTS (
+      SELECT 1 FROM pg_index i
+       WHERE i.indrelid = fk.conrelid
+         AND (i.indkey::smallint[])[0:array_length(fk.conkey, 1) - 1] = fk.conkey)));
+
+-- ── Migrations 40-43: the custom KPI system ────────────────────────────────
+
+-- 84. The five-level scale is fixed platform-wide. If a company could set its own point
+-- values, "Meets expectations" would mean a different number in every tenant and no score
+-- would be comparable to any other.
+SELECT pg_temp.chk(84, 'kpi', 'the level scale is 20/40/60/80/100', '20|40|60|80|100',
+  concat_ws('|', kpi_level_points(1::smallint), kpi_level_points(2::smallint),
+                 kpi_level_points(3::smallint), kpi_level_points(4::smallint),
+                 kpi_level_points(5::smallint)));
+
+-- 85. RLS decides which rows, never which columns. Without a trigger an employee could
+-- write their own manager_level and score themselves — the hole migration 26 closed on
+-- kpi_scores, which this table would otherwise have reopened.
+SELECT pg_temp.chk(85, 'kpi', 'an employee cannot write their own manager rating', 'guarded',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+     WHERE t.tgrelid = 'public.kpi_review_lines'::regclass AND NOT t.tgisinternal
+       AND p.proname = 'kpi_review_line_self_writes_self_only')
+  THEN 'guarded' ELSE 'UNGUARDED' END);
+
+-- 86. Both approval chains are enforced by a trigger, not by a status string the client
+-- sets. employee_scorecards shipped in migration 41 with the states and none of the
+-- enforcement, so any department_manager could approve their own exception — found by
+-- testing, fixed in 43.
+SELECT pg_temp.chk(86, 'kpi', 'both scorecard approval chains are enforced', 'both',
+  CASE WHEN EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                     WHERE t.tgrelid = 'public.kpi_templates'::regclass AND NOT t.tgisinternal
+                       AND p.proname = 'validate_kpi_template_transition')
+        AND EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                     WHERE t.tgrelid = 'public.employee_scorecards'::regclass AND NOT t.tgisinternal
+                       AND p.proname = 'validate_employee_scorecard_transition')
+       THEN 'both' ELSE 'MISSING ONE' END);
+
+-- 87. Nobody is scored against weights that do not total 100. Templates are checked at
+-- submission; an override bypassed that entirely until migration 43 added the check at
+-- activation and again where a review is opened.
+SELECT pg_temp.chk(87, 'kpi', 'weights must total 100 before scoring', 'checked',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'validate_employee_scorecard_transition') LIKE '%employee_scorecard_weight_total%'
+        AND (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'kpi_generate_review_lines') LIKE '%employee_scorecard_weight_total%'
+       THEN 'checked' ELSE 'UNCHECKED' END);
+
+-- 88. The recommendation engine ranks a shortfall above an upside. Because the scale is
+-- linear, "points gained by going up one level" is always 20 * weight / total, so a naive
+-- ranking is just "your heaviest criterion" and would tell someone at Exceeds to chase
+-- Outstanding while they sit at Poor elsewhere.
+SELECT pg_temp.chk(88, 'kpi', 'advice puts what you are failing above what you could polish', 'banded',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'kpi_review_opportunities')
+            LIKE '%shortfall%'
+       THEN 'banded' ELSE 'NAIVE' END);
+
+-- ═══ 21. A manager manages their own department — migrations 44 to 47 ══════
+-- Raaed settled this after the engine was built: "Manager only responsible on their
+-- department, it is like employee reporting to department manager. HR the whole company,
+-- report to CEO." Every KPI table until then said role IN (super_admin, hr_manager,
+-- department_manager) and stopped, so a Sales manager could rate an Operations employee.
+--
+-- 89 and 90 are behavioural rather than structural, because the rule is a data question
+-- and a policy that merely mentions kpi_manages_employee could still be asking it about
+-- the wrong row.
+DO $$
+DECLARE
+  v_mgr_user uuid; v_mgr_emp uuid; v_mgr_dept uuid; v_other uuid;
+  v_hr_user uuid; v_hr_emp uuid;
+  v_ok text;
+BEGIN
+  SELECT ur.user_id, e.id, e.department_id INTO v_mgr_user, v_mgr_emp, v_mgr_dept
+    FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+   WHERE ur.role = 'department_manager' AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  SELECT e.id INTO v_other FROM employees e
+   WHERE e.department_id IS NOT NULL AND e.department_id <> v_mgr_dept
+     AND e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr_emp)
+   LIMIT 1;
+
+  -- 89. Somebody else's department is out of reach.
+  IF v_mgr_user IS NULL OR v_other IS NULL THEN
+    -- Vacuous rather than silently absent: this database has no department manager with
+    -- a second department to test against, and saying so is better than a green tick.
+    PERFORM pg_temp.chk(89, 'kpi', 'a manager cannot rate another department',
+      'no manager to test', 'no manager to test');
+    PERFORM pg_temp.chk(90, 'kpi', 'nobody manages themselves',
+      'no manager to test', 'no manager to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_ok := CASE WHEN public.kpi_manages_employee(v_other) THEN 'REACHES THEM' ELSE 'out of reach' END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(89, 'kpi', 'a manager cannot rate another department',
+      'out of reach', v_ok);
+
+    -- 90. And not themselves. This is what puts a manager's own review in HR's hands and
+    -- HR's in the owner's, which is the chain Raaed described.
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_ok := CASE WHEN public.kpi_manages_employee(v_mgr_emp) THEN 'RATES HIMSELF' ELSE 'not himself' END;
+    PERFORM pg_temp.as_nobody();
+
+    SELECT ur.user_id, e.id INTO v_hr_user, v_hr_emp
+      FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+     WHERE ur.role = 'hr_manager' LIMIT 1;
+    IF v_hr_user IS NOT NULL AND v_ok = 'not himself' THEN
+      PERFORM pg_temp.as_user(v_hr_user);
+      v_ok := CASE WHEN public.kpi_manages_employee(v_hr_emp) THEN 'HR RATES HERSELF' ELSE 'not himself' END;
+      PERFORM pg_temp.as_nobody();
+    END IF;
+    PERFORM pg_temp.chk(90, 'kpi', 'nobody manages themselves', 'not himself', v_ok);
+  END IF;
+END $$;
+
+-- 91. The three report functions are SECURITY DEFINER and take a review id. Until
+-- migration 45 that id was the only access control they had: hold one and you got the
+-- score, the ranked weaknesses and both sides' disagreements, whoever you were.
+SELECT pg_temp.chk(91, 'kpi', 'the review reports check who is asking', 'all three',
+  CASE WHEN (SELECT count(*) FROM pg_proc
+              WHERE proname IN ('kpi_review_score','kpi_review_opportunities','kpi_review_disagreements')
+                AND pg_get_functiondef(oid) LIKE '%kpi_review_is_visible%') = 3
+       THEN 'all three' ELSE 'UNGUARDED' END);
+
+-- 92. The review stages are enforced on the per-criterion ratings, not only on the old
+-- score column. Without this an employee could revise their self-rating after reading the
+-- manager's, which is the one thing a self-assessment must not allow.
+SELECT pg_temp.chk(92, 'kpi', 'ratings cannot be written out of stage', 'guarded',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+     WHERE t.tgrelid = 'public.kpi_review_lines'::regclass AND NOT t.tgisinternal
+       AND p.proname = 'kpi_review_line_stage_guard')
+  THEN 'guarded' ELSE 'UNGUARDED' END);
+
+-- 93. An "automatic" criterion is actually measured. The schema had auto_value and the
+-- thresholds from the start and nothing ever wrote a number into the column, so every
+-- automated criterion sat unrated forever behind a badge saying it was automatic.
+SELECT pg_temp.chk(93, 'kpi', 'automatic criteria are measured from real attendance', 'measured',
+  CASE WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'kpi_metric_value')
+        AND EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                     WHERE t.tgrelid = 'public.kpi_review_cycles'::regclass AND NOT t.tgisinternal
+                       AND p.proname = 'kpi_cycle_refresh_auto_lines')
+       THEN 'measured' ELSE 'DECORATIVE' END);
+
+-- ═══ 22. A manager can hold more than one unit — migrations 48 and 49 ══════
+-- Raaed: "Aisha Manager. Khalid (Admin) reports to Aisha (Ganache chocolate). Amir (Sales)
+-- reports to Aisha (Carpo chocolate). It's like Aisha is a multi-unit manager, if the HR
+-- manager allowed her by adding the employees report to specific manager."
+--
+-- So reporting is something HR states rather than something the department implies, and
+-- the rule is explicit beats implicit. 94 asserts both halves in one go, because the half
+-- that is easy to forget is the second one: naming a manager has to MOVE somebody, not
+-- widen the set of people who can rate them.
+DO $$
+DECLARE
+  v_mgr_user uuid; v_mgr_emp uuid; v_mgr_dept uuid;
+  v_outsider uuid; v_insider uuid;
+  v_reach_before boolean; v_reach_after boolean; v_lost boolean;
+  v_ok text;
+BEGIN
+  SELECT ur.user_id, e.id, e.department_id INTO v_mgr_user, v_mgr_emp, v_mgr_dept
+    FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+   WHERE ur.role = 'department_manager' AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  -- Somebody outside their department, and somebody inside it.
+  SELECT e.id INTO v_outsider FROM employees e
+   WHERE e.department_id IS NOT NULL AND e.department_id <> v_mgr_dept
+     AND e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr_emp)
+   LIMIT 1;
+  SELECT e.id INTO v_insider FROM employees e
+   WHERE e.department_id = v_mgr_dept AND e.id <> v_mgr_emp
+   LIMIT 1;
+
+  IF v_mgr_user IS NULL OR v_outsider IS NULL OR v_insider IS NULL THEN
+    PERFORM pg_temp.chk(94, 'kpi', 'a named manager moves somebody rather than widening access',
+      'no fixture to test', 'no fixture to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_reach_before := public.kpi_manages_employee(v_outsider);
+    PERFORM pg_temp.as_nobody();
+
+    -- HR names them for the outsider, and names somebody else for the insider.
+    UPDATE employees SET reports_to = v_mgr_emp WHERE id = v_outsider;
+    UPDATE employees SET reports_to = v_outsider WHERE id = v_insider;
+
+    PERFORM pg_temp.as_user(v_mgr_user);
+    v_reach_after := public.kpi_manages_employee(v_outsider);
+    v_lost        := NOT public.kpi_manages_employee(v_insider);
+    PERFORM pg_temp.as_nobody();
+
+    v_ok := CASE
+              WHEN v_reach_before THEN 'REACHED THE OTHER DEPARTMENT ALREADY'
+              WHEN NOT v_reach_after THEN 'NAMING DID NOTHING'
+              WHEN NOT v_lost THEN 'KEPT SOMEBODY HR REASSIGNED'
+              ELSE 'moved'
+            END;
+    PERFORM pg_temp.chk(94, 'kpi', 'a named manager moves somebody rather than widening access',
+      'moved', v_ok);
+
+    UPDATE employees SET reports_to = NULL WHERE id IN (v_outsider, v_insider);
+  END IF;
+END $$;
+
+-- 95. "The employee can't rate the manager" — and is told so. Both guards used to pin the
+-- forbidden column back to its old value, which is safe and dishonest: the write returned
+-- success, the screen said "Saved", and the rating was not there. Structural rather than
+-- behavioural because proving it needs a whole approved scorecard and an open cycle, which
+-- this suite does not build; the behaviour was verified by hand against production.
+SELECT pg_temp.chk(95, 'kpi', 'a forbidden write is refused, not silently dropped', 'both refuse',
+  CASE WHEN (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'kpi_review_line_self_writes_self_only')
+            LIKE '%Only your manager can write the manager rating%'
+        AND (SELECT pg_get_functiondef(oid) FROM pg_proc
+              WHERE proname = 'kpi_self_write_is_self_score_only')
+            LIKE '%Only your manager or HR can write those scores%'
+       THEN 'both refuse' ELSE 'STILL PINS' END);
+
+-- 96. Every table on the path asks the same question. This is the assertion that would have
+-- caught migration 48's failure: kpi_manages_employee said yes, the review-lines policy
+-- said yes, and kpi_reviews still filtered by department — so the write matched zero rows
+-- and reported success. A permission that spans tables is only as wide as the narrowest
+-- policy on the path.
+SELECT pg_temp.chk(96, 'kpi', 'no KPI policy still decides by department alone', '0',
+  (SELECT count(*)::text FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('kpi_reviews', 'kpi_review_lines', 'employee_scorecards',
+                        'employee_scorecard_overrides', 'warning_recommendations')
+      AND (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%get_user_department_id%'));
+
+-- ═══ 23. Responsibility reaches leave, pay and files — migration 50 ════════
+-- Raaed said extend it, so the named manager now approves leave, sees a pay run and reads
+-- a file for the people HR gave them. Reading those three policies to make the change
+-- turned up three holes that had nothing to do with named managers, and 97 pins the worst
+-- of them.
+--
+-- 97. A department_manager could give the first approval to their OWN leave request.
+-- validate_leave_transition compared the employee's department to the caller's and never
+-- asked whether they were the same person, and a manager is in their own department. HR
+-- still had to give the final approval, so nobody could award themselves holiday — but the
+-- first signature on your own request is the exact thing a two-step approval exists to
+-- prevent, and it had been true since the day the guard was written.
+DO $$
+DECLARE
+  v_mgr_user uuid; v_mgr_emp uuid; v_co uuid; v_req uuid; v_ok text;
+BEGIN
+  SELECT ur.user_id, e.id, e.company_id INTO v_mgr_user, v_mgr_emp, v_co
+    FROM user_roles ur JOIN employees e ON e.user_id = ur.user_id
+   WHERE ur.role = 'department_manager' AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  IF v_mgr_user IS NULL THEN
+    PERFORM pg_temp.chk(97, 'leave', 'a manager cannot sign off their own leave',
+      'no manager to test', 'no manager to test');
+  ELSE
+    INSERT INTO leave_requests (company_id, employee_id, leave_type, start_date, end_date,
+                                days_requested, status, reason)
+    VALUES (v_co, v_mgr_emp, 'annual', CURRENT_DATE + 400, CURRENT_DATE + 401, 2,
+            'pending', 'assertion 97')
+    RETURNING id INTO v_req;
+
+    PERFORM pg_temp.as_user(v_mgr_user);
+    BEGIN
+      UPDATE leave_requests SET status = 'manager_approved' WHERE id = v_req;
+      -- Zero rows updated raises nothing, so the verdict is read from the data rather than
+      -- from whether an exception fired. (An earlier version of a test in this suite got
+      -- that wrong and reported a working guard as broken.)
+      SELECT CASE WHEN status = 'manager_approved' THEN 'SIGNED THEIR OWN' ELSE 'refused' END
+        INTO v_ok FROM leave_requests WHERE id = v_req;
+    EXCEPTION WHEN OTHERS THEN v_ok := 'refused';
+    END;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(97, 'leave', 'a manager cannot sign off their own leave',
+      'refused', v_ok);
+  END IF;
+END $$;
+
+-- 98. And the scope of a manager is one question asked in one place. Two of these were
+-- worse than wrong before migration 50: leave_update granted a department_manager UPDATE
+-- on every leave request in the company, which made the careful leave_mgr_update policy
+-- beside it do nothing at all, and kpi_scores granted the role the whole company with a
+-- filter in JavaScript standing in for the permission.
+--
+-- The count is of policies that still decide a manager's reach from the department alone.
+-- emp_select is the one legitimate exception: it names both the department and reports_to,
+-- and it cannot go through manages_employee because that predicate excludes yourself and
+-- reading your own row is the first thing emp_select has to allow.
+SELECT pg_temp.chk(98, 'isolation', 'a manager''s reach is one question in one place', '0',
+  (SELECT count(*)::text FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('leave_requests', 'payroll_runs', 'hr_documents', 'kpi_scores',
+                        'kpi_reviews', 'kpi_review_lines', 'employee_scorecards',
+                        'employee_scorecard_overrides', 'warning_recommendations')
+      AND (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%get_user_department_id%'));
+
+-- 99. The wide policy that cancelled out the narrow one is gone. A permissive policy is
+-- ORed with every other permissive policy on the same command, so one that names the role
+-- and stops there makes every careful policy beside it decorative — this is the shape of
+-- mistake that hides best, because the restrictive policy is still sitting there looking
+-- like it works.
+SELECT pg_temp.chk(99, 'leave', 'no blanket manager write on leave requests', 'none',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_policies
+     WHERE schemaname = 'public' AND tablename = 'leave_requests' AND cmd = 'UPDATE'
+       AND coalesce(qual, '') LIKE '%department_manager%'
+       AND coalesce(qual, '') NOT LIKE '%manages_employee%')
+  THEN 'A BLANKET POLICY IS BACK' ELSE 'none' END);
+
+-- ═══ 24. Termination ends access — migration 51 ════════════════════════════
+-- Finding 3 of the logic audit. Nothing in the schema or the app looked at
+-- employees.status when deciding what a signed-in person may do: access comes from a
+-- user_roles row, and terminating somebody never touched it. An ex-employee kept their
+-- login, their team's data and their notifications until a human remembered to delete the
+-- role by hand.
+--
+-- Enforced in get_user_company_id, the same function suspension uses, for the same reason:
+-- around a hundred policies already ask it, so the rule cannot be forgotten by the next
+-- table somebody adds. 100 asserts it through one of those policies rather than by calling
+-- the function, because what matters is that the policies inherit it.
+DO $$
+DECLARE
+  v_uid uuid; v_emp uuid; v_before int; v_after int; v_status text; v_ok text;
+BEGIN
+  -- Anyone with a login who is not an owner: an owner's own termination is an edge case
+  -- nobody sensible runs, and the interesting subject is an ordinary employee.
+  SELECT e.user_id, e.id INTO v_uid, v_emp
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE e.status = 'active' AND ur.role NOT IN ('super_admin')
+     AND coalesce(ur.is_platform_owner, false) = false
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(100, 'offboarding', 'termination ends access',
+      'no employee to test', 'no employee to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_before FROM employees;
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET status = 'terminated' WHERE id = v_emp;
+
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_after FROM employees;
+    -- my_workspace() is the reader that still answers once the gate is shut, and it has to
+    -- say WHICH gate: without the employment status the app tells an ex-employee their
+    -- login was never linked to an employee record, which is untrue and unactionable.
+    SELECT employment_status INTO v_status FROM public.my_workspace();
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET status = 'active' WHERE id = v_emp;
+
+    v_ok := CASE
+              WHEN v_before = 0 THEN 'FIXTURE READ NOTHING WHILE EMPLOYED'
+              WHEN v_after > 0 THEN 'STILL READING AFTER TERMINATION'
+              WHEN v_status IS DISTINCT FROM 'terminated' THEN 'CANNOT TELL THEM WHY'
+              ELSE 'locked out, and told why'
+            END;
+    PERFORM pg_temp.chk(100, 'offboarding', 'termination ends access',
+      'locked out, and told why', v_ok);
+  END IF;
+END $$;
+
+-- 101. And 'terminated' is a value the database checks. employees.status had no CHECK
+-- constraint at all — it was free text, and the three values in use were a convention.
+-- Survivable while nothing read the column; not survivable now that this exact string is
+-- what ends someone's access, because 'Terminated' with a capital T would look right in
+-- every list and revoke nothing.
+SELECT pg_temp.chk(101, 'offboarding', 'employment status is a fixed set', 'constrained',
+  CASE WHEN EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.employees'::regclass AND contype = 'c'
+       AND pg_get_constraintdef(oid) LIKE '%terminated%')
+  THEN 'constrained' ELSE 'FREE TEXT' END);
+
+-- ═══ 25. Pay is not part of the employee record — migration 52 ════════════
+-- Finding 1 of the logic audit, measured with the company's own "managers can see
+-- salaries" setting switched OFF: the auditor read all 12 salaries, operations read all 12,
+-- and a department manager read their team's. The setting guards payroll_runs; salary sat
+-- on the employee record, and RLS decides which rows you may read, never which columns.
+--
+-- 102 is behavioural because that is the only thing that settles it: the columns could be
+-- moved and a policy written and still hand the row to the wrong person.
+DO $$
+DECLARE
+  v_uid uuid; v_role text; v_seen int; v_ok text; v_bad text := '';
+BEGIN
+  FOR v_uid, v_role IN
+    SELECT ur.user_id, ur.role FROM user_roles ur
+     WHERE ur.role IN ('read_only', 'admin', 'department_manager', 'employee')
+  LOOP
+    PERFORM pg_temp.as_user(v_uid);
+    -- Their own pay is theirs; anything beyond one row is somebody else's.
+    SELECT count(*) INTO v_seen FROM employee_pay
+     WHERE employee_id IS DISTINCT FROM get_user_employee_id(v_uid);
+    PERFORM pg_temp.as_nobody();
+    IF v_seen > 0 THEN
+      v_bad := v_bad || format('%s reads %s others; ', v_role, v_seen);
+    END IF;
+  END LOOP;
+
+  PERFORM pg_temp.chk(102, 'privacy', 'only HR and the owner read other people''s pay',
+    'nobody else does', CASE WHEN v_bad = '' THEN 'nobody else does' ELSE v_bad END);
+END $$;
+
+-- 103. And HR can still do their job. A rule that hides pay from everyone is not a fix, it
+-- is an outage — this is the assertion that would fail if somebody "tightened" the policy
+-- by dropping the role check instead of narrowing it.
+DO $$
+DECLARE v_uid uuid; v_seen int;
+BEGIN
+  SELECT user_id INTO v_uid FROM user_roles WHERE role = 'hr_manager' LIMIT 1;
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(103, 'privacy', 'HR still reads pay', 'no HR to test', 'no HR to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_seen FROM employee_pay;
+    PERFORM pg_temp.as_nobody();
+    PERFORM pg_temp.chk(103, 'privacy', 'HR still reads pay', 'some',
+      CASE WHEN v_seen > 0 THEN 'some' ELSE 'NONE - the fix broke payroll' END);
+  END IF;
+END $$;
+
+-- 104. Nobody edits their own salary. The read policy lets you see your own pay, which is
+-- right; the write policy must not, and the two are easy to write as one by accident.
+DO $$
+DECLARE v_uid uuid; v_emp uuid; v_before numeric; v_after numeric; v_ok text;
+BEGIN
+  SELECT e.user_id, e.id, p.basic_salary INTO v_uid, v_emp, v_before
+    FROM employee_pay p JOIN employees e ON e.id = p.employee_id
+    JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE p.basic_salary IS NOT NULL AND ur.role NOT IN ('super_admin', 'hr_manager')
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(104, 'privacy', 'nobody raises their own salary',
+      'no fixture to test', 'no fixture to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    BEGIN
+      UPDATE employee_pay SET basic_salary = v_before + 50000 WHERE employee_id = v_emp;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    PERFORM pg_temp.as_nobody();
+    SELECT basic_salary INTO v_after FROM employee_pay WHERE employee_id = v_emp;
+    PERFORM pg_temp.chk(104, 'privacy', 'nobody raises their own salary', 'unchanged',
+      CASE WHEN v_after = v_before THEN 'unchanged' ELSE 'CHANGED IT' END);
+  END IF;
+END $$;
+
+-- 105. And pay is gone from employees rather than duplicated there. Until the columns are
+-- actually dropped the data lives in two places and the old one is still readable by
+-- everyone entitled to the row, which is the finding, unfixed.
+SELECT pg_temp.chk(105, 'privacy', 'no pay columns left on the employee record', '0',
+  (SELECT count(*)::text FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'employees'
+      AND column_name IN ('basic_salary', 'housing_allowance', 'transport_allowance',
+                          'other_allowance', 'bank_account', 'iban',
+                          'agent_bank_routing_code')));
+
+-- ═══ 26. A day nobody recorded is not a day off — migration 53 ═════════════
+-- Finding 6 of the logic audit. An attendance row exists only when somebody punched, so
+-- every attendance figure was computed over the days people came to work: attendance_pct
+-- was attended / days-with-a-row, which is 100% for anyone who ever clocked in, and
+-- absence_count counted rows marked absent, which nothing ever creates. Work five days,
+-- skip fifteen, score 100%. Since migration 47 that number also drives a KPI level.
+--
+-- 106 is the assertion that catches a regression to the old denominator: it builds a
+-- period the employee was measured in and attended part of, and insists the percentage is
+-- below 100.
+DO $$
+DECLARE
+  v_emp uuid; v_from date; v_to date; v_pct numeric; v_expected int; v_attended int; v_ok text;
+BEGIN
+  -- Somebody with attendance rows, and a window wide enough to contain working days they
+  -- did not attend. A quarter around their own records is guaranteed to be that.
+  SELECT a.employee_id, date_trunc('quarter', min(a.date))::date,
+         (date_trunc('quarter', min(a.date)) + interval '3 months - 1 day')::date
+    INTO v_emp, v_from, v_to
+    FROM attendance a
+   GROUP BY a.employee_id
+   ORDER BY count(*) DESC
+   LIMIT 1;
+
+  IF v_emp IS NULL THEN
+    PERFORM pg_temp.chk(106, 'attendance', 'attendance is measured against expected days',
+      'no attendance to test', 'no attendance to test');
+  ELSE
+    v_expected := public.employee_expected_days(v_emp, v_from, v_to);
+    SELECT count(DISTINCT date) INTO v_attended FROM attendance
+     WHERE employee_id = v_emp AND date BETWEEN v_from AND v_to
+       AND status IN ('present','late_minor','late_moderate','late_major');
+    v_pct := public.kpi_metric_value(v_emp, 'attendance_pct', v_from, v_to);
+
+    v_ok := CASE
+              WHEN v_expected IS NULL THEN 'NO DENOMINATOR'
+              WHEN v_attended >= v_expected THEN 'attended everything expected'
+              WHEN v_pct IS NULL THEN 'NO PERCENTAGE'
+              WHEN v_pct >= 100 THEN 'STILL 100% WITH DAYS UNACCOUNTED FOR'
+              ELSE 'measured against expected days'
+            END;
+    PERFORM pg_temp.chk(106, 'attendance', 'attendance is measured against expected days',
+      'measured against expected days', v_ok);
+  END IF;
+END $$;
+
+-- 107. Nobody is scored on attendance they had no way to record. Four people in production
+-- have no login: they cannot clock in, so a percentage for them would be an accusation
+-- rather than a measurement. Unrated is the honest output, and it is the same principle as
+-- kpi_level_for_value returning NULL instead of a bottom score nobody earned.
+DO $$
+DECLARE v_emp uuid; v_pct numeric; v_ok text;
+BEGIN
+  SELECT e.id INTO v_emp FROM employees e
+   WHERE e.user_id IS NULL AND e.status <> 'terminated'
+     AND NOT EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id)
+   LIMIT 1;
+
+  IF v_emp IS NULL THEN
+    PERFORM pg_temp.chk(107, 'attendance', 'no score without a way to clock in',
+      'nobody unmeasured to test', 'nobody unmeasured to test');
+  ELSE
+    v_pct := public.kpi_metric_value(v_emp, 'attendance_pct',
+                                     CURRENT_DATE - 90, CURRENT_DATE);
+    PERFORM pg_temp.chk(107, 'attendance', 'no score without a way to clock in', 'unrated',
+      CASE WHEN v_pct IS NULL THEN 'unrated' ELSE 'SCORED THEM ' || v_pct::text END);
+  END IF;
+END $$;
+
+-- 108. The weekend is the country's, and read the way the packs are written. weekend_days
+-- is EXTRACT(DOW) — Sunday 0 through Saturday 6 — so {5,6} is Friday and Saturday for the
+-- Gulf and {6,0} is Saturday and Sunday for the UK, Nigeria, India, Kenya and Pakistan.
+-- Read as ISODOW instead, {6,0} would mean Saturday and an eighth day that does not exist,
+-- and every non-Gulf company would gain a working Sunday. The two conventions agree on 5
+-- and 6, which is exactly why a Gulf-only test would not catch it.
+SELECT pg_temp.chk(108, 'attendance', 'the weekend is read as day-of-week, not ISO', 'dow',
+  CASE WHEN EXISTS (SELECT 1 FROM country_rules
+                     WHERE code = 'GB' AND weekend_days @> ARRAY[0]::smallint[])
+       THEN 'dow' ELSE 'PACKS DISAGREE WITH THE READER' END);
+
+-- 109. The person who has to approve is the person who is told. Migrations 48 and 50 made
+-- a named manager responsible for someone in another department; migration 54 made the
+-- notification ask the same question. The failure this catches is silent — a leave request
+-- sitting in a queue nobody was told about looks, to the employee, exactly like a system
+-- that does not work. Written as a real reports_to, because the whole bug was that the
+-- department comparison agreed with the permission right up until HR named somebody.
+DO $$
+DECLARE v_mgr uuid; v_emp uuid; v_told uuid[];
+BEGIN
+  SELECT e.id INTO v_mgr
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role = 'department_manager' AND e.status = 'active'
+     AND e.department_id IS NOT NULL
+   LIMIT 1;
+
+  SELECT e.id INTO v_emp
+    FROM employees e
+   WHERE e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr)
+     AND e.status = 'active'
+     AND e.id <> v_mgr
+     AND e.reports_to IS NULL
+     AND e.department_id IS DISTINCT FROM (SELECT department_id FROM employees WHERE id = v_mgr)
+   LIMIT 1;
+
+  IF v_mgr IS NULL OR v_emp IS NULL THEN
+    PERFORM pg_temp.chk(109, 'responsibility', 'the named manager is the one told',
+      'no cross-department pair to test', 'no cross-department pair to test');
+  ELSE
+    -- Before HR names anybody, a different department means not their business.
+    IF public.manager_covers(v_mgr, v_emp) THEN
+      PERFORM pg_temp.chk(109, 'responsibility', 'the named manager is the one told',
+        'named manager only', 'COVERED SOMEONE IN ANOTHER DEPARTMENT UNASKED');
+    ELSE
+      UPDATE employees SET reports_to = v_mgr WHERE id = v_emp;
+      SELECT array_agg(m ORDER BY m) INTO v_told
+        FROM public.employee_managers(v_emp) m;
+      PERFORM pg_temp.chk(109, 'responsibility', 'the named manager is the one told',
+        'named manager only',
+        CASE WHEN v_told = ARRAY[v_mgr] THEN 'named manager only'
+             ELSE 'TOLD ' || coalesce(array_length(v_told,1),0)::text || ' PEOPLE' END);
+      UPDATE employees SET reports_to = NULL WHERE id = v_emp;
+    END IF;
+  END IF;
+END $$;
+
+-- 110. Nobody manages themselves. This is the one line standing between a manager and the
+-- first signature on their own leave request — the thing the two-step approval exists to
+-- prevent — and it lives in the predicate rather than in each caller precisely so that a
+-- new caller cannot forget it.
+SELECT pg_temp.chk(110, 'responsibility', 'nobody manages themselves', '0',
+  (SELECT count(*)::text FROM employees e WHERE public.manager_covers(e.id, e.id)));
+
+-- 111. Responsibility stops at the company. Two companies share this database and both
+-- have a department called Operations; a manager whose department id happened to collide,
+-- or a reports_to written across the boundary, would otherwise reach a stranger's leave and
+-- pay. The tenant check is inside manager_covers, so it holds for the permission and the
+-- notification at once.
+SELECT pg_temp.chk(111, 'responsibility', 'responsibility stops at the company', '0',
+  (SELECT count(*)::text
+     FROM employees mgr JOIN employees emp ON emp.company_id <> mgr.company_id
+    WHERE public.manager_covers(mgr.id, emp.id)));
+
+-- 112. A manager reads their own team's attendance and nobody else's. att_select listed
+-- department_manager in a flat role list until migration 55, so the Standard's "team only"
+-- was never applied: measured on production, a Sales manager could read 24 rows belonging
+-- to six people in Finance, HR, IT and Operations — including the HR manager's own record
+-- and the owner's. Attendance is also what attendance_pct is computed from, so this is
+-- somebody's performance history, not a list of times.
+DO $$
+DECLARE v_uid uuid; v_emp uuid; v_leak int;
+BEGIN
+  SELECT e.user_id, e.id INTO v_uid, v_emp
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role = 'department_manager' AND e.status = 'active'
+   LIMIT 1;
+
+  IF v_uid IS NULL THEN
+    PERFORM pg_temp.chk(112, 'responsibility', 'a manager reads only their team''s attendance',
+      'no department_manager to test', 'no department_manager to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    -- manager_covers takes both ids explicitly, so it answers the same way here as it does
+    -- inside the policy — this counts what got through, not what should have.
+    SELECT count(*) INTO v_leak
+      FROM attendance a
+     WHERE a.employee_id IS DISTINCT FROM v_emp
+       AND NOT public.manager_covers(v_emp, a.employee_id);
+    PERFORM pg_temp.as_nobody();
+
+    PERFORM pg_temp.chk(112, 'responsibility', 'a manager reads only their team''s attendance',
+      '0', v_leak::text);
+  END IF;
+END $$;
+
+-- 113. And the named manager can actually see them. The mirror of 112, and the reason it
+-- matters: shifts_select compared department ids directly, so Aisha could review Khalid,
+-- approve his leave and read his file while being unable to see the shift she was approving
+-- that leave against. A scoping fix that only ever narrows is half a fix.
+DO $$
+DECLARE v_uid uuid; v_mgr uuid; v_emp uuid; v_seen int;
+BEGIN
+  SELECT e.user_id, e.id INTO v_uid, v_mgr
+    FROM employees e JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE ur.role = 'department_manager' AND e.status = 'active'
+   LIMIT 1;
+
+  SELECT e.id INTO v_emp
+    FROM employees e
+   WHERE e.company_id = (SELECT company_id FROM employees WHERE id = v_mgr)
+     AND e.id <> v_mgr
+     AND e.status = 'active'
+     AND e.reports_to IS NULL
+     AND e.department_id IS DISTINCT FROM (SELECT department_id FROM employees WHERE id = v_mgr)
+     AND EXISTS (SELECT 1 FROM attendance a WHERE a.employee_id = e.id)
+   LIMIT 1;
+
+  IF v_uid IS NULL OR v_emp IS NULL THEN
+    PERFORM pg_temp.chk(113, 'responsibility', 'the named manager sees the record they answer for',
+      'no cross-department pair with attendance', 'no cross-department pair with attendance');
+  ELSE
+    UPDATE employees SET reports_to = v_mgr WHERE id = v_emp;
+
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_seen FROM attendance a WHERE a.employee_id = v_emp;
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET reports_to = NULL WHERE id = v_emp;
+
+    PERFORM pg_temp.chk(113, 'responsibility', 'the named manager sees the record they answer for',
+      'sees them', CASE WHEN v_seen > 0 THEN 'sees them' ELSE 'SAW NOTHING' END);
+  END IF;
+END $$;
+
+-- 114. Every kind the notifiers can send is a kind the table will accept. notifications.kind
+-- is a CHECK constraint and every notify function swallows its own exceptions so that a
+-- failed notification never breaks the punch or the leave request it was reporting on.
+-- Those two facts together mean a kind missing from the constraint does not error — it
+-- sends nothing, silently, forever, and looks exactly like the bug migration 56 was written
+-- to fix. So this probes the constraint with a real insert of each kind rather than reading
+-- the definition, which is the same distinction as measuring instead of asserting.
+DO $$
+DECLARE f record; k text; v_bad text := '';
+BEGIN
+  SELECT * INTO f FROM fx;
+  FOREACH k IN ARRAY ARRAY[
+    'review_self_open', 'review_self_due', 'review_manager_open',
+    'review_manager_due', 'review_published',
+    'leave_submitted', 'attendance_missing_clockout', 'shift_published', 'feed_post'
+  ] LOOP
+    BEGIN
+      INSERT INTO notifications (company_id, employee_id, kind, title)
+      VALUES (f.company_id, f.emp_id, k, 'guarantee 114 probe');
+    EXCEPTION WHEN check_violation THEN
+      v_bad := v_bad || k || ' ';
+    END;
+  END LOOP;
+
+  PERFORM pg_temp.chk(114, 'notifications', 'every notification kind sent is a kind accepted',
+    'all accepted', CASE WHEN v_bad = '' THEN 'all accepted' ELSE 'REJECTED: ' || v_bad END);
+END $$;
+
+-- 115. Verifying a country pack records the day somebody read the statute. A boolean cannot
+-- go stale: a pack marked verified once stays verified for as long as the row exists, and
+-- with thirteen packs and one person maintaining them the first sign of drift would be a
+-- customer's wrong gratuity calculation. The CHECK constraint makes a dateless verified pack
+-- impossible to store; this asserts the half that a constraint cannot — that the date
+-- arrives on its own, so nobody has to remember it.
+DO $$
+DECLARE v_code text; v_on date;
+BEGIN
+  SELECT code INTO v_code FROM country_rules WHERE NOT verified LIMIT 1;
+
+  IF v_code IS NULL THEN
+    PERFORM pg_temp.chk(115, 'country packs', 'verifying a pack records when it was read',
+      'no unverified pack to test', 'no unverified pack to test');
+  ELSE
+    UPDATE country_rules SET verified = true WHERE code = v_code;
+    SELECT verified_on INTO v_on FROM country_rules WHERE code = v_code;
+    UPDATE country_rules SET verified = false WHERE code = v_code;
+
+    PERFORM pg_temp.chk(115, 'country packs', 'verifying a pack records when it was read',
+      'stamped today',
+      CASE WHEN v_on = CURRENT_DATE THEN 'stamped today'
+           ELSE coalesce(v_on::text, 'NO DATE RECORDED') END);
+  END IF;
+END $$;
+
+-- 116. my_manager() names the person HR set, and answers nothing else. It is a SECURITY
+-- DEFINER reader, which means it is a hole punched through emp_select — the policy that
+-- gives an ordinary employee exactly one readable row. What keeps that safe is how little
+-- it returns and how narrowly it chooses: the manager HR named for the caller, else the
+-- head of their department, and no row at all when neither is set. This asserts both ends,
+-- because a reader that silently returned "some colleague" would look identical on screen.
+DO $$
+DECLARE v_uid uuid; v_emp uuid; v_mgr uuid; v_before integer; v_got text; v_want text;
+BEGIN
+  -- Somebody with a login, no named manager, and no department head — so "no row" is the
+  -- correct answer before we set one.
+  SELECT e.user_id, e.id INTO v_uid, v_emp
+    FROM employees e
+    JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE e.status = 'active'
+     AND e.reports_to IS NULL
+     AND NOT EXISTS (SELECT 1 FROM departments d
+                      WHERE d.id = e.department_id AND d.manager_id IS NOT NULL)
+   LIMIT 1;
+
+  SELECT e.id, e.full_name INTO v_mgr, v_want
+    FROM employees e
+   WHERE e.company_id = (SELECT company_id FROM employees WHERE id = v_emp)
+     AND e.id IS DISTINCT FROM v_emp
+     AND e.status = 'active'
+   LIMIT 1;
+
+  IF v_uid IS NULL OR v_mgr IS NULL THEN
+    PERFORM pg_temp.chk(116, 'responsibility', 'my_manager names who HR set, and nobody else',
+      'no unmanaged employee to test', 'no unmanaged employee to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_before FROM public.my_manager();
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET reports_to = v_mgr WHERE id = v_emp;
+
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT manager_name INTO v_got FROM public.my_manager();
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET reports_to = NULL WHERE id = v_emp;
+
+    PERFORM pg_temp.chk(116, 'responsibility', 'my_manager names who HR set, and nobody else',
+      'silent, then exact',
+      CASE
+        WHEN v_before <> 0 THEN 'NAMED SOMEBODY UNASKED'
+        WHEN v_got IS DISTINCT FROM v_want THEN 'NAMED THE WRONG PERSON'
+        ELSE 'silent, then exact'
+      END);
+  END IF;
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,

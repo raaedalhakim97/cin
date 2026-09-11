@@ -134,6 +134,28 @@ END $$;
 -- reachable at all after a restore; revoking only from anon and authenticated
 -- would leave them callable.
 
+-- Every trigger function, swept rather than listed.
+--
+-- The named list below was written when the schema had 66 functions and has been going
+-- stale ever since: this session alone added a dozen trigger functions (the KPI scorecard
+-- guards, the review stage guard, the reports_to sanity check, the pay-table country
+-- check, the session closer on termination), and every one of them would have had to be
+-- remembered here. A function that returns `trigger` is never called by a client — it is
+-- called by the table it is attached to — so the rule is the same for all of them and does
+-- not need a list to maintain.
+DO $sweep$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS sig
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public'
+       AND p.prorettype = 'pg_catalog.trigger'::regtype
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', r.sig);
+  END LOOP;
+END $sweep$;
+
 REVOKE ALL ON FUNCTION public.apply_kpi_adjustment() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.attendance_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.auto_post_reward_achievement() FROM PUBLIC, anon, authenticated;
@@ -162,7 +184,7 @@ REVOKE ALL ON FUNCTION public.validate_payroll_transition() FROM PUBLIC, anon, a
 REVOKE ALL ON FUNCTION public.validate_shift() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_employee(uuid,uuid,text,text,text,text,text,uuid,interval) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notifications_only_read_at_is_editable() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.notify_roles(uuid,text[],text,text,text,text,text,uuid,uuid,uuid,interval) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_roles(uuid,text[],text,text,text,text,text,uuid,uuid,uuid,interval,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_attendance_change() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_feed_post() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.notify_leave_change() FROM PUBLIC, anon, authenticated;
@@ -191,6 +213,14 @@ WHERE table_schema = 'public' AND table_name = 'audit_logs'
   AND grantee IN ('anon', 'authenticated')
   AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE')
 UNION ALL
+-- The sweep's own check, and the one that stays true as functions are added.
+SELECT 'trigger functions reachable by anon/authenticated (want 0)', count(*)::text
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.prorettype = 'pg_catalog.trigger'::regtype
+  AND (has_function_privilege('anon', p.oid, 'EXECUTE')
+    OR has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+UNION ALL
 SELECT 'internal functions reachable by anon/authenticated (want 0)', count(*)::text
 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
@@ -216,4 +246,14 @@ SELECT 'get_user_role/company_id executable by authenticated (want 2)', count(*)
 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
 WHERE n.nspname = 'public'
   AND p.proname IN ('get_user_role', 'get_user_company_id')
+  AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+UNION ALL
+-- Same reason, one layer up. These are the predicates the KPI, leave, payroll and document
+-- policies are written in terms of; a restore that leaves them unreachable does not fail
+-- loudly, it just returns nobody's rows to everybody.
+SELECT 'responsibility predicates executable by authenticated (want 5)', count(*)::text
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname IN ('manages_employee', 'kpi_manages_employee', 'manager_covers',
+                    'employee_managers', 'get_user_employee_id')
   AND has_function_privilege('authenticated', p.oid, 'EXECUTE');

@@ -85,11 +85,81 @@ function TypeCard({ type, doc, canManage, onUpload, onDownload, downloading }) {
   )
 }
 
-// Shared by Documents.jsx (Company + Employee tabs) and EmployeeDetail.jsx's
-// Documents tab — one card per active document_type for the given scope,
-// even when nothing has been uploaded yet, so missing required docs are
+// The compact card /profile uses. Same data, a quarter of the height.
+//
+// An employee cannot upload, replace or edit anything here — canManage is false on that
+// page and has been since it was built — so the full card spends most of its space on
+// controls that are never rendered for them, and on a category line ("identity · Required")
+// that is a filing concern rather than theirs. What they actually want to know is whether
+// the document is on file and, if it expires, when.
+//
+// Deliberately not a separate component file. It shares EXPIRY_META and formatDate with
+// the full card, and two documents-status vocabularies that could drift apart is exactly
+// the kind of duplication this codebase keeps removing.
+function CompactTypeCard({ type, doc, onDownload, downloading }) {
+  const onFile = Boolean(doc)
+  const missing = !doc && type.is_required
+
+  const status = doc
+    ? doc.expiry_date
+      ? `Expires ${formatDate(doc.expiry_date)}`
+      : 'On file'
+    : missing
+      ? 'Required — not on file'
+      : 'Not on file'
+
+  const Element = doc ? 'button' : 'div'
+
+  return (
+    <Element
+      {...(doc
+        ? {
+            onClick: () => onDownload(doc),
+            disabled: downloading,
+            title: `Open ${type.label}`,
+            type: 'button',
+          }
+        : {})}
+      className={`w-full text-left p-4 rounded-xl bg-white dark:bg-[#1E1E1E] border transition-colors ${
+        missing ? 'border-[#FF4D4D]/40' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+      } ${doc ? 'hover:border-[#00D4A0]/40 cursor-pointer' : ''} disabled:opacity-60`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">{type.label}</p>
+        {downloading ? (
+          <Loader2 size={12} className="animate-spin text-[#00D4A0] shrink-0 mt-1" />
+        ) : (
+          <span
+            className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
+              onFile ? 'bg-[#00D4A0]' : missing ? 'bg-[#FF4D4D]' : 'bg-[#A0A0A0]/50'
+            }`}
+          />
+        )}
+      </div>
+      <p
+        className={`text-xs mt-1 truncate ${
+          missing ? 'text-[#FF4D4D]' : 'text-[#666666] dark:text-[#A0A0A0]'
+        }`}
+      >
+        {status}
+      </p>
+    </Element>
+  )
+}
+
+// Shared by Documents.jsx (Company + Employee tabs), EmployeeDetail.jsx's
+// Documents tab and /profile — one card per active document_type for the given
+// scope, even when nothing has been uploaded yet, so missing required docs are
 // visible rather than just absent from the list.
-export default function DocumentTypeGrid({ scope, employeeId, companyId, currentEmployeeId, canManage, showToast }) {
+//
+// variant 'compact' is the read-only presentation /profile uses. onSummary reports
+// { total, onFile } after every fetch so the caller can show a count without running the
+// same two queries a second time — the identity band's DOCUMENTS fact is that number, and
+// a page that asked the database twice for one figure could show two different answers.
+export default function DocumentTypeGrid({
+  scope, employeeId, companyId, currentEmployeeId, canManage, showToast,
+  variant = 'full', onSummary,
+}) {
   const [types, setTypes] = useState([])
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -105,10 +175,24 @@ export default function DocumentTypeGrid({ scope, employeeId, companyId, current
       supabase.from('document_types').select('*').eq('scope', scope).eq('active', true).order('sort_order'),
       docsQuery,
     ])
-    setTypes(typeRows ?? [])
-    setDocs(docRows ?? [])
+    const t = typeRows ?? []
+    const d = docRows ?? []
+    setTypes(t)
+    setDocs(d)
     setLoading(false)
-  }, [scope, employeeId])
+
+    // Counted against the type list rather than against docs.length: a document whose
+    // type has since been deactivated still has a row, and counting it would report more
+    // documents on file than the grid draws.
+    const byType = new Set(d.map((r) => r.document_type_id))
+    onSummary?.({
+      total: t.length,
+      onFile: t.filter((ty) => byType.has(ty.id)).length,
+    })
+    // onSummary is a dependency, so a caller passing an inline arrow would re-run this
+    // fetch on every render of its parent — a query loop, since the summary sets state up
+    // there. Callers pass a useCallback-stable function; /profile does.
+  }, [scope, employeeId, onSummary])
 
   useEffect(() => {
     if (scope === 'employee' && !employeeId) {
@@ -134,10 +218,20 @@ export default function DocumentTypeGrid({ scope, employeeId, companyId, current
 
   if (scope === 'employee' && !employeeId) return null
 
+  const compact = variant === 'compact'
+
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
-        {[0, 1, 2, 3, 4, 5].map((i) => <SkeletonBlock key={i} className="h-40" />)}
+      <div
+        className={`grid gap-4 animate-pulse ${
+          compact
+            ? 'grid-cols-2 lg:grid-cols-4'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+        }`}
+      >
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <SkeletonBlock key={i} className={compact ? 'h-20' : 'h-40'} />
+        ))}
       </div>
     )
   }
@@ -146,18 +240,34 @@ export default function DocumentTypeGrid({ scope, employeeId, companyId, current
   const modalType = modalTypeId ? types.find((t) => t.id === modalTypeId) ?? null : null
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {types.map((type) => (
-        <TypeCard
-          key={type.id}
-          type={type}
-          doc={existingDocsByType[type.id] ?? null}
-          canManage={canManage}
-          onUpload={() => setModalTypeId(type.id)}
-          onDownload={handleDownload}
-          downloading={downloadingId === (existingDocsByType[type.id]?.id)}
-        />
-      ))}
+    <div
+      className={`grid gap-4 ${
+        compact ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+      }`}
+    >
+      {types.map((type) => {
+        const doc = existingDocsByType[type.id] ?? null
+        const downloading = downloadingId === doc?.id
+        return compact ? (
+          <CompactTypeCard
+            key={type.id}
+            type={type}
+            doc={doc}
+            onDownload={handleDownload}
+            downloading={downloading}
+          />
+        ) : (
+          <TypeCard
+            key={type.id}
+            type={type}
+            doc={doc}
+            canManage={canManage}
+            onUpload={() => setModalTypeId(type.id)}
+            onDownload={handleDownload}
+            downloading={downloading}
+          />
+        )
+      })}
 
       {modalType && (
         <UploadDocumentModal

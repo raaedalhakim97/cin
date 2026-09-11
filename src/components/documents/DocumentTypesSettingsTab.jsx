@@ -98,7 +98,7 @@ function TypeModal({ existing, scopeLocked, existingCodes, companyId, nextSortOr
         <form onSubmit={submit} className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">Label</label>
-            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Trade Licence" className={INPUT} required />
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Business Registration" className={INPUT} required />
           </div>
 
           {!isEdit && (

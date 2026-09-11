@@ -160,6 +160,22 @@ never touches the live database. Expect `RESTORE TEST PASSED`. Some restore
 errors scroll past and are harmless — Supabase dumps reference roles and
 extensions a bare container does not have. What matters is the row counts.
 
+It also refuses to pass a backup older than **48 hours**. That gate exists because
+the script otherwise answers the wrong question: a dump from three weeks ago still
+restores perfectly, and a green result would tell you you are protected when three
+weeks of data are not. On `STALE BACKUP`, check the timer rather than the dump:
+
+```bash
+systemctl status byond-backup.timer byond-backup.service
+journalctl -u byond-backup.service -n 50 --no-pager
+```
+
+Two ways to override, and they mean different things. Passing a path explicitly —
+`sudo ./ops/verify-restore.sh /var/backups/byond/byond-2026-08-01.dump.gpg` — skips
+the age gate entirely, because naming an old file *is* the instruction to test an
+old file. `MAX_AGE_HOURS=0` disables the check even on the newest backup, which you
+want roughly never.
+
 An untested backup is a guess. Run this once now and again whenever you change
 anything about the pipeline.
 
@@ -237,10 +253,13 @@ psql -v ON_ERROR_STOP=1 "$TARGET_DB_URL" -f ops/post-restore-grants.sql
 psql -v ON_ERROR_STOP=1 "$TARGET_DB_URL" -f supabase/tests/guarantees.sql
 ```
 
-The guarantee suite is the actual proof — 32 assertions covering tenant isolation,
-attendance integrity, the audit trail and the geofence — and it rolls back everything it
-writes, so it is safe against production. Five of those 32 failed on the Frankfurt
-restore, and all five were this.
+The guarantee suite is the actual proof — it covers tenant isolation, attendance
+integrity, the audit trail, the geofence and the country packs, and it rolls back
+everything it writes, so it is safe against production. When Frankfurt was first
+restored the suite held 32 assertions and five of them failed; all five were this. It
+has grown a long way past 32 since, so read `supabase/tests/guarantees.sql` for the
+current set rather than trusting a number written down here — that is exactly how the
+last one went stale.
 
 Also recreate the `pg_cron` schedule, which no dump carries: `ops/post-migrate-eu.sql`.
 
