@@ -3,13 +3,14 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Phone, Star, Trash2, Plus, FileText, Server, CreditCard,
   FileSignature, ListChecks, Headphones, ShieldCheck, Loader2, AlertTriangle,
-  PauseCircle,
+  PauseCircle, Link2,
 } from 'lucide-react'
 import supabase from '../services/supabase'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import { SkeletonRow } from '../components/Skeleton'
 import { countryNameFor } from '../utils/onboarding'
+import { inviteLinkFor } from '../utils/invite'
 
 // BYOND's file on one customer.
 //
@@ -482,8 +483,29 @@ function Contacts({ companyId, rows, onChanged }) {
 // ── Access and positions ─────────────────────────────────────────────────────
 function Access({ rows, onChanged }) {
   const [busy, setBusy] = useState(null)
+  const [link, setLink] = useState(null)   // { id, url, email, expired } — one at a time
   const active = rows.filter((r) => r.kind === 'active')
   const owners = active.filter((r) => r.role === 'super_admin' || r.role === 'hr_manager').length
+
+  // Fetched on demand rather than returned with the listing. The token is the credential
+  // that sets the owner's password, so it is asked for by a deliberate press, not handed
+  // out every time this page loads. See migration 59.
+  async function showLink(id) {
+    setBusy(id)
+    const { data, error } = await supabase.rpc('platform_invite_link', { p_invite_id: id })
+    setBusy(null)
+    if (error) {
+      console.error('[Access] invite link failed', error)
+      setLink({ id, error: error.message })
+      return
+    }
+    setLink({
+      id,
+      url: inviteLinkFor(data.token),
+      email: data.email,
+      expired: data.expired,
+    })
+  }
 
   async function revoke(id) {
     setBusy(id)
@@ -518,10 +540,45 @@ function Access({ rows, onChanged }) {
                 </span>
               )}
               {r.invite_id && (
-                <button onClick={() => revoke(r.invite_id)} disabled={busy === r.invite_id}
-                        className="ml-auto font-semibold text-[#FF4D4D] hover:underline disabled:opacity-50">
-                  {busy === r.invite_id ? 'Revoking…' : 'Revoke invite'}
-                </button>
+                <span className="ml-auto flex items-center gap-3">
+                  <button onClick={() => showLink(r.invite_id)} disabled={busy === r.invite_id}
+                          className="inline-flex items-center gap-1 font-semibold text-[#00806A] dark:text-[#00D4A0] hover:underline disabled:opacity-50">
+                    <Link2 size={11} />
+                    {busy === r.invite_id ? 'Fetching…' : 'Show invite link'}
+                  </button>
+                  <button onClick={() => revoke(r.invite_id)} disabled={busy === r.invite_id}
+                          className="font-semibold text-[#FF4D4D] hover:underline disabled:opacity-50">
+                    Revoke
+                  </button>
+                </span>
+              )}
+
+              {/* Shown in full and selectable, the same way /platform shows it at
+                  creation. Clipboard access can be refused outright — insecure context,
+                  permissions policy — so the text itself is the reliable path and the
+                  copy button is the convenience. */}
+              {link?.id === r.invite_id && (
+                <div className="w-full mt-1.5 p-2.5 rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+                  {link.error ? (
+                    <p className="text-[11px] text-[#FF4D4D]">{link.error}</p>
+                  ) : (
+                    <>
+                      <p className="text-[11px] text-[#666666] dark:text-[#A0A0A0] mb-1">
+                        Send this to {link.email}. Whoever opens it sets the password.
+                        {link.expired && <span className="text-[#FF4D4D] font-semibold"> This link has expired — revoke and re-invite.</span>}
+                      </p>
+                      <p className="font-mono text-[11px] wrap-break-word text-[#1A1A1A] dark:text-white select-all">
+                        {link.url}
+                      </p>
+                      <button
+                        onClick={() => navigator.clipboard?.writeText(link.url).catch(() => {})}
+                        className="mt-1.5 text-[11px] font-semibold text-[#00806A] dark:text-[#00D4A0] hover:underline"
+                      >
+                        Copy
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </li>
           ))}
