@@ -403,6 +403,17 @@ export default function Profile() {
   // also means this page makes one fewer query and holds no opinion it would have to
   // defend: /kpi is where a review is read, in the context that explains it.
 
+  // Who may write hr_documents, matching the policy rather than guessing: super_admin,
+  // hr_manager and admin. This page used to pass false unconditionally, which meant the
+  // owner of the company could not add her own passport on her own profile while being
+  // able to add it from the employee's record two screens away. EmployeeDetail has always
+  // passed exactly this expression; /profile was the odd one out.
+  //
+  // An ordinary employee is still false, and that is a database rule, not a UI choice —
+  // hr_documents_write does not list them. See the note in Documents.jsx before widening
+  // it: this catalogue includes Warning Letter and Resignation Letter.
+  const canManageDocs = role === 'super_admin' || role === 'hr_manager' || role === 'admin'
+
   const handleDocSummary = useCallback((s) => setDocSummary(s), [])
 
   return (
@@ -472,14 +483,16 @@ export default function Profile() {
                 <section>
                   <RegionHeading
                     title="My documents"
-                    aside="HR uploads these. You can view and download."
+                    aside={canManageDocs
+                      ? 'You can upload, replace and download these.'
+                      : 'HR uploads these. You can view and download.'}
                   />
                   <DocumentTypeGrid
                     scope="employee"
                     employeeId={employee.id}
                     companyId={companyId}
                     currentEmployeeId={employee.id}
-                    canManage={false}
+                    canManage={canManageDocs}
                     variant="compact"
                     onSummary={handleDocSummary}
                     showToast={showToast}
