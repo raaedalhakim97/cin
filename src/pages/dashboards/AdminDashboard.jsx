@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   Inbox,
   ArrowRight,
-  ShieldCheck,
+  
   FileCheck2,
   FileText,
   Activity,
@@ -83,14 +83,12 @@ export default function AdminDashboard() {
   const [wps, setWps] = useState({ mol: false, bankRouting: false })
   const [activity, setActivity] = useState([])
   const [docsExpiringCount, setDocsExpiringCount] = useState(0)
-  const [complianceExtra, setComplianceExtra] = useState({ dsrPending: 0, consentThisMonth: 0, missingWps: 0 })
+  const [complianceExtra, setComplianceExtra] = useState({ dsrPending: 0, missingWps: 0 })
   const [todayShiftsCount, setTodayShiftsCount] = useState(0)
   const [noShowCount, setNoShowCount] = useState(0)
 
   async function fetchAll() {
     setLoading(true)
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
     const [
       { data: emps },
@@ -99,7 +97,6 @@ export default function AdminDashboard() {
       { data: companyRow },
       { data: auditRows },
       { count: dsrPendingCount },
-      { count: consentCount },
       { data: payDetailRows },
       { count: docsExpiring },
       { count: todayShifts },
@@ -115,7 +112,6 @@ export default function AdminDashboard() {
         .in('table_name', ACTIVITY_TABLES).eq('action', 'INSERT')
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('data_subject_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('consent_records').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
       // Was one query against employees; iban and the routing code moved to employee_pay in
       // migration 52, and a missing pay row counts as missing details just as a null column
       // did. Counted here as "people with no bank details on file", which is what the card
@@ -136,7 +132,6 @@ export default function AdminDashboard() {
     setWps({ mol: !!companyRow?.mol_establishment_id, bankRouting: !!companyRow?.employer_bank_routing_code })
     setComplianceExtra({
       dsrPending: dsrPendingCount ?? 0,
-      consentThisMonth: consentCount ?? 0,
       missingWps: countMissingPayDetails(payDetailRows),
     })
 
@@ -263,7 +258,6 @@ export default function AdminDashboard() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard icon={FileCheck2} label="DSR Pending" value={String(complianceExtra.dsrPending)} tone={complianceExtra.dsrPending ? 'orange' : 'neutral'} />
-            <StatCard icon={ShieldCheck} label="Consent This Month" value={String(complianceExtra.consentThisMonth)} tone="mint" />
             {/* Both of these are artefacts of one country's salary transfer scheme. The
                 stat counts employees missing a labour card, IBAN and agent routing code;
                 the card checks a MOHRE establishment ID. A company in a country BYOND

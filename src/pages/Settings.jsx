@@ -12,6 +12,11 @@ import DocumentTypesSettingsTab from '../components/documents/DocumentTypesSetti
 import ShiftSettingsTab from '../components/schedule/ShiftSettingsTab'
 import LeavePolicySettingsTab from '../components/leave/LeavePolicySettingsTab'
 import ToastComp, { useToast } from '../components/Toast'
+// Used by the Manager Salary Visibility toggle below, which is hidden while payroll is
+// postponed. Referenced without this import since the payroll-postponement change, which
+// meant the company-settings tab threw ReferenceError the moment it rendered — eslint's
+// no-undef caught it, but only on a full run across src/ rather than the changed files.
+import { FEATURES } from '../data/features'
 import { SkeletonBlock } from '../components/Skeleton'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

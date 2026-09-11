@@ -1,13 +1,13 @@
 import { Hash } from 'lucide-react'
 import ProfileIntro from './ProfileIntro'
 
-// The identity band at the top of /profile, and the four facts under it.
+// The identity band at the top of /profile, and the facts under it.
 //
 // Replaces the narrow left-hand identity card. That card printed the employee code twice —
 // once as a chip and again as the first Employment row — and sat in a third of a 896px
 // column, which left the other two thirds to carry every detail on the page.
 //
-// ── The four facts, and where each one is allowed to come from ─────────────
+// ── The facts, and where each one is allowed to come from ──────────────────
 //
 // Nothing here is computed from anything the page does not already load, and nothing is
 // invented when a value is missing. Every fact has a defined empty state, because on a
@@ -20,9 +20,11 @@ import ProfileIntro from './ProfileIntro'
 //               sub-line is usually absent — by design, not by failure.
 //   DOCUMENTS   how many document types have a file against them, out of how many the
 //               company defines. Lifted from the same query the grid below already runs.
-//   CONSENT     how many of the consent policies this person has never answered. Amber
-//               when there are any, because an undecided policy is the one fact on this
-//               strip the employee can act on themselves.
+//
+// There was a fourth, CONSENT, counting the policies this person had never answered. The
+// consent feature was removed at Raaed's instruction, so the fact went with it rather than
+// being left to read "0 of 0" — a strip that reports on something the product no longer
+// does is worse than a shorter strip.
 //
 // Nothing here states a performance rating. The intro says it instead, by putting the
 // person inside the O the acronym marks, and then the ring stays. Printing "Outstanding"
@@ -30,15 +32,28 @@ import ProfileIntro from './ProfileIntro'
 // make about somebody it has not finished measuring, since a rating is withheld below half
 // coverage on purpose.
 
-// Per-cell rules. 2×2 on a phone, 4×1 from lg up.
-//   phone   right rule on the left-hand cell of each row; bottom rule under the first row
-//   desktop right rule on every cell but the last; no bottom rules at all
-const FACT_EDGES = [
-  'border-r border-b lg:border-b-0',
-  'lg:border-r border-b lg:border-b-0',
-  'border-r',
-  '',
-]
+// Divider rules, per cell.
+//
+// Phone is two columns: a right rule on the left-hand cell of each row, a bottom rule on
+// every row but the last. Desktop lays all the facts in one row: a right rule on every
+// cell but the last, and no bottom rules at all.
+//
+// Written as a function of the position rather than a fixed table, because the strip has
+// already lost a cell once and a hardcoded four-entry list would have gone quietly wrong
+// the moment it did.
+const LG_COLS = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4' }
+
+function factEdges(i, count) {
+  const lastInPhoneRow = i % 2 === 1 || i === count - 1
+  const inLastPhoneRow = i >= count - (count % 2 === 1 && i === count - 1 ? 1 : 2)
+  return [
+    lastInPhoneRow ? 'lg:border-r' : 'border-r',
+    inLastPhoneRow ? 'lg:border-b-0' : 'border-b lg:border-b-0',
+    i === count - 1 ? 'lg:border-r-0' : '',
+    // An odd count leaves a gap on a phone; the last cell takes the whole row instead.
+    count % 2 === 1 && i === count - 1 ? 'col-span-2 lg:col-span-1' : '',
+  ].join(' ')
+}
 
 function FactCell({ label, value, sub, tone }) {
   return (
@@ -69,7 +84,6 @@ export default function IdentityBand({
   manager,
   tenure,
   documents,
-  consent,
   onIntroDone,
 }) {
   const initial = employee.full_name?.[0]?.toUpperCase() ?? '?'
@@ -90,16 +104,6 @@ export default function IdentityBand({
       label: 'Documents',
       value: documents ? `${documents.onFile} of ${documents.total}` : '—',
       sub: documents ? 'on file' : null,
-    },
-    {
-      label: 'Consent',
-      value: consent
-        ? consent.undecided > 0
-          ? `${consent.undecided} to decide`
-          : 'All decided'
-        : '—',
-      sub: consent ? `of ${consent.total} policies` : null,
-      tone: consent?.undecided > 0 ? 'attention' : undefined,
     },
   ]
 
@@ -145,20 +149,19 @@ export default function IdentityBand({
         )}
       </div>
 
-      {/* Four across on desktop, 2×2 on a phone. Dividers are borders on the cells rather
-          than a gap over a coloured background, so the strip never shows a hanging rule
-          where a row ends.
+      {/* One row on desktop, two columns on a phone. Dividers are borders on the cells
+          rather than a gap over a coloured background, so the strip never shows a hanging
+          rule where a row ends.
 
-          The classes are written out per position rather than computed from the index.
-          A conditional that emitted both `lg:border-r` and `lg:border-r-0` for the last
-          cell would resolve by CSS source order, not by the order they appear in the
-          string — which is the kind of thing that looks right until a Tailwind upgrade
-          reorders its output. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
+          The column count is looked up, never interpolated. Tailwind builds its stylesheet
+          by scanning the source for complete class names, so `lg:grid-cols-${n}` compiles
+          to nothing at all and the strip silently loses its columns — the class exists in
+          the DOM and not in the CSS. */}
+      <div className={`grid grid-cols-2 ${LG_COLS[facts.length] ?? 'lg:grid-cols-4'} border-t border-[#E8E8E8] dark:border-[#2A2A2A]`}>
         {facts.map((f, i) => (
           <div
             key={f.label}
-            className={`border-[#E8E8E8] dark:border-[#2A2A2A] ${FACT_EDGES[i]}`}
+            className={`border-[#E8E8E8] dark:border-[#2A2A2A] ${factEdges(i, facts.length)}`}
           >
             <FactCell {...f} />
           </div>
