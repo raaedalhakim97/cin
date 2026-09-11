@@ -87,16 +87,20 @@ function TypeCard({ type, doc, canManage, onUpload, onDownload, downloading }) {
 
 // The compact card /profile uses. Same data, a quarter of the height.
 //
-// An employee cannot upload, replace or edit anything here — canManage is false on that
-// page and has been since it was built — so the full card spends most of its space on
-// controls that are never rendered for them, and on a category line ("identity · Required")
-// that is a filing concern rather than theirs. What they actually want to know is whether
-// the document is on file and, if it expires, when.
+// The full card spends most of its height on a category line ("identity · Required") that
+// is a filing concern rather than the employee's, and on two full-width buttons. What the
+// person wants from their own profile is whether the document is on file and, if it
+// expires, when — so the card carries that, and the actions ride on the card itself.
+//
+// canManage is passed through rather than assumed false. /profile hardcoded false until
+// Raaed found she could not add her own passport on her own profile while being able to
+// add it from her employee record two screens away; hr_documents_write has always allowed
+// her. An ordinary employee still gets no controls, because the policy does not list them.
 //
 // Deliberately not a separate component file. It shares EXPIRY_META and formatDate with
 // the full card, and two documents-status vocabularies that could drift apart is exactly
 // the kind of duplication this codebase keeps removing.
-function CompactTypeCard({ type, doc, onDownload, downloading }) {
+function CompactTypeCard({ type, doc, canManage, onUpload, onDownload, downloading }) {
   const onFile = Boolean(doc)
   const missing = !doc && type.is_required
 
@@ -108,26 +112,33 @@ function CompactTypeCard({ type, doc, onDownload, downloading }) {
       ? 'Required — not on file'
       : 'Not on file'
 
-  const Element = doc ? 'button' : 'div'
+  // One tap does the obvious thing: open it if it is there, add it if it is not and you
+  // are allowed to. A card that is neither openable nor uploadable is inert on purpose —
+  // it still reports the gap, which is most of its job.
+  const primary = doc ? () => onDownload(doc) : (canManage ? onUpload : null)
+
+  const Element = primary ? 'button' : 'div'
 
   return (
     <Element
-      {...(doc
+      {...(primary
         ? {
-            onClick: () => onDownload(doc),
+            onClick: primary,
             disabled: downloading,
-            title: `Open ${type.label}`,
+            title: doc ? `Open ${type.label}` : `Upload ${type.label}`,
             type: 'button',
           }
         : {})}
       className={`w-full text-left p-4 rounded-xl bg-white dark:bg-[#1E1E1E] border transition-colors ${
         missing ? 'border-[#FF4D4D]/40' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
-      } ${doc ? 'hover:border-[#00D4A0]/40 cursor-pointer' : ''} disabled:opacity-60`}
+      } ${primary ? 'hover:border-[#00D4A0]/40 cursor-pointer' : ''} disabled:opacity-60`}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">{type.label}</p>
         {downloading ? (
           <Loader2 size={12} className="animate-spin text-[#00D4A0] shrink-0 mt-1" />
+        ) : !doc && canManage ? (
+          <Upload size={12} className="text-[#00D4A0] shrink-0 mt-1" />
         ) : (
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
@@ -143,6 +154,21 @@ function CompactTypeCard({ type, doc, onDownload, downloading }) {
       >
         {status}
       </p>
+
+      {/* Replacing is a second action, so it gets a second control rather than stealing
+          the tap that opens the document. */}
+      {doc && canManage && (
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); onUpload() }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onUpload() } }}
+          className="inline-flex items-center gap-1 mt-2 text-[11px] text-[#666666] dark:text-[#A0A0A0]
+                     hover:text-[#00806A] dark:hover:text-[#00D4A0] transition-colors cursor-pointer"
+        >
+          <RefreshCw size={10} /> Replace
+        </span>
+      )}
     </Element>
   )
 }
@@ -253,6 +279,8 @@ export default function DocumentTypeGrid({
             key={type.id}
             type={type}
             doc={doc}
+            canManage={canManage}
+            onUpload={() => setModalTypeId(type.id)}
             onDownload={handleDownload}
             downloading={downloading}
           />
