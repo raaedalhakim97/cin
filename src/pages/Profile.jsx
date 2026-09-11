@@ -24,7 +24,7 @@ function localDateStr(d) {
   ].join('-')
 }
 
-function fmtConsentDate(iso) {
+function fmtShortDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
@@ -67,17 +67,6 @@ const CLASSIFICATION_LABEL = {
   intern:              'Intern',
   contractor:          'Contractor',
 }
-
-const POLICY_VERSION = '1.0'
-
-const CONSENT_TYPES = [
-  { value: 'employee_handbook',  label: 'Employee Handbook' },
-  { value: 'privacy_policy',     label: 'Privacy Policy' },
-  { value: 'data_processing',    label: 'Data Processing' },
-  { value: 'application_terms',  label: 'Application Terms' },
-  { value: 'gps_tracking',       label: 'GPS Tracking' },
-  { value: 'biometric_data',     label: 'Biometric Data' },
-]
 
 // Matches Settings.jsx's DataRequestsTab REQUEST_TYPES minus 'access' —
 // Download My Data already covers Access (PDPL Art. 13), so it's not
@@ -135,65 +124,6 @@ function RegionHeading({ title, aside }) {
   )
 }
 
-// One consent, one control.
-//
-// The row used to carry a status pill reading "Given" and, immediately beside it, a button
-// reading "Withdraw" — two elements for one piece of information, inside a flex-wrap
-// container that dropped the button onto its own line at narrow widths. Worse, "Not
-// decided" rendered in the same grey as "Withdrawn", so a decision never made looked
-// exactly like a decision to refuse. They are not the same thing: one is a gap in the
-// record, the other is a right the person exercised.
-//
-// Now the state is the second line, in words, with its date; the row has exactly one
-// control; and "no decision recorded yet" is amber because it is the only state the
-// employee is being asked to do something about. Withdraw is a quiet outline rather than a
-// red alarm — withdrawing consent is a right, not a mistake, and styling it as damage
-// discourages people from exercising it.
-function ConsentRow({ label, row, busy, canWrite, onToggle }) {
-  const given = row?.consented === true
-
-  const state = busy
-    ? { text: 'Saving your decision…', tone: 'muted' }
-    : !row
-      ? { text: 'No decision recorded yet', tone: 'attention' }
-      : given
-        ? { text: `Consented on ${fmtConsentDate(row.consented_at)}`, tone: 'muted' }
-        : { text: `Withdrawn on ${fmtConsentDate(row.withdrawn_at)}`, tone: 'muted' }
-
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-4 border-b border-[#E8E8E8] dark:border-[#2A2A2A] last:border-b-0">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">{label}</p>
-        <p
-          className={`text-xs mt-0.5 ${
-            state.tone === 'attention'
-              ? 'text-[#FF8C42]'
-              : 'text-[#666666] dark:text-[#A0A0A0]'
-          }`}
-        >
-          {state.text}
-        </p>
-      </div>
-
-      {canWrite && (
-        <button
-          onClick={() => onToggle(!given)}
-          disabled={busy}
-          // min-w so the label swap during save cannot change the row's height or make the
-          // control jump under a finger that is already moving towards it.
-          className={`shrink-0 min-w-[124px] min-h-[44px] sm:min-h-0 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${
-            given
-              ? 'border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white hover:border-[#00D4A0]/50'
-              : 'text-white bg-[#00D4A0] hover:bg-[#00B589]'
-          }`}
-        >
-          {busy ? 'Saving…' : given ? 'Withdraw' : 'Give consent'}
-        </button>
-      )}
-    </div>
-  )
-}
-
 // Privacy & Data — session 42, DSR form restored + real contact email in a
 // follow-up fix (migration 45). Ported from Settings.jsx's old "My Privacy &
 // Data" tab, which became unreachable for role 'employee' once Settings
@@ -202,8 +132,8 @@ function ConsentRow({ label, row, busy, canWrite, onToggle }) {
 // as a duplicate. "Submit a Data Request" reinserts into `data_subject_requests`
 // with the exact same shape the old tab used, so HR's existing "Data
 // Requests" queue in Settings.jsx needs no changes to pick these back up.
-function PrivacyDataSection({ employee, companyId, company, role, showToast, onConsentSummary }) {
-  // Confirmation audit (2026-07-19): consent_records/data_subject_requests
+function PrivacyDataSection({ employee, companyId, company, role, showToast }) {
+  // Confirmation audit (2026-07-19): the data_subject_requests
   // INSERT policies were never given a read_only exclusion by migration 46
   // (only feed_comments/feed_reactions/kpi_scores self-eval/leave self-cancel/
   // pdp_actions were) — so this is a frontend-only gate, same treatment as
@@ -211,43 +141,12 @@ function PrivacyDataSection({ employee, companyId, company, role, showToast, onC
   // read_only self-service writes. Hide rather than let it fail silently.
   const canWrite = role !== 'read_only'
   const [exporting, setExporting] = useState(false)
-  const [consents, setConsents] = useState({})
-  const [consentLoading, setConsentLoading] = useState(true)
-  const [togglingType, setTogglingType] = useState(null)
 
   const [reqType, setReqType] = useState('rectification')
   const [reqNotes, setReqNotes] = useState('')
   const [reqSubmitting, setReqSubmitting] = useState(false)
   const [myRequests, setMyRequests] = useState([])
   const [requestsLoading, setRequestsLoading] = useState(true)
-
-  const fetchConsents = useCallback(async () => {
-    if (!employee?.id) { setConsentLoading(false); return }
-    setConsentLoading(true)
-    const { data } = await supabase
-      .from('consent_records')
-      .select('*')
-      .eq('employee_id', employee.id)
-      .order('created_at', { ascending: false })
-    const latest = {}
-    ;(data ?? []).forEach(row => {
-      if (!latest[row.consent_type]) latest[row.consent_type] = row
-    })
-    setConsents(latest)
-    setConsentLoading(false)
-  }, [employee?.id])
-
-  useEffect(() => { fetchConsents() }, [fetchConsents])
-
-  // The identity band's CONSENT fact is this number. Reported up rather than counted
-  // again there, so the strip and the rows can never disagree about how many are open.
-  useEffect(() => {
-    if (consentLoading) return
-    onConsentSummary?.({
-      total: CONSENT_TYPES.length,
-      undecided: CONSENT_TYPES.filter(t => !consents[t.value]).length,
-    })
-  }, [consents, consentLoading, onConsentSummary])
 
   const fetchMyRequests = useCallback(async () => {
     if (!employee?.id) { setRequestsLoading(false); return }
@@ -311,192 +210,133 @@ function PrivacyDataSection({ employee, companyId, company, role, showToast, onC
     showToast('success', 'Your data export has downloaded')
   }
 
-  async function toggleConsent(type, give) {
-    if (!employee?.id) return
-    setTogglingType(type)
-    const now = new Date().toISOString()
-    const { error } = await supabase.from('consent_records').insert({
-      company_id:     companyId,
-      employee_id:    employee.id,
-      consent_type:   type,
-      policy_version: POLICY_VERSION,
-      consented:      give,
-      consented_at:   give ? now : null,
-      withdrawn_at:   give ? null : now,
-    })
-    setTogglingType(null)
-    if (error) {
-      console.error('[Profile] toggleConsent failed', error)
-      showToast('error', 'Something went wrong updating your consent. Please try again.')
-      return
-    }
-    showToast('success', give ? 'Consent given' : 'Consent withdrawn')
-    fetchConsents()
-  }
-
   // Migration 45 — company.privacy_contact_email, nullable, set by
   // super_admin/hr_manager in Settings → Company Settings. NULL until a
   // tenant fills it in; the contact line below is omitted entirely rather
   // than guessing an address, since the in-app form above is the primary
   // path either way.
   const privacyEmail = company?.privacy_contact_email || null
-  const undecided = CONSENT_TYPES.filter(t => !consents[t.value]).length
 
   return (
     <section>
       <RegionHeading title="Privacy and data" aside="Your rights under the PDPL" />
 
+      {/* Two actions side by side, then the record of what you asked for underneath.
+          This was a left column of consent rows against a right column of actions until
+          consent came out; leaving the grid as it was would have put one card opposite an
+          empty half. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Left — what you have decided, and what you have asked for */}
-        <div className="space-y-6">
-          <div className={card}>
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Consent</h3>
-              {!consentLoading && undecided > 0 && (
-                <span className="text-xs font-semibold text-[#FF8C42] shrink-0">
-                  {undecided} not decided
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1">
-              Every change is recorded permanently. Nothing is overwritten.
-            </p>
-
-            {consentLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 size={20} className="animate-spin text-[#00D4A0]" />
-              </div>
-            ) : (
-              <div className="mt-4">
-                {CONSENT_TYPES.map(({ value, label }) => (
-                  <ConsentRow
-                    key={value}
-                    label={label}
-                    row={consents[value]}
-                    busy={togglingType === value}
-                    canWrite={canWrite}
-                    onToggle={(give) => toggleConsent(value, give)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Own submitted requests — makes the 30-day SLA visible to the requester */}
-          {requestsLoading ? (
-            <div className={`${card} flex justify-center`}>
-              <Loader2 size={18} className="animate-spin text-[#00D4A0]" />
-            </div>
-          ) : myRequests.length > 0 && (
-            <div className={card}>
-              <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Your requests</h3>
-              <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1 mb-4">
-                We respond within 30 days of the request date.
-              </p>
-              <div className="space-y-2">
-                {myRequests.map(r => {
-                  const meta = REQUEST_STATUS[r.status] ?? REQUEST_STATUS.pending
-                  const overdue = r.due_date && new Date(r.due_date) < new Date() && !['completed', 'rejected'].includes(r.status)
-                  return (
-                    <div
-                      key={r.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] flex-wrap"
-                    >
-                      <div className="flex-1 min-w-35">
-                        <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">
-                          {RT[r.request_type]?.label ?? r.request_type}
-                        </p>
-                        <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
-                          Requested {fmtConsentDate(r.requested_at)}
-                          {r.due_date && <> · due {fmtConsentDate(r.due_date)}</>}
-                          {overdue && <span className="ml-1 font-bold uppercase text-[#FF4D4D]">Overdue</span>}
-                        </p>
-                      </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${meta.cls}`}>
-                        {meta.label}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+        <div className={card}>
+          <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Download my data</h3>
+          <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1 mb-5">
+            Everything BYOND HR holds on you, as a JSON file. Your Right to Access under PDPL Art. 13.
+          </p>
+          <button
+            onClick={downloadMyData}
+            disabled={exporting}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+          >
+            {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {exporting ? 'Preparing export…' : 'Download my data'}
+          </button>
         </div>
 
-        {/* Right — the two things you can start from here */}
-        <div className="space-y-6">
+        {canWrite && (
           <div className={card}>
-            <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Download my data</h3>
+            <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Submit a request</h3>
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1 mb-5">
-              Everything BYOND HR holds on you, as a JSON file. Your Right to Access under PDPL Art. 13.
+              Rectification, erasure, portability, restriction, or an objection to how your data is used.
             </p>
-            <button
-              onClick={downloadMyData}
-              disabled={exporting}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
-            >
-              {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-              {exporting ? 'Preparing export…' : 'Download my data'}
-            </button>
-          </div>
-
-          {canWrite && (
-            <div className={card}>
-              <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Submit a request</h3>
-              <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1 mb-5">
-                Rectification, erasure, portability, restriction, or an objection to how your data is used.
-              </p>
-              <form onSubmit={submitRequest} className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#666666] dark:text-[#A0A0A0] mb-1.5">
-                    Request type
-                  </label>
-                  <select
-                    value={reqType}
-                    onChange={e => setReqType(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors"
-                  >
-                    {REQUEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#666666] dark:text-[#A0A0A0] mb-1.5">
-                    Details <span className="normal-case tracking-normal font-normal">(optional)</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={reqNotes}
-                    onChange={e => setReqNotes(e.target.value)}
-                    placeholder="Any additional detail about your request…"
-                    className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] focus:outline-none focus:border-[#00D4A0] transition-colors resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={reqSubmitting}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            <form onSubmit={submitRequest} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#666666] dark:text-[#A0A0A0] mb-1.5">
+                  Request type
+                </label>
+                <select
+                  value={reqType}
+                  onChange={e => setReqType(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors"
                 >
-                  {reqSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                  {reqSubmitting ? 'Submitting…' : 'Submit request'}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* Contact line — only shown once a tenant has actually configured a
-              privacy contact (migration 45); the in-app form above is the
-              primary path regardless, so this is never load-bearing. */}
-          {privacyEmail && (
-            <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">
-              Or contact{' '}
-              <a href={`mailto:${privacyEmail}`} className="text-[#00806A] dark:text-[#00D4A0] hover:underline">
-                {privacyEmail}
-              </a>{' '}
-              directly, per the employee handbook.
-            </p>
-          )}
-        </div>
+                  {REQUEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#666666] dark:text-[#A0A0A0] mb-1.5">
+                  Details <span className="normal-case tracking-normal font-normal">(optional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={reqNotes}
+                  onChange={e => setReqNotes(e.target.value)}
+                  placeholder="Any additional detail about your request…"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] focus:outline-none focus:border-[#00D4A0] transition-colors resize-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={reqSubmitting}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              >
+                {reqSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                {reqSubmitting ? 'Submitting…' : 'Submit request'}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
+
+      {/* What you have asked for, full width under the two actions. */}
+      {requestsLoading ? (
+        <div className={`${card} flex justify-center mt-6`}>
+          <Loader2 size={18} className="animate-spin text-[#00D4A0]" />
+        </div>
+      ) : myRequests.length > 0 && (
+        <div className={`${card} mt-6`}>
+          <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Your requests</h3>
+          <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1 mb-4">
+            We respond within 30 days of the request date.
+          </p>
+          <div className="space-y-2">
+            {myRequests.map(r => {
+              const meta = REQUEST_STATUS[r.status] ?? REQUEST_STATUS.pending
+              const overdue = r.due_date && new Date(r.due_date) < new Date() && !['completed', 'rejected'].includes(r.status)
+              return (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] flex-wrap"
+                >
+                  <div className="flex-1 min-w-35">
+                    <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">
+                      {RT[r.request_type]?.label ?? r.request_type}
+                    </p>
+                    <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
+                      Requested {fmtShortDate(r.requested_at)}
+                      {r.due_date && <> · due {fmtShortDate(r.due_date)}</>}
+                      {overdue && <span className="ml-1 font-bold uppercase text-[#FF4D4D]">Overdue</span>}
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${meta.cls}`}>
+                    {meta.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Contact line — only shown once a tenant has actually configured a
+          privacy contact (migration 45); the in-app form above is the
+          primary path regardless, so this is never load-bearing. */}
+      {privacyEmail && (
+        <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-6">
+          Or contact{' '}
+          <a href={`mailto:${privacyEmail}`} className="text-[#00806A] dark:text-[#00D4A0] hover:underline">
+            {privacyEmail}
+          </a>{' '}
+          directly, per the employee handbook.
+        </p>
+      )}
     </section>
   )
 }
@@ -552,7 +392,6 @@ export default function Profile() {
 
   const [manager, setManager] = useState(null)
   const [docSummary, setDocSummary] = useState(null)
-  const [consentSummary, setConsentSummary] = useState(null)
 
   // Who this person reports to. emp_select gives role 'employee' exactly one readable row —
   // their own — so the manager's name cannot be selected directly; my_manager() (migration
@@ -581,7 +420,6 @@ export default function Profile() {
   // defend: /kpi is where a review is read, in the context that explains it.
 
   const handleDocSummary = useCallback((s) => setDocSummary(s), [])
-  const handleConsentSummary = useCallback((s) => setConsentSummary(s), [])
 
   return (
     <div className="flex min-h-screen bg-[#F5F5F0] dark:bg-[#0F0F0F]">
@@ -611,7 +449,6 @@ export default function Profile() {
                   manager={manager}
                   tenure={tenureFrom(employee.hire_date)}
                   documents={docSummary}
-                  consent={consentSummary}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -669,7 +506,6 @@ export default function Profile() {
                   company={company}
                   role={role}
                   showToast={showToast}
-                  onConsentSummary={handleConsentSummary}
                 />
               </div>
             )}

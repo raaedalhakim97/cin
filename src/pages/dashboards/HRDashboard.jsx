@@ -7,7 +7,7 @@ import {
   Wallet,
   ArrowRight,
   CalendarClock,
-  ShieldCheck,
+  
   FileCheck2,
   FileText,
   AlertTriangle,
@@ -49,7 +49,7 @@ export default function HRDashboard() {
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [upcoming, setUpcoming] = useState([])
   const [docsExpiringCount, setDocsExpiringCount] = useState(0)
-  const [compliance, setCompliance] = useState({ dsrPending: 0, consentThisMonth: 0, missingWps: 0, nonCompliantEmployees: 0 })
+  const [compliance, setCompliance] = useState({ dsrPending: 0, missingWps: 0, nonCompliantEmployees: 0 })
   const [todayShiftsCount, setTodayShiftsCount] = useState(0)
   const [noShowCount, setNoShowCount] = useState(0)
 
@@ -57,7 +57,6 @@ export default function HRDashboard() {
     setLoading(true)
     const today = localDateStr()
     const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
     const [
       { count: activeEmployeeCount },
@@ -67,7 +66,6 @@ export default function HRDashboard() {
       { data: approvalRows },
       { data: upcomingEmployees },
       { count: dsrPendingCount },
-      { count: consentCount },
       { data: payDetailRows },
       { count: docsExpiring },
       { data: nonCompliantRows },
@@ -82,7 +80,6 @@ export default function HRDashboard() {
         .eq('status', 'pending').order('created_at', { ascending: false }).limit(5),
       supabase.from('employees').select('id, full_name, hire_date, contract_type, contract_end_date').eq('status', 'active'),
       supabase.from('data_subject_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('consent_records').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
       // Was one query against employees; iban and the routing code moved to employee_pay in
       // migration 52, and a missing pay row counts as missing details just as a null column
       // did. Counted here as "people with no bank details on file", which is what the card
@@ -138,7 +135,6 @@ export default function HRDashboard() {
     setNoShowCount(noShows ?? 0)
     setCompliance({
       dsrPending: dsrPendingCount ?? 0,
-      consentThisMonth: consentCount ?? 0,
       missingWps: countMissingPayDetails(payDetailRows),
       nonCompliantEmployees: new Set((nonCompliantRows ?? []).map((r) => r.employee_id)).size,
     })
@@ -246,7 +242,6 @@ export default function HRDashboard() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={FileCheck2} label="Data Subject Requests Pending" value={String(compliance.dsrPending)} tone={compliance.dsrPending ? 'orange' : 'neutral'} />
-          <StatCard icon={ShieldCheck} label="Consent Records This Month" value={String(compliance.consentThisMonth)} tone="mint" />
           {/* Counts employees missing a labour card, IBAN and agent routing code — the
               three fields a UAE WPS SIF needs. Hidden where BYOND generates no bank file,
               rather than reporting everyone as non-compliant forever. */}
