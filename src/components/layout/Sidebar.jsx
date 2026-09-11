@@ -1,9 +1,53 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { LogOut, X } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import { visibleNavFor } from '../../data/navigation'
 import useUiStore from '../../store/uiStore'
 import Logo from '../Logo'
+
+// The build identifier, injected by vite.config.js at build time.
+//
+// __BUILD_SHA__ is the commit; __BUILD_TIME__ is when it was compiled, which answers the
+// second half of the question — a stale deploy has an old sha AND an old timestamp, while
+// a cached page has the right sha and a browser that will not let go.
+function BuildStamp() {
+  const [copied, setCopied] = useState(false)
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(__BUILD_SHA__)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard is blocked outside a secure context and in some in-app browsers. The
+      // text is on screen either way, which is the part that matters.
+    }
+  }
+
+  const built = (() => {
+    try {
+      return new Date(__BUILD_TIME__).toLocaleString(undefined, {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      })
+    } catch {
+      return null
+    }
+  })()
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={`Built ${__BUILD_TIME__}`}
+      className="mt-2 w-full px-4 py-1 text-left text-[10px] font-mono
+                 text-[#AAAAAA] dark:text-[#555555]
+                 hover:text-[#666666] dark:hover:text-[#A0A0A0] transition-colors"
+    >
+      {copied ? 'copied' : `${__BUILD_SHA__}${built ? ` · ${built}` : ''}`}
+    </button>
+  )
+}
 
 export default function Sidebar() {
   const location = useLocation()
@@ -95,6 +139,13 @@ export default function Sidebar() {
             <LogOut size={18} />
             Sign out
           </button>
+
+          {/* Which build this is.
+              Deliberately dull and deliberately here: one tap from anywhere on a phone,
+              always on screen on a desktop, and next to the one control nobody clicks by
+              accident. Tapping copies it, so a bug report can carry the exact build rather
+              than "this morning's". */}
+          <BuildStamp />
         </div>
       </aside>
     </>
