@@ -16,7 +16,15 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        // Substituted by Vite's `define` at build time, so they exist in the bundle but
+        // never in the source. Declared readonly: assigning to one would compile to an
+        // assignment to a string literal, which fails silently in a way nothing else would
+        // catch.
+        __BUILD_SHA__: 'readonly',
+        __BUILD_TIME__: 'readonly',
+      },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
