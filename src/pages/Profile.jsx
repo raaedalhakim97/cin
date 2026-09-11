@@ -8,6 +8,7 @@ import Toast, { useToast } from '../components/Toast'
 import DocumentTypeGrid from '../components/documents/DocumentTypeGrid'
 import ChangePasswordCard from '../components/ChangePasswordCard'
 import IdentityBand from '../components/profile/IdentityBand'
+import RegionHeading from '../components/profile/RegionHeading'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -103,23 +104,6 @@ function Pair({ label, value }) {
       <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white mt-1 wrap-break-word">
         {value || '—'}
       </p>
-    </div>
-  )
-}
-
-// The section rule that separates "your record" from "your rights".
-//
-// Privacy and Data used to be three more full-width white cards, identical to the ones
-// above them, which gave the legal region more visual weight than the employee's own
-// employment record. A titled rule costs no height and says "different kind of thing".
-function RegionHeading({ title, aside }) {
-  return (
-    <div className="flex items-baseline gap-4 mb-4">
-      <h2 className="text-base font-semibold text-[#1A1A1A] dark:text-white shrink-0">{title}</h2>
-      <div className="flex-1 h-px bg-[#E8E8E8] dark:bg-[#2A2A2A]" />
-      {aside && (
-        <span className="text-xs text-[#666666] dark:text-[#A0A0A0] shrink-0">{aside}</span>
-      )}
     </div>
   )
 }
