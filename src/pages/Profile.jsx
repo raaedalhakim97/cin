@@ -430,6 +430,8 @@ export default function Profile() {
               <div className="space-y-8">
                 <IdentityBand
                   employee={employee}
+                  companyId={companyId}
+                  showToast={showToast}
                   manager={manager}
                   tenure={tenureFrom(employee.hire_date)}
                   documents={docSummary}

@@ -1,3 +1,28 @@
+-- APPLIED 11 September 2026. The header below is kept because it was true when written
+-- and is no longer, which is worth recording rather than deleting.
+--
+-- This migration sat in migrations-pending for weeks on the belief that it could only be
+-- applied through the Supabase Dashboard: storage.objects is owned by
+-- supabase_storage_admin, the postgres role is not a superuser and not a member of that
+-- role, and CREATE POLICY requires ownership. That was measured, not assumed, and it
+-- returned "ERROR: 42501: must be owner of table objects".
+--
+-- Re-tested before asking Raaed to do it by hand, and it now succeeds. Supabase has
+-- changed what the postgres role may do to storage.objects since. storage.buckets was
+-- writable too, so the bucket did not need creating by hand either.
+--
+-- The lesson is not about storage. A blocked path recorded in a comment becomes a fact
+-- nobody re-checks, and platforms change underneath. It cost one probe to find out.
+--
+-- ── Verified after applying ────────────────────────────────────────────────
+--
+--   8 policies on storage.objects, 4 per bucket
+--   employee-photos exists: private, 2 MB, image/jpeg|png|webp
+--   as a real employee account, with a probe object planted in the OTHER tenant's
+--   folder and rolled back afterwards: 1 own file visible, 0 of the other tenant's
+--
+-- ── The original header, as written ────────────────────────────────────────
+--
 -- ⚠️  NOT APPLIED. This is the one migration in this repo that cannot be applied from
 --     a database connection, and it is in migrations-pending rather than
 --     migrations-applied for that reason.
@@ -23,6 +48,7 @@
 --     Then tell me and I will verify the policies landed and finish the photo upload,
 --     which is deliberately not built until this bucket has isolation.
 --
+
 -- ────────────────────────────────────────────────────────────────────────────
 
 -- storage.objects had row level security enabled and not a single policy on it.

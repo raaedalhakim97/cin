@@ -1,5 +1,7 @@
-import { Hash } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Camera, Hash, Loader2, Trash2 } from 'lucide-react'
 import ProfileIntro from './ProfileIntro'
+import useProfilePhoto, { ACCEPTED } from './useProfilePhoto'
 
 // The identity band at the top of /profile, and the facts under it.
 //
@@ -98,13 +100,33 @@ function FactCell({ label, value, sub, tone }) {
 
 export default function IdentityBand({
   employee,
+  companyId,
   manager,
   tenure,
   documents,
   onIntroDone,
+  showToast,
 }) {
   const initial = employee.full_name?.[0]?.toUpperCase() ?? '?'
   const department = employee.departments?.name ?? null
+  const { url: photoUrl, busy: photoBusy, upload, remove } = useProfilePhoto(companyId, employee.id)
+  const fileRef = useRef(null)
+  const [confirmRemove, setConfirmRemove] = useState(false)
+
+  async function onPick(e) {
+    const file = e.target.files?.[0]
+    // Cleared immediately so picking the same file twice still fires a change event.
+    e.target.value = ''
+    if (!file) return
+    const problem = await upload(file)
+    showToast?.(problem ? 'error' : 'success', problem ?? 'Photo updated')
+  }
+
+  async function onRemove() {
+    setConfirmRemove(false)
+    const problem = await remove()
+    showToast?.(problem ? 'error' : 'success', problem ?? 'Photo removed')
+  }
 
   const facts = [
     {
@@ -133,7 +155,12 @@ export default function IdentityBand({
           failed to load rather than as a flourish. Scoped here, the facts stay on screen
           throughout and the person resolves into a card that is already populated. */}
       <div className="relative flex flex-col items-center text-center gap-3 px-6 pt-8 pb-7">
-        <ProfileIntro employeeId={employee.id} initial={initial} onDone={onIntroDone} />
+        <ProfileIntro
+          employeeId={employee.id}
+          initial={initial}
+          photoUrl={photoUrl}
+          onDone={onIntroDone}
+        />
         {/* The ring stays. It is where the O settles at the end of the intro, and leaving
             it there is what keeps the idea true for the rest of the time somebody spends
             on this page — and for everybody who skipped the animation, saw it once months
@@ -141,10 +168,66 @@ export default function IdentityBand({
             1.8-second window is a trick; one that stays is a mark. */}
         <div className="relative flex items-center justify-center w-[108px] h-[108px] shrink-0">
           <div className="absolute inset-0 rounded-full border-[3px] border-[#00D4A0]" />
-          <div className="w-[84px] h-[84px] rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-[34px] font-bold">
-            {initial}
-          </div>
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt=""
+              className="w-[84px] h-[84px] rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-[84px] h-[84px] rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-[34px] font-bold">
+              {initial}
+            </div>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept={ACCEPTED.join(',')}
+            onChange={onPick}
+            className="hidden"
+          />
         </div>
+
+        {/* The controls sit under the avatar, not on it.
+            A camera badge in the corner is the convention, and it was the first thing I
+            built — but at this size it clips the ring, and the ring is the idea. A badge
+            that breaks the O to offer a file picker trades the thing worth keeping for a
+            convention nobody needs help with. */}
+        {confirmRemove ? (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[#666666] dark:text-[#A0A0A0]">Remove your photo?</span>
+            <button type="button" onClick={onRemove}
+              className="font-semibold text-[#FF4D4D] hover:underline">Remove</button>
+            <button type="button" onClick={() => setConfirmRemove(false)}
+              className="font-semibold text-[#666666] dark:text-[#A0A0A0] hover:underline">Keep</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 text-xs">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={photoBusy}
+              className="inline-flex items-center gap-1.5 text-[#666666] dark:text-[#A0A0A0]
+                         hover:text-[#00806A] dark:hover:text-[#00D4A0] disabled:opacity-60
+                         transition-colors"
+            >
+              {photoBusy
+                ? <><Loader2 size={11} className="animate-spin" /> Uploading…</>
+                : <><Camera size={11} /> {photoUrl ? 'Change photo' : 'Add a photo'}</>}
+            </button>
+            {photoUrl && !photoBusy && (
+              <button
+                type="button"
+                onClick={() => setConfirmRemove(true)}
+                className="inline-flex items-center gap-1.5 text-[#666666] dark:text-[#A0A0A0]
+                           hover:text-[#FF4D4D] transition-colors"
+              >
+                <Trash2 size={11} /> Remove
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="min-w-0 max-w-full">
           <h2 className="text-2xl font-bold text-[#1A1A1A] dark:text-white wrap-break-word">
