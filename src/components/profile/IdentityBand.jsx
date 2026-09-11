@@ -24,12 +24,11 @@ import ProfileIntro from './ProfileIntro'
 //               when there are any, because an undecided policy is the one fact on this
 //               strip the employee can act on themselves.
 //
-// The performance chip beside the employee code carries the person's real rating from
-// their most recent published review — Exceptional, High Performer, Meets Expectations,
-// Needs Improvement, Unsatisfactory. It is absent when they have none, which today is
-// everybody: no cycle has published with enough coverage to earn one. A chip that said
-// something flattering to every employee regardless of their work would be the one thing
-// this product's performance design exists to prevent.
+// Nothing here states a performance rating. The intro says it instead, by putting the
+// person inside the O the acronym marks, and then the ring stays. Printing "Outstanding"
+// underneath would turn a gesture into an assertion — and one the product would have to
+// make about somebody it has not finished measuring, since a rating is withheld below half
+// coverage on purpose.
 
 // Per-cell rules. 2×2 on a phone, 4×1 from lg up.
 //   phone   right rule on the left-hand cell of each row; bottom rule under the first row
@@ -71,7 +70,6 @@ export default function IdentityBand({
   tenure,
   documents,
   consent,
-  rating,
   onIntroDone,
 }) {
   const initial = employee.full_name?.[0]?.toUpperCase() ?? '?'
@@ -110,8 +108,16 @@ export default function IdentityBand({
       <ProfileIntro employeeId={employee.id} initial={initial} onDone={onIntroDone} />
 
       <div className="flex flex-col items-center text-center gap-3 px-6 pt-8 pb-7">
-        <div className="w-[76px] h-[76px] rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-3xl font-bold">
-          {initial}
+        {/* The ring stays. It is where the O settles at the end of the intro, and leaving
+            it there is what keeps the idea true for the rest of the time somebody spends
+            on this page — and for everybody who skipped the animation, saw it once months
+            ago, or has prefers-reduced-motion set. An idea that only exists during a
+            1.8-second window is a trick; one that stays is a mark. */}
+        <div className="relative flex items-center justify-center w-[108px] h-[108px] shrink-0">
+          <div className="absolute inset-0 rounded-full border-[3px] border-[#00D4A0]" />
+          <div className="w-[84px] h-[84px] rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-[34px] font-bold">
+            {initial}
+          </div>
         </div>
 
         <div className="min-w-0 max-w-full">
@@ -123,19 +129,14 @@ export default function IdentityBand({
           </p>
         </div>
 
-        {(rating || employee.emp_code) && (
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {rating && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#00D4A0]/10 text-[#00806A] dark:text-[#00D4A0]">
-                {rating}
-              </span>
-            )}
-            {employee.emp_code && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-mono border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#666666] dark:text-[#A0A0A0]">
-                <Hash size={11} />{employee.emp_code}
-              </span>
-            )}
-          </div>
+        {/* No rating here, and no "Outstanding" written anywhere. The avatar sitting inside
+            the O says it, and saying it twice would turn a courtesy into a claim — one the
+            product could not stand behind, since a published rating needs half the quarter
+            assessed before kpi_rating_label will issue one at all. */}
+        {employee.emp_code && (
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold font-mono border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#666666] dark:text-[#A0A0A0]">
+            <Hash size={11} />{employee.emp_code}
+          </span>
         )}
       </div>
 

@@ -551,7 +551,6 @@ export default function Profile() {
   const { toast, showToast } = useToast()
 
   const [manager, setManager] = useState(null)
-  const [rating, setRating] = useState(null)
   const [docSummary, setDocSummary] = useState(null)
   const [consentSummary, setConsentSummary] = useState(null)
 
@@ -576,35 +575,10 @@ export default function Profile() {
     return () => { cancelled = true }
   }, [employee?.id])
 
-  // The performance chip. Their real rating from the most recent PUBLISHED review, and
-  // nothing at all when they have none — which today is every employee, because no cycle
-  // has closed with enough coverage to earn one. kpi_rating_label withholds a rating below
-  // 50% coverage on purpose; showing a flattering chip to everybody regardless would undo
-  // the one guarantee the performance system makes.
-  useEffect(() => {
-    if (!employee?.id) return
-    let cancelled = false
-    supabase
-      .from('kpi_reviews')
-      .select('rating, kpi_review_cycles!kpi_reviews_cycle_id_fkey(status, period_year, period_quarter)')
-      .eq('employee_id', employee.id)
-      .not('rating', 'is', null)
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) {
-          console.error('[Profile] rating fetch failed', error)
-          setRating(null)
-          return
-        }
-        const published = (data ?? [])
-          .filter(r => r.kpi_review_cycles?.status === 'published')
-          .sort((a, b) =>
-            (b.kpi_review_cycles.period_year - a.kpi_review_cycles.period_year) ||
-            (b.kpi_review_cycles.period_quarter - a.kpi_review_cycles.period_quarter))
-        setRating(published[0]?.rating ?? null)
-      })
-    return () => { cancelled = true }
-  }, [employee?.id])
+  // No rating is fetched here, deliberately. The band states no performance verdict — the
+  // intro puts the person inside the O and the ring stays, which is the whole of it. That
+  // also means this page makes one fewer query and holds no opinion it would have to
+  // defend: /kpi is where a review is read, in the context that explains it.
 
   const handleDocSummary = useCallback((s) => setDocSummary(s), [])
   const handleConsentSummary = useCallback((s) => setConsentSummary(s), [])
@@ -638,7 +612,6 @@ export default function Profile() {
                   tenure={tenureFrom(employee.hire_date)}
                   documents={docSummary}
                   consent={consentSummary}
-                  rating={rating}
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
