@@ -1934,6 +1934,59 @@ BEGIN
   END IF;
 END $$;
 
+-- 116. my_manager() names the person HR set, and answers nothing else. It is a SECURITY
+-- DEFINER reader, which means it is a hole punched through emp_select — the policy that
+-- gives an ordinary employee exactly one readable row. What keeps that safe is how little
+-- it returns and how narrowly it chooses: the manager HR named for the caller, else the
+-- head of their department, and no row at all when neither is set. This asserts both ends,
+-- because a reader that silently returned "some colleague" would look identical on screen.
+DO $$
+DECLARE v_uid uuid; v_emp uuid; v_mgr uuid; v_before integer; v_got text; v_want text;
+BEGIN
+  -- Somebody with a login, no named manager, and no department head — so "no row" is the
+  -- correct answer before we set one.
+  SELECT e.user_id, e.id INTO v_uid, v_emp
+    FROM employees e
+    JOIN user_roles ur ON ur.user_id = e.user_id
+   WHERE e.status = 'active'
+     AND e.reports_to IS NULL
+     AND NOT EXISTS (SELECT 1 FROM departments d
+                      WHERE d.id = e.department_id AND d.manager_id IS NOT NULL)
+   LIMIT 1;
+
+  SELECT e.id, e.full_name INTO v_mgr, v_want
+    FROM employees e
+   WHERE e.company_id = (SELECT company_id FROM employees WHERE id = v_emp)
+     AND e.id IS DISTINCT FROM v_emp
+     AND e.status = 'active'
+   LIMIT 1;
+
+  IF v_uid IS NULL OR v_mgr IS NULL THEN
+    PERFORM pg_temp.chk(116, 'responsibility', 'my_manager names who HR set, and nobody else',
+      'no unmanaged employee to test', 'no unmanaged employee to test');
+  ELSE
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT count(*) INTO v_before FROM public.my_manager();
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET reports_to = v_mgr WHERE id = v_emp;
+
+    PERFORM pg_temp.as_user(v_uid);
+    SELECT manager_name INTO v_got FROM public.my_manager();
+    PERFORM pg_temp.as_nobody();
+
+    UPDATE employees SET reports_to = NULL WHERE id = v_emp;
+
+    PERFORM pg_temp.chk(116, 'responsibility', 'my_manager names who HR set, and nobody else',
+      'silent, then exact',
+      CASE
+        WHEN v_before <> 0 THEN 'NAMED SOMEBODY UNASKED'
+        WHEN v_got IS DISTINCT FROM v_want THEN 'NAMED THE WRONG PERSON'
+        ELSE 'silent, then exact'
+      END);
+  END IF;
+END $$;
+
 -- ═══ Report ════════════════════════════════════════════════════════════════
 
 SELECT n, area, name,
