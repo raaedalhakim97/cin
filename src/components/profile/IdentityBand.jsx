@@ -44,20 +44,37 @@ import ProfileIntro from './ProfileIntro'
 const LG_COLS = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4' }
 
 function factEdges(i, count) {
-  const lastInPhoneRow = i % 2 === 1 || i === count - 1
-  const inLastPhoneRow = i >= count - (count % 2 === 1 && i === count - 1 ? 1 : 2)
+  // An odd count would leave half a row empty on a phone, so the last cell takes the
+  // whole row instead — and a full-width cell has no neighbour to be ruled off from.
+  const spansRow = count % 2 === 1 && i === count - 1
+  const phoneRight = !spansRow && i % 2 === 0
+  const lastRowStart = count % 2 === 1 ? count - 1 : count - 2
+  const phoneBottom = i < lastRowStart
+  const deskRight = i !== count - 1
+
+  // Each condition contributes at most one border-r decision, never two. The first
+  // version emitted `lg:border-r` and `lg:border-r-0` on the same cell and let CSS source
+  // order settle it, and got the bottom rule wrong as well: with three facts the rule
+  // under the first row ran beneath Tenure and stopped, leaving Department open.
   return [
-    lastInPhoneRow ? 'lg:border-r' : 'border-r',
-    inLastPhoneRow ? 'lg:border-b-0' : 'border-b lg:border-b-0',
-    i === count - 1 ? 'lg:border-r-0' : '',
-    // An odd count leaves a gap on a phone; the last cell takes the whole row instead.
-    count % 2 === 1 && i === count - 1 ? 'col-span-2 lg:col-span-1' : '',
+    phoneRight
+      ? (deskRight ? 'border-r' : 'border-r lg:border-r-0')
+      : (deskRight ? 'lg:border-r' : ''),
+    phoneBottom ? 'border-b lg:border-b-0' : '',
+    spansRow ? 'col-span-2 lg:col-span-1' : '',
   ].join(' ')
 }
 
+// Centred, not left-aligned.
+//
+// The artboard drew four equal cells in a row, where left alignment reads as a table. With
+// three facts the last one spans the full width on a phone, and left-aligned text in a
+// double-width cell sits against one edge with nothing opposite it — lopsided under an
+// avatar and a name that are both centred. Centring the cells makes the strip agree with
+// the header above it at every width and every count.
 function FactCell({ label, value, sub, tone }) {
   return (
-    <div className="px-5 py-4 min-w-0">
+    <div className="px-5 py-4 min-w-0 text-center">
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#666666] dark:text-[#A0A0A0]">
         {label}
       </p>
