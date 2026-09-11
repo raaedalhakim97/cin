@@ -74,7 +74,7 @@ function prefersReducedMotion() {
   }
 }
 
-export default function ProfileIntro({ employeeId, initial, onDone }) {
+export default function ProfileIntro({ employeeId, initial, photoUrl, onDone }) {
   // Decided once, synchronously, before the first paint. Deciding this inside an effect
   // would show one frame of the intro to somebody who asked never to see one.
   const shouldPlay = useMemo(() => {
@@ -183,8 +183,11 @@ export default function ProfileIntro({ employeeId, initial, onDone }) {
             opacity: personIn ? 1 : 0,
           }}
         />
+        {/* The person, inside the O. Their actual photo when they have one — the point of
+            the whole sequence is that they occupy the letter, and an initial is the
+            stand-in for a face, not the intended subject. */}
         <div
-          className="absolute left-1/2 top-1/2 rounded-full bg-[#00D4A0]
+          className="absolute left-1/2 top-1/2 rounded-full bg-[#00D4A0] overflow-hidden
                      flex items-center justify-center text-[#062B22] font-bold
                      transition-all duration-[460ms] ease-out"
           style={{
@@ -195,7 +198,9 @@ export default function ProfileIntro({ employeeId, initial, onDone }) {
             opacity: personIn ? 1 : 0,
           }}
         >
-          {initial}
+          {photoUrl
+            ? <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+            : initial}
         </div>
       </div>
     </div>
