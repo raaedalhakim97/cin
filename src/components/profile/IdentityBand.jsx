@@ -104,10 +104,15 @@ export default function IdentityBand({
   ]
 
   return (
-    <div className="relative rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] overflow-hidden">
-      <ProfileIntro employeeId={employee.id} initial={initial} onDone={onIntroDone} />
-
-      <div className="flex flex-col items-center text-center gap-3 px-6 pt-8 pb-7">
+    <div className="rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] overflow-hidden">
+      {/* The intro covers this block and nothing below it.
+          Covering the whole card looked fine on a desktop, where the band is short. On a
+          phone the fact strip stacks 2×2 and the card is roughly twice as tall, so a
+          full-height white curtain with a small O near the top read as a page that had
+          failed to load rather than as a flourish. Scoped here, the facts stay on screen
+          throughout and the person resolves into a card that is already populated. */}
+      <div className="relative flex flex-col items-center text-center gap-3 px-6 pt-8 pb-7">
+        <ProfileIntro employeeId={employee.id} initial={initial} onDone={onIntroDone} />
         {/* The ring stays. It is where the O settles at the end of the intro, and leaving
             it there is what keeps the idea true for the rest of the time somebody spends
             on this page — and for everybody who skipped the animation, saw it once months
