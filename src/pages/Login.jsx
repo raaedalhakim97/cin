@@ -319,6 +319,18 @@ export default function Login() {
             <p className="lg:hidden mt-7 text-xs text-center text-[#6E6E6E] dark:text-[#8A8A8A]">
               BYOND by SERVA &mdash; HR Platform
             </p>
+
+            {/* The build stamp, again, because the one in the sidebar is unreachable from
+                here — this is the signed-out half of the product, and "is this even the new
+                build?" is a question that gets asked about this page more than any other.
+                Answering it required signing in, which is the wrong way round. */}
+            <p
+              title={`Built ${__BUILD_TIME__}`}
+              className="mt-4 text-[10px] font-mono text-center lg:text-left
+                         text-[#AAAAAA] dark:text-[#555555] select-all"
+            >
+              {__BUILD_SHA__}
+            </p>
           </div>
         </div>
       </div>
