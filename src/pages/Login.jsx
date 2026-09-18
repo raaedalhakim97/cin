@@ -1,13 +1,31 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
 import { logLoginAttempt, getActiveSessionCount } from '../services/sessionService'
 import Logo from '../components/Logo'
+import LoginIntro from '../components/login/LoginIntro'
+import BrandPanel from '../components/login/BrandPanel'
 
 const MAX_CONCURRENT_SESSIONS = 2
+
+// Three tiers, because six different outcomes were all arriving in the same red box.
+//
+// Red is a claim about the person: your password was wrong. It is the right colour for
+// exactly one of these outcomes. Amber says the credentials were fine and something else
+// needs doing — wait, reconnect, sign out elsewhere, confirm an address. Blue says the
+// fault is ours and there is nothing for them to fix.
+//
+// The distinction matters because red on a server fault sends somebody chasing the one
+// thing that is not broken, and the two-session cap is the worst case of that: the
+// password was correct, and the old page told them it was a failure.
+const NOTICE = {
+  credential: { ink: '#FF4D4D', tint: 'rgba(255,77,77,0.10)',   edge: 'rgba(255,77,77,0.22)',   mark: '!' },
+  action:     { ink: '#FF8C42', tint: 'rgba(255,140,66,0.10)',  edge: 'rgba(255,140,66,0.24)',  mark: '!' },
+  server:     { ink: '#4D9FFF', tint: 'rgba(77,159,255,0.10)',  edge: 'rgba(77,159,255,0.24)',  mark: 'i' },
+}
 
 // Never show the user a raw error body.
 //
@@ -20,26 +38,93 @@ const MAX_CONCURRENT_SESSIONS = 2
 // Known causes get a plain sentence. Anything unrecognised says so honestly
 // rather than pretending the credentials were wrong, because "wrong password"
 // on a server fault sends people chasing the one thing that is not broken.
-function loginErrorMessage(error) {
+//
+// The tone rides along with the sentence rather than being worked out again at the call
+// site: whoever adds the next case here picks its colour in the same breath as its wording,
+// which is the only way the two stay in step.
+function loginNotice(error) {
   const raw = (error?.message ?? '').trim()
 
-  if (/invalid login credentials/i.test(raw)) return 'Email or password is incorrect.'
-  if (/email not confirmed/i.test(raw))       return 'Confirm your email address before signing in.'
-  if (/email logins are disabled/i.test(raw)) return 'Email sign-in is turned off for this workspace.'
+  if (/invalid login credentials/i.test(raw)) {
+    return { tone: 'credential', message: 'Email or password is incorrect.' }
+  }
+  if (/email not confirmed/i.test(raw)) {
+    return { tone: 'action', message: 'Confirm your email address before signing in.' }
+  }
+  if (/email logins are disabled/i.test(raw)) {
+    return { tone: 'action', message: 'Email sign-in is turned off for this workspace.' }
+  }
   if (/rate limit|too many requests/i.test(raw)) {
-    return 'Too many attempts. Wait a minute and try again.'
+    return { tone: 'action', message: 'Too many attempts. Wait a minute and try again.' }
   }
   if (/failed to fetch|networkerror|load failed/i.test(raw)) {
-    return 'Could not reach the server. Check your connection and try again.'
+    return {
+      tone: 'action',
+      message: 'Could not reach the server. Check your connection and try again.',
+    }
   }
 
   // Empty, or a JSON blob rather than a sentence.
   if (!raw || raw.startsWith('{') || raw.startsWith('[')) {
-    return 'Sign-in failed on the server, not because of your password. ' +
-           'Please try again, and tell your administrator if it keeps happening.'
+    return {
+      tone: 'server',
+      message:
+        'Sign-in failed on the server, not because of your password. ' +
+        'Please try again, and tell your administrator if it keeps happening.',
+    }
   }
 
-  return raw
+  // Unrecognised. The one thing we know is that it is not a credential rejection, so it
+  // does not get the colour that says it is.
+  return { tone: 'server', message: raw }
+}
+
+function Notice({ tone, message }) {
+  const t = NOTICE[tone] ?? NOTICE.server
+
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-[9px] px-[15px] py-[13px] rounded-lg border"
+      style={{ background: t.tint, borderColor: t.edge }}
+    >
+      <span
+        aria-hidden="true"
+        className="w-4 h-4 mt-px shrink-0 rounded-full flex items-center justify-center
+                   text-[11px] font-bold leading-none"
+        style={{ color: t.ink, border: `1.5px solid ${t.ink}` }}
+      >
+        {t.mark}
+      </span>
+      <p className="text-[13px] leading-relaxed text-[#1A1A1A] dark:text-white text-pretty">
+        {message}
+      </p>
+    </div>
+  )
+}
+
+// The bordered box is the control; the input inside it is bare. Doing it the other way —
+// an input with its own border and an absolutely positioned icon on top — is what the old
+// page did, and it meant the icon overlapped the text on a long address.
+const FIELD_BOX =
+  'flex items-center gap-[9px] px-3.5 py-3 lg:py-[11px] rounded-lg border transition-colors ' +
+  'bg-[#F5F5F0] dark:bg-[#0F0F0F]'
+
+const FIELD_INPUT =
+  'flex-1 min-w-0 bg-transparent text-sm focus:outline-none ' +
+  'text-[#1A1A1A] dark:text-white placeholder-[#6E6E6E] dark:placeholder-[#8A8A8A]'
+
+// A field in error does not get the mint focus border, and that is the point rather than an
+// omission. react-hook-form focuses the first invalid field on submit, so the two rules
+// land on the same element at the same instant — and a variant beats a plain utility
+// whatever order they are written in. The result was a mint box with "Email is required"
+// under it in red, which is two answers to one question. Red holds until it is fixed.
+function fieldBox(hasError) {
+  return `${FIELD_BOX} ${
+    hasError
+      ? 'border-[#FF4D4D]'
+      : 'border-[#E8E8E8] dark:border-[#2A2A2A] focus-within:border-[#00D4A0]'
+  }`
 }
 
 export default function Login() {
@@ -47,13 +132,13 @@ export default function Login() {
   const registerSession = useAuthStore((s) => s.registerSession)
   const loadProfile = useAuthStore((s) => s.loadProfile)
   const { register, handleSubmit, formState: { errors } } = useForm()
-  const [serverError, setServerError] = useState('')
+  const [notice, setNotice] = useState(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   const onSubmit = async ({ email, password }) => {
     setLoading(true)
-    setServerError('')
+    setNotice(null)
 
     // Attempt sign-in
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -64,7 +149,7 @@ export default function Login() {
     if (error) {
       // Keep the unmapped original in the console for whoever debugs it.
       console.error('[Login] sign-in failed', error)
-      setServerError(loginErrorMessage(error))
+      setNotice(loginNotice(error))
       setLoading(false)
       return
     }
@@ -73,10 +158,18 @@ export default function Login() {
     const activeCount = await getActiveSessionCount()
     if (activeCount >= MAX_CONCURRENT_SESSIONS) {
       await supabase.auth.signOut()
-      setServerError(
-        `Maximum ${MAX_CONCURRENT_SESSIONS} concurrent sessions allowed. ` +
-        'Please sign out from another device first.'
-      )
+      // Amber, not red. The password was right; what is missing is a free slot.
+      //
+      // The design board proposed a "Sign out my other devices" button here. It is not
+      // built: revoking user_sessions rows for somebody who is, at this instant, signed
+      // out again is a backend change with a security shape of its own, not a piece of
+      // this page. Until it exists, the sentence is the whole of the honest answer.
+      setNotice({
+        tone: 'action',
+        message:
+          `Maximum ${MAX_CONCURRENT_SESSIONS} concurrent sessions allowed. ` +
+          'Please sign out from another device first.',
+      })
       setLoading(false)
       return
     }
@@ -94,108 +187,141 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F5F0] dark:bg-[#0F0F0F]">
-      <div className="w-full max-w-sm">
+    <LoginIntro>
+      <div className="min-h-screen flex bg-[#F5F5F0] dark:bg-[#0F0F0F]">
+        <BrandPanel />
 
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex justify-center mb-4">
-            <Link to="/" aria-label="BYOND home">
-              <Logo size="md" />
-            </Link>
-          </div>
-          <h1 className="text-2xl font-bold text-[#1A1A1A] dark:text-white">
-            Welcome back
-          </h1>
-          <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1">
-            Sign in to BYOND HR
-          </p>
-        </div>
+        <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-10 lg:p-11">
+          <div className="w-full max-w-[400px]">
 
-        {/* Card */}
-        <div className="rounded-xl p-8 bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1A1A] dark:text-white mb-1.5">
-                Email
-              </label>
-              <div className="relative">
-                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
-                <input
-                  type="email"
-                  placeholder="you@company.com"
-                  className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.email
-                      ? 'border-[#FF4D4D]'
-                      : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
-                  }`}
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email address' },
-                  })}
-                />
+            {/* The panel cannot survive a phone, so below lg it collapses to the mark, the
+                wordmark and the one line of the acronym the product already treats as its
+                own. */}
+            <div className="lg:hidden flex flex-col items-center gap-4 mb-7">
+              <Logo size="xl" showWordmark={false} />
+              <span className="text-2xl font-extrabold tracking-tight text-[#1A1A1A] dark:text-white">
+                BY<span className="text-[#00D4A0]">O</span>ND
+              </span>
+              <div className="flex items-baseline gap-[9px]">
+                <span className="text-[15px] font-extrabold text-[#00D4A0]">O</span>
+                <span className="text-[13px] font-medium text-[#6E6E6E] dark:text-[#8A8A8A]">
+                  Outstanding
+                </span>
               </div>
-              {errors.email && (
-                <p className="text-xs mt-1 text-[#FF4D4D]">{errors.email.message}</p>
-              )}
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1A1A] dark:text-white mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  className={`w-full pl-9 pr-10 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.password
-                      ? 'border-[#FF4D4D]'
-                      : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
-                  }`}
-                  {...register('password', { required: 'Password is required' })}
-                />
+            <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight text-center lg:text-left text-[#1A1A1A] dark:text-white">
+              Welcome back
+            </h1>
+            <p className="mt-1.5 mb-7 text-[13px] lg:text-sm text-center lg:text-left text-[#6E6E6E] dark:text-[#A0A0A0]">
+              Sign in to BYOND HR
+            </p>
+
+            <div className="p-5 lg:p-7 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+              <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[18px] lg:gap-5">
+
+                {/* Email */}
+                <div>
+                  <label
+                    htmlFor="login-email"
+                    className="block mb-[7px] text-[13px] font-medium text-[#1A1A1A] dark:text-white"
+                  >
+                    Email
+                  </label>
+                  <div className={fieldBox(Boolean(errors.email))}>
+                    <Mail
+                      size={15}
+                      aria-hidden="true"
+                      className="shrink-0 text-[#6E6E6E] dark:text-[#8A8A8A]"
+                    />
+                    <input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@company.com"
+                      className={FIELD_INPUT}
+                      {...register('email', {
+                        required: 'Email is required',
+                        pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email address' },
+                      })}
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="mt-1.5 text-xs text-[#FF4D4D]">{errors.email.message}</p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label
+                    htmlFor="login-password"
+                    className="block mb-[7px] text-[13px] font-medium text-[#1A1A1A] dark:text-white"
+                  >
+                    Password
+                  </label>
+                  <div className={fieldBox(Boolean(errors.password))}>
+                    <Lock
+                      size={15}
+                      aria-hidden="true"
+                      className="shrink-0 text-[#6E6E6E] dark:text-[#8A8A8A]"
+                    />
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      className={FIELD_INPUT}
+                      {...register('password', { required: 'Password is required' })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="shrink-0 text-[#6E6E6E] dark:text-[#8A8A8A]
+                                 hover:text-[#1A1A1A] dark:hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="mt-1.5 text-xs text-[#FF4D4D]">{errors.password.message}</p>
+                  )}
+                </div>
+
+                {notice && <Notice tone={notice.tone} message={notice.message} />}
+
+                {/* Ink is #062B22, not white. White on mint sits at about 2.0:1, which made
+                    the one button on the page the least readable thing on it. */}
                 <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] hover:text-[#666666] dark:hover:text-[#A0A0A0] transition-colors"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full min-h-[44px] flex items-center justify-center gap-[9px]
+                             px-[18px] py-3 rounded-lg text-sm font-semibold text-[#062B22]
+                             bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {loading && <Loader2 size={14} className="animate-spin" />}
+                  {loading ? 'Signing in…' : 'Sign in'}
                 </button>
-              </div>
-              {errors.password && (
-                <p className="text-xs mt-1 text-[#FF4D4D]">{errors.password.message}</p>
-              )}
+              </form>
             </div>
 
-            {/* Server error */}
-            {serverError && (
-              <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
-                <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                {serverError}
-              </div>
-            )}
+            {/* The design board put "Forgot password?" on the label row. It is not here,
+                because there is no password-reset route and no email service to carry one —
+                the same reason invites are still handed over as links. A link promising a
+                message that will never arrive is worse than no link. This sentence is what
+                is actually true today, and it covers the person who never set a password as
+                well as the one who forgot theirs. */}
+            <p className="mt-5 text-xs leading-relaxed text-center lg:text-left text-[#6E6E6E] dark:text-[#8A8A8A] text-pretty">
+              Forgotten your password, or never set one? Ask your HR team to send you an
+              invite link — it sets a new password and signs you in.
+            </p>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
-            >
-              {loading && <Loader2 size={15} className="animate-spin" />}
-              {loading ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
+            <p className="lg:hidden mt-7 text-xs text-center text-[#6E6E6E] dark:text-[#8A8A8A]">
+              BYOND by SERVA &mdash; HR Platform
+            </p>
+          </div>
         </div>
-
-        <p className="text-center text-xs text-[#AAAAAA] dark:text-[#555555] mt-6">
-          BYOND by SERVA &mdash; HR Platform
-        </p>
       </div>
-    </div>
+    </LoginIntro>
   )
 }
