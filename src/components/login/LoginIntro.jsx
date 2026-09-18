@@ -57,6 +57,10 @@ const SHUT = `circle(${RADIUS * START}vmax at 50% 50%)`
 const IRIS_EASE = 'cubic-bezier(.4,0,.2,1)'
 const IRIS_MS = 900
 
+// 7.5vw is the design's proportion — 72px type on an 1180px board. The floor holds the
+// word readable at 390px, and the ceiling keeps it inside the aperture on a large monitor.
+const LETTER_SIZE = 'clamp(48px, 7.5vw, 132px)'
+
 function prefersReducedMotion() {
   try {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -139,7 +143,16 @@ export default function LoginIntro({ children }) {
           {stage < 3 && (
             <div
               aria-hidden="true"
-              className="fixed inset-0 z-50 flex items-center justify-center gap-2.5 pointer-events-none"
+              className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+              // One font-size drives the whole word, and every other measurement below is
+              // in em off it — box width, gap, how far the outer letters travel. Written as
+              // fixed pixels the word was tuned for a laptop and read as a small caption
+              // lost in the middle of a 27-inch monitor.
+              //
+              // clamp rather than a raw vw: the floor keeps it legible on a narrow phone,
+              // and the ceiling stops it filling an ultrawide edge to edge, where BYOND
+              // would be wider than the aperture that is supposed to grow out of its O.
+              style={{ fontSize: LETTER_SIZE, gap: '0.14em' }}
             >
               {BYOND_LETTERS.map((ch, i) => {
                 const isO = ch === 'O'
@@ -153,15 +166,19 @@ export default function LoginIntro({ children }) {
                 return (
                   <span
                     key={ch + i}
-                    className={`block w-[38px] sm:w-[52px] text-center text-5xl sm:text-[72px] font-extrabold leading-none tracking-[-0.03em] ${
+                    className={`block text-center font-extrabold leading-none tracking-[-0.03em] ${
                       isO ? 'text-[#00D4A0]' : 'text-white'
                     }`}
                     style={{
+                      // 0.72em is the design's 52px box under its 72px type. Holding that
+                      // ratio is what keeps the O centred on the point the ring will occupy
+                      // at every screen size, rather than only at the one it was drawn at.
+                      width: '0.72em',
                       opacity: !entered || gone ? 0 : 1,
                       transform: !entered
-                        ? 'translateY(14px)'
+                        ? 'translateY(0.2em)'
                         : gone && !isO
-                          ? `translateX(${i < 2 ? '-26px' : '26px'})`
+                          ? `translateX(${i < 2 ? '-0.36em' : '0.36em'})`
                           : 'none',
                       transition: 'opacity 400ms ease-out, transform 400ms ease-out',
                       // The stagger belongs to the entrance only. Carried into the exit it
