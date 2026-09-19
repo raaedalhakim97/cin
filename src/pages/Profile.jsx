@@ -218,7 +218,7 @@ function PrivacyDataSection({ employee, companyId, company, role, showToast }) {
           <button
             onClick={downloadMyData}
             disabled={exporting}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             {exporting ? 'Preparing export…' : 'Download my data'}
@@ -259,7 +259,7 @@ function PrivacyDataSection({ employee, companyId, company, role, showToast }) {
               <button
                 type="submit"
                 disabled={reqSubmitting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
               >
                 {reqSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 {reqSubmitting ? 'Submitting…' : 'Submit request'}

@@ -112,7 +112,7 @@ export default function OperationsDashboard() {
               {todayShifts.slice(0, 6).map(s => (
                 <div key={s.id} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-xs font-semibold shrink-0">
                       {initials(s.full_name)}
                     </div>
                     <div className="min-w-0">

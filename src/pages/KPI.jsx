@@ -524,7 +524,7 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
             </div>
             <button
               type="submit" disabled={saving}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {saving ? 'Saving…' : hasSubmittedSelf ? 'Update Self-Evaluation' : 'Submit Self-Evaluation'}
@@ -728,7 +728,7 @@ function ManagerScoreModal({ emp, row, period, onClose, onSave }) {
 
           <button
             type="submit" disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Saving…' : 'Save Manager Score'}
@@ -1035,7 +1035,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
                     {isEval ? (
                       <button
                         onClick={() => setModalTarget({ emp, row })}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
                       >
                         <Pencil size={11} /> Score
                       </button>
@@ -1381,7 +1381,7 @@ function GrantRewardModal({ employees, rewardTypes, companyId, issuerId, onClose
 
           <button
             type="submit" disabled={saving || !selectedType}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Gift size={14} />}
             {saving ? 'Saving…' : 'Grant Reward'}
@@ -1496,7 +1496,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
           </button>
           <button
             onClick={() => setShowRewardModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
           >
             <Gift size={14} /> Grant Reward
           </button>
@@ -1523,7 +1523,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => approveRec(rec)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
                   >
                     <Check size={11} /> Approve
                   </button>

@@ -273,7 +273,7 @@ function WorkLocations({ companyId, showToast }) {
         type="button"
         onClick={add}
         disabled={adding}
-        className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+        className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
       >
         {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         Add Location
@@ -442,7 +442,7 @@ export default function ShiftSettingsTab({ companyId, showToast }) {
       <button
         type="submit"
         disabled={saving}
-        className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+        className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
       >
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         {saving ? 'Saving…' : 'Save Changes'}

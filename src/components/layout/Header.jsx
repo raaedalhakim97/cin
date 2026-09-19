@@ -59,7 +59,7 @@ export default function Header() {
 
         {/* Avatar + name */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-sm font-semibold shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-sm font-semibold shrink-0">
             {employee?.full_name?.[0]?.toUpperCase() ?? <User size={14} />}
           </div>
           <span className="hidden sm:inline text-sm font-medium text-[#1A1A1A] dark:text-white">

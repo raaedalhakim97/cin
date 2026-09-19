@@ -64,7 +64,7 @@ function Avatar({ name }) {
     .toUpperCase() || '?'
 
   return (
-    <div className="w-9 h-9 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-xs font-semibold shrink-0">
+    <div className="w-9 h-9 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-xs font-semibold shrink-0">
       {initials}
     </div>
   )
@@ -335,7 +335,7 @@ export default function EmployeeList() {
               {canCreate && (
                 <Link
                   to="/employees/new"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00D4A0] hover:bg-[#00B589] text-white text-sm font-semibold transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00D4A0] hover:bg-[#00B589] text-[#062B22] text-sm font-semibold transition-colors"
                 >
                   <Plus size={16} />
                   Add Employee
@@ -405,7 +405,7 @@ export default function EmployeeList() {
                 <p className="text-sm font-medium text-[#1A1A1A] dark:text-white">Something went wrong loading employees.</p>
                 <button
                   onClick={fetchEmployees}
-                  className="bg-[#00D4A0] hover:bg-[#00B589] text-white font-semibold text-sm py-2 px-4 rounded-lg transition-colors"
+                  className="bg-[#00D4A0] hover:bg-[#00B589] text-[#062B22] font-semibold text-sm py-2 px-4 rounded-lg transition-colors"
                 >
                   Retry
                 </button>

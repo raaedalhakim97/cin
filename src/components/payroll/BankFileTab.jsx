@@ -138,7 +138,7 @@ export default function BankFileTab({ showToast }) {
           <button
             onClick={generate}
             disabled={busy}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[#00D4A0] text-white hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[#00D4A0] text-[#062B22] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {busy && <Loader2 size={15} className="animate-spin" />}
             {busy ? 'Checking…' : 'Build file'}
@@ -234,7 +234,7 @@ export default function BankFileTab({ showToast }) {
 
           <button
             onClick={download}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[#00D4A0] text-white hover:bg-[#00B589] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[#00D4A0] text-[#062B22] hover:bg-[#00B589] transition-colors"
           >
             <Download size={15} />
             Download CSV

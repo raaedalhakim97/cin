@@ -163,7 +163,7 @@ export default function ManagerDashboard() {
                     className="flex items-center justify-between gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-[#F5F5F0] dark:hover:bg-[#252525] transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-xs font-semibold shrink-0">
                         {member.full_name?.[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0">

@@ -165,7 +165,7 @@ function AttendanceCard({ employee, canClockInOut }) {
           {canClockInOut && !clockedIn && (
             <Link
               to="/attendance"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
             >
               <Clock size={15} /> Clock In
             </Link>
@@ -204,7 +204,7 @@ export default function GenericDashboard({ employee }) {
         {/* Profile card */}
         <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-xl font-bold shrink-0">
+            <div className="w-14 h-14 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-xl font-bold shrink-0">
               {employee.full_name?.[0]?.toUpperCase()}
             </div>
             <div>

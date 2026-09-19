@@ -298,7 +298,7 @@ function RequestModal({ onClose, onSubmit, saving, offeredTypes }) {
             <button
               type="submit"
               disabled={saving || days === 0}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               {saving ? 'Submitting…' : 'Submit Request'}
@@ -467,7 +467,7 @@ function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, can
             {canWrite && (
               <button
                 onClick={onRequestLeave}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
               >
                 <Plus size={14} /> Request Leave
               </button>
@@ -590,7 +590,7 @@ function TeamRequestsTab({ requests, loading, onApprove, onReject, approveLoadin
                   <button
                     onClick={() => onApprove(req)}
                     disabled={busy(req.id)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
                   >
                     {approveLoadingId === req.id
                       ? <Loader2 size={12} className="animate-spin" />
@@ -1086,7 +1086,7 @@ export default function Leave() {
               title={policiesLoaded && offeredTypes.length === 0
                 ? 'Your company has not set which leave types it offers yet'
                 : undefined}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00D4A0] transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00D4A0] transition-colors shadow-sm"
             >
               <Plus size={15} />
               Request Leave

@@ -431,7 +431,7 @@ export default function TeamAnalytics() {
               <p className="text-sm font-medium text-[#1A1A1A] dark:text-white mb-3">Something went wrong loading team analytics.</p>
               <button
                 onClick={load}
-                className="bg-[#00D4A0] hover:bg-[#00B589] text-white font-semibold text-sm py-2 px-4 rounded-lg transition-colors"
+                className="bg-[#00D4A0] hover:bg-[#00B589] text-[#062B22] font-semibold text-sm py-2 px-4 rounded-lg transition-colors"
               >
                 Retry
               </button>

@@ -114,7 +114,7 @@ function TemplateModal({ existing, onClose, onSaved, showToast, companyId }) {
 
           <button
             type="submit" disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Template'}
@@ -176,7 +176,7 @@ export default function ScheduleTemplates() {
             </div>
             <button
               onClick={() => { setEditing(null); setModalOpen(true) }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00D4A0] hover:bg-[#00B589] text-white text-sm font-semibold transition-colors w-fit"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00D4A0] hover:bg-[#00B589] text-[#062B22] text-sm font-semibold transition-colors w-fit"
             >
               <Plus size={16} />
               Add Template

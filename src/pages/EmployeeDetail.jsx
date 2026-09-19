@@ -387,7 +387,7 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
             <button
               type="submit"
               disabled={generating}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {generating ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {generating ? 'Generating…' : 'Generate Invite Link'}
@@ -410,7 +410,7 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
               <button
                 onClick={copyLink}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  copied ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#00D4A0] text-white hover:bg-[#00B589]'
+                  copied ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#00D4A0] text-[#062B22] hover:bg-[#00B589]'
                 }`}
               >
                 {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -461,7 +461,7 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
           <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
             {/* Avatar + name */}
             <div className="flex flex-col items-center gap-3 mb-5 pb-5 border-b border-[#E8E8E8] dark:border-[#2A2A2A]">
-              <div className="w-20 h-20 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-2xl font-bold">
+              <div className="w-20 h-20 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-2xl font-bold">
                 {employee.full_name?.[0]?.toUpperCase()}
               </div>
               <div className="text-center">

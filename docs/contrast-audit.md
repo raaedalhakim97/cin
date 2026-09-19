@@ -160,7 +160,11 @@ against, not a verdict on each screen.
 Nor is contrast the whole of accessibility. Keyboard order, focus rings, and what a screen
 reader announces are not measured here.
 
-## Finding 6 — added during implementation: white ink on solid mint, 21 places
+## Finding 6 — added during implementation: white ink on solid mint, 89 places
+
+> **Corrected.** First counted as 21. That grep only matched lines where `bg-[#00D4A0]`
+> came *before* `text-white`; most of the codebase writes the classes the other way round.
+> The real figure is **89**, across 42 files, and all of them have been fixed.
 
 Found while fixing the pills, and **worse than anything above, because it fails in both
 themes**: `bg-[#00D4A0]` with `text-white` measures **1.92:1** regardless of the theme, since
@@ -169,6 +173,15 @@ a mint fill is mint either way. It appears on primary buttons (`EmptyState`, `Ba
 `NewsFeed`).
 
 The fix is already proven in this codebase — `#062B22` ink on mint measures **7.94:1**, and
-is what `/login`, `SignOutDialog` and `SessionTimeoutModal` now use. 21 sites, one class
-each, no theme logic. This is the cheapest remaining win in the document and should
-probably jump the queue.
+is what `/login`, `SignOutDialog` and `SessionTimeoutModal` already use. One class each, no
+theme logic.
+
+It also holds on the hover fills, which is the part worth checking before a change this
+wide: `#062B22` measures 5.79:1 on `#00B589` and 6.37:1 on `#00BE90`, while white measures
+2.63 and 2.40. There is no state of a mint button where white ink passes.
+
+Verified in a browser on the signup page's submit button: ink `rgb(6,43,34)` on fill
+`rgb(0,212,160)`, **7.94:1**.
+
+`hover:text-white` and `dark:text-white` were left alone — the replacement only matched
+`text-white` with no variant prefix in front of it.

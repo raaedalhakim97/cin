@@ -264,7 +264,7 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {loading && <Loader2 size={15} className="animate-spin" />}
               {loading ? 'Creating your workspace…' : 'Start free trial'}

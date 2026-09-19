@@ -169,7 +169,7 @@ function RatingSide({ title, level, anchorId, note, anchors, editable, onSave, s
           anchorText: anchors.find((a) => a.id === draftAnchor)?.comment ?? null,
           note: draftNote.trim() || null,
         })}
-        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors"
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors"
       >
         {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
         {dirty ? 'Save' : 'Saved'}

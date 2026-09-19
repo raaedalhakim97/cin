@@ -443,7 +443,7 @@ function Contacts({ companyId, rows, onChanged }) {
                  onChange={(e) => setF({ ...f, email: e.target.value })} />
           {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
-                  className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
+                  className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save contact
           </button>
         </form>
@@ -669,7 +669,7 @@ function Contract({ companyId, row, defaultCurrency, onChanged }) {
           </label>
           {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
-                  className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
+                  className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save contract
           </button>
         </form>
@@ -756,7 +756,7 @@ function Payments({ companyId, rows, defaultCurrency, onChanged }) {
           </label>
           {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
-                  className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
+                  className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save invoice
           </button>
         </form>
@@ -834,7 +834,7 @@ function Actions({ companyId, rows, onChanged }) {
           </div>
           {err && <p className="text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save action
           </button>
         </form>
@@ -918,7 +918,7 @@ function Support({ companyId, rows, onChanged }) {
           </div>
           {err && <p className="text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save ticket
           </button>
         </form>

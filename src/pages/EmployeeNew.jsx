@@ -425,7 +425,7 @@ export default function EmployeeNew() {
                 <button
                   type="submit"
                   disabled={submitting || success}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
                 >
                   {submitting && <Loader2 size={15} className="animate-spin" />}
                   {submitting ? 'Saving…' : 'Save Profile'}

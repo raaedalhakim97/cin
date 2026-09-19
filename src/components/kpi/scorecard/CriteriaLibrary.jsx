@@ -191,7 +191,7 @@ function CriterionDetail({ definition, onChanged, showToast }) {
                   <button
                     type="button" onClick={() => addAnchor(l.level)}
                     disabled={saving === `anchor-${l.level}` || !(draft[l.level] ?? '').trim()}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors shrink-0"
+                    className="px-3 py-2 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors shrink-0"
                   >
                     {saving === `anchor-${l.level}` ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                   </button>
@@ -296,7 +296,7 @@ export default function CriteriaLibrary({ companyId, canEdit, showToast }) {
         {canEdit && (
           <button
             type="button" onClick={() => setShowNew((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors shrink-0"
           >
             {showNew ? <X size={14} /> : <Plus size={14} />}
             {showNew ? 'Cancel' : 'New criterion'}
@@ -379,7 +379,7 @@ export default function CriteriaLibrary({ companyId, canEdit, showToast }) {
 
           <button
             type="submit" disabled={saving}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             Add criterion

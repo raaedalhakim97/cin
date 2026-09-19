@@ -281,7 +281,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
                 <button
                   onClick={onClockIn}
                   disabled={actionLoading || clockInBlocked}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
                 >
                   {actionLoading ? <Loader2 size={15} className="animate-spin" /> : <Clock size={15} />}
                   {actionLoading ? 'Clocking in…' : 'Clock In'}
@@ -787,7 +787,7 @@ function EditModal({ cell, onClose, onSave, saving }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {saving ? 'Saving…' : 'Save'}

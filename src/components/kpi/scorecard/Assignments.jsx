@@ -157,7 +157,7 @@ function ScorecardDetail({ scorecard, role, onChanged, showToast }) {
           {scorecard.status === 'pending_hr' && isHr && (
             <button
               type="button" onClick={() => move('pending_owner')} disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               <ShieldCheck size={12} /> Approve as HR
             </button>
@@ -165,7 +165,7 @@ function ScorecardDetail({ scorecard, role, onChanged, showToast }) {
           {isOwner && (
             <button
               type="button" onClick={() => move('active')} disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               <ShieldCheck size={12} /> Approve and put in effect
             </button>
@@ -389,7 +389,7 @@ export default function Assignments({ companyId, role, me, showToast }) {
                         </select>
                         <button
                           type="button" onClick={() => assign(emp)} disabled={busyId === emp.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
                         >
                           {busyId === emp.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Assign
                         </button>

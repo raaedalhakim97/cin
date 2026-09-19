@@ -75,7 +75,7 @@ function TypeCard({ type, doc, canManage, onUpload, onDownload, downloading }) {
         {canManage && (
           <button
             onClick={onUpload}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
           >
             {doc ? <RefreshCw size={12} /> : <Upload size={12} />} {doc ? 'Replace' : 'Upload'}
           </button>

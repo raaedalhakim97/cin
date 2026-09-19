@@ -81,7 +81,7 @@ function Avatar({ authorName, isSystem }) {
     )
   }
   return (
-    <div className="w-10 h-10 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-sm font-bold shrink-0 select-none">
+    <div className="w-10 h-10 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-sm font-bold shrink-0 select-none">
       {initials(authorName)}
     </div>
   )
@@ -208,7 +208,7 @@ function ComposerModal({ post, canPin, onClose, onSave, saving }) {
               type="button"
               onClick={() => handleSave('published')}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               Publish
@@ -370,7 +370,7 @@ function CommentsSection({ post, comments, loading, employee, canModerate, canWr
           <button
             type="submit"
             disabled={submitting || !text.trim()}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors shrink-0"
           >
             {submitting ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
           </button>
@@ -542,7 +542,7 @@ function DraftCard({ post, onEdit, onPublish, publishing }) {
       <button
         onClick={() => onPublish(post)}
         disabled={publishing}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors shrink-0"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors shrink-0"
       >
         {publishing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
         Publish
@@ -861,7 +861,7 @@ export default function NewsFeed() {
             {canPost && (
               <button
                 onClick={openNewPost}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors shadow-sm shrink-0"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors shadow-sm shrink-0"
               >
                 <Plus size={15} />
                 New Post
@@ -875,7 +875,7 @@ export default function NewsFeed() {
               onClick={() => setActiveCategory('all')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeCategory === 'all'
-                  ? 'bg-[#00D4A0] text-white'
+                  ? 'bg-[#00D4A0] text-[#062B22]'
                   : 'bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
               }`}
             >
@@ -934,7 +934,7 @@ export default function NewsFeed() {
               {canPost && (
                 <button
                   onClick={openNewPost}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
                 >
                   <Plus size={14} /> New Post
                 </button>
