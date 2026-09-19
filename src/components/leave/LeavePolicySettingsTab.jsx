@@ -372,7 +372,7 @@ export default function LeavePolicySettingsTab({ companyId, showToast }) {
                     <button
                       onClick={() => setModal({ existing: p })}
                       aria-label={`Edit ${TYPE_LABEL[p.leave_type]}`}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-[#00D4A0] hover:bg-[#00D4A0]/10 transition-colors"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-accent hover:bg-[#00D4A0]/10 transition-colors"
                     >
                       <Pencil size={14} />
                     </button>

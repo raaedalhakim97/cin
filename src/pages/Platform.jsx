@@ -86,7 +86,7 @@ const TONE = {
 }
 
 const PLAN_BADGE = {
-  active:    'bg-[#00D4A0]/10 text-[#00D4A0]',
+  active:    'bg-[#00D4A0]/10 text-accent',
   trial:     'bg-[#FF8C42]/10 text-[#FF8C42]',
   suspended: 'bg-danger/10 text-danger',
   cancelled: 'bg-[#F5F5F0] dark:bg-[#252525] text-[#666666] dark:text-[#A0A0A0]',

@@ -244,7 +244,7 @@ export default function UploadDocumentModal({
               type="file"
               accept="application/pdf,image/jpeg,image/png"
               onChange={handleFileChange}
-              className="w-full text-sm text-[#666666] dark:text-[#A0A0A0] file:mr-3 file:px-3.5 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#00D4A0]/10 file:text-[#00D4A0] hover:file:bg-[#00D4A0]/20 file:cursor-pointer cursor-pointer"
+              className="w-full text-sm text-[#666666] dark:text-[#A0A0A0] file:mr-3 file:px-3.5 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#00D4A0]/10 file:text-accent hover:file:bg-[#00D4A0]/20 file:cursor-pointer cursor-pointer"
             />
             <p className="text-[10px] text-[#AAAAAA] dark:text-[#555555] mt-1">PDF, JPG, or PNG · Max 10MB</p>
             {fileError && (

@@ -511,7 +511,7 @@ export default function EvaluationTab({ me, role, showToast }) {
                     {report.opportunities.map((o) => (
                       <div key={o.definition_id} className="px-5 py-3.5 flex items-start gap-3">
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 mt-0.5 ${
-                          o.band === 'shortfall' ? 'bg-[#FF8C42]/10 text-[#FF8C42]' : 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                          o.band === 'shortfall' ? 'bg-[#FF8C42]/10 text-[#FF8C42]' : 'bg-[#00D4A0]/10 text-accent'
                         }`}>
                           {o.band === 'shortfall' ? 'below standard' : 'room to grow'}
                         </span>

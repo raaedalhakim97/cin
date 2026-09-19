@@ -35,7 +35,7 @@ export default function ScorecardsTab({ companyId, role, me, showToast }) {
             key={id} type="button" onClick={() => setActive(id)}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
               active === id
-                ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                ? 'bg-[#00D4A0]/10 text-accent'
                 : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
             }`}
           >

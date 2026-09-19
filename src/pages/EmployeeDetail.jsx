@@ -60,10 +60,10 @@ const TABS = [
 
 const STATUS_STYLES = {
   invited:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',
-  active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
+  active:     'bg-[#00D4A0]/10 text-accent',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
   suspended:  'bg-danger/10 text-danger',
-  terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
+  terminated: 'bg-[#555555]/10 text-[#666666] dark:text-[#A0A0A0]',
 }
 
 const CLASSIFICATION_LABEL = {
@@ -93,23 +93,23 @@ const ATT_STATUS_META = {
 
 // Leave — mirrors Leave.jsx's LEAVE_TYPES / STATUS_META
 const LEAVE_TYPES = [
-  { value: 'annual',      label: 'Annual Leave',      cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  { value: 'annual',      label: 'Annual Leave',      cls: 'bg-[#00D4A0]/10 text-accent' },
   { value: 'sick',        label: 'Sick Leave',        cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   { value: 'emergency',   label: 'Emergency Leave',   cls: 'bg-danger/10 text-danger' },
   { value: 'marriage',    label: 'Marriage Leave',    cls: 'bg-[#9B5DE5]/10 text-[#9B5DE5]' },
   { value: 'paternity',   label: 'Paternity Leave',   cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   { value: 'maternity',   label: 'Maternity Leave',   cls: 'bg-[#F15BB5]/10 text-[#F15BB5]' },
   { value: 'hajj',        label: 'Hajj Leave',        cls: 'bg-[#FEE440]/15 text-[#A89200]' },
-  { value: 'bereavement', label: 'Bereavement Leave', cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
+  { value: 'bereavement', label: 'Bereavement Leave', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
   { value: 'study',       label: 'Study Leave',       cls: 'bg-[#00BBF9]/10 text-[#00BBF9]' },
 ]
 const LT = Object.fromEntries(LEAVE_TYPES.map(t => [t.value, t]))
 
 const LEAVE_STATUS_META = {
   pending:   { label: 'Pending',   cls: 'bg-[#FEE440]/15 text-[#A89200] dark:text-[#FEE440]' },
-  approved:  { label: 'Approved',  cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  approved:  { label: 'Approved',  cls: 'bg-[#00D4A0]/10 text-accent' },
   rejected:  { label: 'Rejected',  cls: 'bg-danger/10 text-danger' },
-  cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
+  cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
 
 // KPI — mirrors KPI.jsx's COMPONENTS / RATING_META
@@ -122,7 +122,7 @@ const KPI_COMPONENTS = [
 ]
 const RATING_META = {
   'Exceptional':        { cls: 'bg-[#A78BFA]/10 text-[#A78BFA]', hex: '#A78BFA' },
-  'High Performer':     { cls: 'bg-[#00D4A0]/10 text-[#00D4A0]', hex: '#00D4A0' },
+  'High Performer':     { cls: 'bg-[#00D4A0]/10 text-accent', hex: '#00D4A0' },
   'Meets Expectations': { cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]', hex: '#4D9FFF' },
   'Needs Improvement':  { cls: 'bg-[#FF8C42]/10 text-[#FF8C42]', hex: '#FF8C42' },
   'Unsatisfactory':     { cls: 'bg-danger/10 text-danger', hex: '#FF4D4D' },
@@ -136,7 +136,7 @@ function getRatingMeta(rating) {
 const PAYROLL_STATUS = {
   draft:    { label: 'Draft',    cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   approved: { label: 'Approved', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  paid:     { label: 'Paid',     cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  paid:     { label: 'Paid',     cls: 'bg-[#00D4A0]/10 text-accent' },
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -410,7 +410,7 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
               <button
                 onClick={copyLink}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  copied ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#00D4A0] text-white hover:bg-[#00B589]'
+                  copied ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#00D4A0] text-white hover:bg-[#00B589]'
                 }`}
               >
                 {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -587,7 +587,7 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
               onClick={onToggleCanPostFeed}
               disabled={togglingFeedAccess}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors disabled:opacity-60 ${
-                employee.can_post_feed ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
+                employee.can_post_feed ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
               }`}
             >
               {togglingFeedAccess ? <Loader2 size={12} className="animate-spin" /> : employee.can_post_feed ? 'Enabled' : 'Disabled'}
@@ -784,7 +784,7 @@ function LeaveBalanceCard({ type, balance }) {
   return (
     <div className="p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
       <div className="flex items-center gap-3 mb-4">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${meta?.cls ?? 'bg-[#A0A0A0]/10 text-[#A0A0A0]'}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${meta?.cls ?? 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}>
           <CalendarDays size={15} />
         </div>
         <div className="min-w-0">
@@ -1385,7 +1385,7 @@ export default function EmployeeDetail() {
                         {employee.full_name}
                       </h1>
                       {employee.emp_code && (
-                        <span className="flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#00D4A0]/10 text-[#00D4A0]">
+                        <span className="flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#00D4A0]/10 text-accent">
                           <Hash size={11} />{employee.emp_code}
                         </span>
                       )}

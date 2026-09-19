@@ -9,7 +9,7 @@ import UploadDocumentModal from './UploadDocumentModal'
 // this codebase's established per-file convention for small display-only
 // lookup maps (see EmployeeDashboard.jsx's RATING_META).
 const EXPIRY_META = {
-  valid:             { label: 'Valid',              cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  valid:             { label: 'Valid',              cls: 'bg-[#00D4A0]/10 text-accent' },
   expiring_soon:     { label: 'Expiring Soon',       cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   expiring_critical: { label: 'Expiring Critical',   cls: 'bg-danger/10 text-danger' },
   expired:           { label: 'Expired',             cls: 'bg-danger/10 text-danger' },

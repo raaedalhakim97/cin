@@ -47,10 +47,10 @@ const STATUS_OPTIONS = [
 
 const STATUS_STYLES = {
   invited:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',
-  active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
+  active:     'bg-[#00D4A0]/10 text-accent',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
   suspended:  'bg-danger/10 text-danger',
-  terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
+  terminated: 'bg-[#555555]/10 text-[#666666] dark:text-[#A0A0A0]',
 }
 
 const PAGE_SIZE = 10

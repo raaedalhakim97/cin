@@ -221,7 +221,7 @@ export default function ScheduleTemplates() {
                         <td className="px-5 py-3.5">
                           <button
                             onClick={() => toggleActive(t)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${t.active ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${t.active ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}
                           >
                             {t.active ? 'Active' : 'Inactive'}
                           </button>

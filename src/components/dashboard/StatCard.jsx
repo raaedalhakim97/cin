@@ -4,7 +4,7 @@
 // also lets callers reach for orange/red/purple when a stat needs to read
 // as a warning or a KPI-style highlight, not just "on/off".
 const TONE_STYLES = {
-  mint:    { iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]' },
+  mint:    { iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-accent' },
   orange:  { iconBg: 'bg-[#FF8C42]/10', iconColor: 'text-[#FF8C42]' },
   red:     { iconBg: 'bg-danger/10', iconColor: 'text-danger' },
   purple:  { iconBg: 'bg-[#A78BFA]/10', iconColor: 'text-[#A78BFA]' },

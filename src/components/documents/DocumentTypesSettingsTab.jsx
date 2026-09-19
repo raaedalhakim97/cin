@@ -171,7 +171,7 @@ function TypeRow({ type, onEdit, onMoveUp, onMoveDown, isFirst, isLast }) {
           {type.category} · Alert {type.default_alert_days}d before expiry{!type.has_expiry ? ' · No expiry' : ''}
         </p>
       </div>
-      <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 ${type.active ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}>
+      <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 ${type.active ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}>
         {type.active ? 'Active' : 'Inactive'}
       </span>
       <button onClick={onEdit} className="text-[#666666] dark:text-[#A0A0A0] hover:text-[#00D4A0] shrink-0 transition-colors">

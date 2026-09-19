@@ -9,7 +9,7 @@ import RolePreview from '../components/permissions/RolePreview'
 // RLS bypass. Everything on this page is derived from accessMatrix.js.
 
 const PILL_CLS = {
-  F: 'bg-[#00D4A0]/10 text-[#00D4A0]',
+  F: 'bg-[#00D4A0]/10 text-accent',
   W: 'bg-[#4D9FFF]/10 text-[#4D9FFF]',
   O: 'bg-[#FF8C42]/10 text-[#FF8C42]',
   B: 'bg-[#FF8C42]/10 text-[#FF8C42]',
@@ -106,7 +106,7 @@ function MatrixGrid({ focusedRole, onToggleRole }) {
                     onClick={() => onToggleRole(role)}
                     className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-colors ${
                       focusedRole === role
-                        ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                        ? 'bg-[#00D4A0]/10 text-accent'
                         : 'text-[#666666] dark:text-[#A0A0A0] hover:bg-[#F5F5F0] dark:hover:bg-[#252525]'
                     }`}
                     title={`Focus on ${ROLE_LABELS[role]}`}

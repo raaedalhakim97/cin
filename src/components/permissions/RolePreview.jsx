@@ -69,7 +69,7 @@ export default function RolePreview() {
             aria-pressed={selected === o.value}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               selected === o.value
-                ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                ? 'bg-[#00D4A0]/10 text-accent'
                 : 'text-[#666666] dark:text-[#A0A0A0] border border-[#E8E8E8] dark:border-[#2A2A2A] hover:text-[#1A1A1A] dark:hover:text-white'
             }`}
           >

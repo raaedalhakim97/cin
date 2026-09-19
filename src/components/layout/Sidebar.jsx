@@ -108,7 +108,7 @@ export default function Sidebar() {
                   onClick={closeMobileNav}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                      ? 'bg-[#00D4A0]/10 text-accent'
                       : 'text-[#666666] dark:text-[#A0A0A0] hover:bg-[#F5F5F0] dark:hover:bg-[#252525] hover:text-[#1A1A1A] dark:hover:text-white'
                   }`}
                 >

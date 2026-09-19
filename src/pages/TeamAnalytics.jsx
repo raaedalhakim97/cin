@@ -54,7 +54,7 @@ function scoreColor(score) {
 // so it silently fell back to the amber Meets-Expectations pill — not
 // something worth reproducing on a real management dashboard).
 const RATING_PILL = {
-  'Exceptional':        'bg-[#00D4A0]/[0.14] text-[#00D4A0]',
+  'Exceptional':        'bg-[#00D4A0]/[0.14] text-accent',
   'High Performer':     'bg-[#4DA6FF]/[0.14] text-[#4DA6FF]',
   'Meets Expectations': 'bg-[#FFB020]/[0.14] text-[#FFB020]',
   'Needs Improvement':  'bg-danger/[0.16] text-danger',
@@ -595,7 +595,7 @@ export default function TeamAnalytics() {
                 <div>
                   {recommendations.map(r => (
                     <div key={r.n} className="flex gap-3.5 py-3.5 border-b border-[#E8E8E8] dark:border-[#2E2E2E] last:border-0">
-                      <div className="w-[26px] h-[26px] rounded-lg bg-[#00D4A0]/[0.14] text-[#00D4A0] flex items-center justify-center font-bold text-[13px] shrink-0">
+                      <div className="w-[26px] h-[26px] rounded-lg bg-[#00D4A0]/[0.14] text-accent flex items-center justify-center font-bold text-[13px] shrink-0">
                         {r.n}
                       </div>
                       <div>

@@ -22,10 +22,10 @@ import { SkeletonBlock } from '../../components/Skeleton'
 // every role, not specific to this one.
 
 const statusBadge = {
-  active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
+  active:     'bg-[#00D4A0]/10 text-accent',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
   suspended:  'bg-danger/10 text-danger',
-  terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
+  terminated: 'bg-[#555555]/10 text-[#666666] dark:text-[#A0A0A0]',
 }
 
 const classificationLabel = {
@@ -181,7 +181,7 @@ function AttendanceCard({ employee, canClockInOut }) {
           )}
 
           {clockedIn && clockedOut && (
-            <div className="flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#00D4A0]/10 text-[#00D4A0]">
+            <div className="flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#00D4A0]/10 text-accent">
               <CheckCircle2 size={15} />
               Day complete
             </div>

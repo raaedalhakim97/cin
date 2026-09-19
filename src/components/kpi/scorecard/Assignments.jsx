@@ -17,7 +17,7 @@ const INPUT =
   'w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors'
 
 const STATUS_META = {
-  active:        { label: 'In effect',         cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  active:        { label: 'In effect',         cls: 'bg-[#00D4A0]/10 text-accent' },
   pending_hr:    { label: 'Exception — with HR', cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   pending_owner: { label: 'Exception — with the owner', cls: 'bg-[#9B5DE5]/10 text-[#9B5DE5]' },
   archived:      { label: 'Replaced',          cls: 'bg-[#A0A0A0]/15 text-[#666666] dark:text-[#A0A0A0]' },
@@ -145,7 +145,7 @@ function ScorecardDetail({ scorecard, role, onChanged, showToast }) {
       })}
 
       <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-semibold ${
-        verdict.ok ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#FF8C42]/10 text-[#FF8C42]'
+        verdict.ok ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#FF8C42]/10 text-[#FF8C42]'
       }`}>
         {verdict.ok ? <Check size={13} /> : <AlertTriangle size={13} />}
         {total}% — {verdict.text}

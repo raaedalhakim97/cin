@@ -137,7 +137,7 @@ export default function Signup() {
           <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1">
             Set up BYOND HR for your team
           </p>
-          <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full bg-[#00D4A0]/10 text-xs font-semibold text-[#00D4A0]">
+          <div className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full bg-[#00D4A0]/10 text-xs font-semibold text-accent">
             <Sparkles size={13} />
             One full quarter free — no credit card required
           </div>

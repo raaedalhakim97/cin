@@ -48,11 +48,11 @@ function inDays(n) {
 
 function StageBadge({ status }) {
   const map = {
-    draft:          'bg-[#A0A0A0]/10 text-[#A0A0A0]',
+    draft:          'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]',
     self_review:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',
     manager_review: 'bg-[#FF8C42]/10 text-[#FF8C42]',
     calculated:     'bg-[#9B5DE5]/10 text-[#9B5DE5]',
-    published:      'bg-[#00D4A0]/10 text-[#00D4A0]',
+    published:      'bg-[#00D4A0]/10 text-accent',
   }
   const stage = STAGES.find((s) => s.id === status)
   return (

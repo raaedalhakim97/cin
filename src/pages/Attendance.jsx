@@ -27,7 +27,7 @@ const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 // Every string used here is a literal so Tailwind picks them up at build time
 const STATUS_META = {
-  present:             { label: 'Present',                dot: 'bg-[#00D4A0]', badge: 'bg-[#00D4A0]/10 text-[#00D4A0]',  cell: 'bg-[#00D4A0]/10 dark:bg-[#00D4A0]/20' },
+  present:             { label: 'Present',                dot: 'bg-[#00D4A0]', badge: 'bg-[#00D4A0]/10 text-accent',  cell: 'bg-[#00D4A0]/10 dark:bg-[#00D4A0]/20' },
   late_minor:          { label: 'Late (≤30 min)',         dot: 'bg-[#FF8C42]', badge: 'bg-[#FF8C42]/10 text-[#FF8C42]',  cell: 'bg-[#FF8C42]/10 dark:bg-[#FF8C42]/15' },
   late_moderate:       { label: 'Late (≤60 min)',         dot: 'bg-[#FF8C42]', badge: 'bg-[#FF8C42]/15 text-[#FF8C42]',  cell: 'bg-[#FF8C42]/15 dark:bg-[#FF8C42]/20' },
   late_major:          { label: 'Late (>60 min)',         dot: 'bg-[#FF8C42]', badge: 'bg-[#FF8C42]/20 text-[#FF8C42]',  cell: 'bg-[#FF8C42]/20 dark:bg-[#FF8C42]/25' },
@@ -298,7 +298,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
                 </button>
               )}
               {clockedIn && clockedOut && (
-                <div className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#00D4A0]/10 text-sm font-semibold text-[#00D4A0]">
+                <div className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#00D4A0]/10 text-sm font-semibold text-accent">
                   <CheckCircle2 size={15} />
                   Day complete
                 </div>
@@ -354,7 +354,7 @@ function AttendanceExceptions({ rows, loading, canEdit, onFix }) {
               <button
                 type="button"
                 onClick={() => onFix(r)}
-                className="shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold text-[#00D4A0] border border-[#00D4A0]/30 hover:bg-[#00D4A0]/10 transition-colors"
+                className="shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold text-accent border border-[#00D4A0]/30 hover:bg-[#00D4A0]/10 transition-colors"
               >
                 Fix
               </button>

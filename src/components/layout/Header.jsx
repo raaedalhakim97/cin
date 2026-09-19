@@ -52,7 +52,7 @@ export default function Header() {
 
         {/* Role badge */}
         {role && (
-          <span className="hidden sm:inline-block text-xs px-2.5 py-1 rounded-full font-semibold bg-[#00D4A0]/10 text-[#00D4A0]">
+          <span className="hidden sm:inline-block text-xs px-2.5 py-1 rounded-full font-semibold bg-[#00D4A0]/10 text-accent">
             {isPlatformOwner ? 'BYOND Owner' : (roleLabel[role] ?? role)}
           </span>
         )}

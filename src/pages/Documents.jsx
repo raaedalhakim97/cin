@@ -244,7 +244,7 @@ function ExpiryTrackerTab({ showToast }) {
                 key={d}
                 onClick={() => setDayFilter(d)}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                  dayFilter === d ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
+                  dayFilter === d ? 'bg-[#00D4A0]/10 text-accent' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >
                 {d}d
@@ -391,7 +391,7 @@ export default function Documents() {
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
-                  activeTab === id ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
+                  activeTab === id ? 'bg-[#00D4A0]/10 text-accent' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >
                 <Icon size={15} />

@@ -167,7 +167,7 @@ function TypeList({ kind, types, onToggleActive, onEdit, onAddNew }) {
               <button
                 onClick={() => onToggleActive(t)}
                 className={`px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 transition-colors ${
-                  t.active ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
+                  t.active ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
                 }`}
               >
                 {t.active ? 'Active' : 'Inactive'}

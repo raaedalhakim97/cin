@@ -11,7 +11,7 @@ import { SkeletonBlock } from '../../components/Skeleton'
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 const ATTENDANCE_LABEL = {
-  present:              { label: 'Present', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  present:              { label: 'Present', cls: 'bg-[#00D4A0]/10 text-accent' },
   late_minor:           { label: 'Late', cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   late_moderate:        { label: 'Late', cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   late_major:           { label: 'Late', cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },

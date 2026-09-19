@@ -205,7 +205,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
             </div>
             <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Score Weights</h3>
           </div>
-          <span className={`px-3 py-1 rounded-full text-sm font-bold ${isValid ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-danger/10 text-danger'}`}>
+          <span className={`px-3 py-1 rounded-full text-sm font-bold ${isValid ? 'bg-[#00D4A0]/10 text-accent' : 'bg-danger/10 text-danger'}`}>
             Total {total}%
           </span>
         </div>
@@ -350,7 +350,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
             onClick={toggleAutoPostRewards}
             disabled={togglingAutoPost}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors disabled:opacity-60 ${
-              row.auto_post_rewards ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
+              row.auto_post_rewards ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
             }`}
           >
             {togglingAutoPost ? <Loader2 size={12} className="animate-spin" /> : row.auto_post_rewards ? 'On' : 'Off'}

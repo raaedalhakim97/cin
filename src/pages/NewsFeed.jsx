@@ -172,7 +172,7 @@ function ComposerModal({ post, canPin, onClose, onSave, saving }) {
                 type="button"
                 onClick={() => set('pinned', !form.pinned)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  form.pinned ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
+                  form.pinned ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
                 }`}
               >
                 {form.pinned ? 'Pinned' : 'Not pinned'}
@@ -314,7 +314,7 @@ function CommentsSection({ post, comments, loading, employee, canModerate, canWr
           const isEditing = editingId === c.id
           return (
             <div key={c.id} className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-[#00D4A0] text-[10px] font-bold shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-accent text-[10px] font-bold shrink-0">
                 {initials(c.employees?.full_name)}
               </div>
               <div className="flex-1 min-w-0 p-2.5 rounded-xl bg-[#F5F5F0] dark:bg-[#252525]">
@@ -412,7 +412,7 @@ function PostCard({
               {isSystem ? 'BYOND HR' : post.employees?.full_name ?? 'Unknown'}
             </span>
             {isSystem && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00D4A0]/10 text-[#00D4A0]">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00D4A0]/10 text-accent">
                 <BadgeCheck size={10} /> System
               </span>
             )}
@@ -481,7 +481,7 @@ function PostCard({
               title={r.label}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${
                 active
-                  ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                  ? 'bg-[#00D4A0]/10 text-accent'
                   : 'text-[#666666] dark:text-[#A0A0A0] hover:bg-[#F5F5F0] dark:hover:bg-[#252525]'
               }`}
             >

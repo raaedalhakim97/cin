@@ -53,7 +53,7 @@ function actionTypeLabel(v) {
 }
 
 const STATUS_META = {
-  active: { label: 'Active', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  active: { label: 'Active', cls: 'bg-[#00D4A0]/10 text-accent' },
   completed: { label: 'Completed', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
@@ -669,7 +669,7 @@ export default function PDPTab({ employee, companyId, canManage, showToast, role
               key={id}
               onClick={() => setView(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                view === id ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
+                view === id ? 'bg-[#00D4A0]/10 text-accent' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
               }`}
             >
               <Icon size={14} /> {label}

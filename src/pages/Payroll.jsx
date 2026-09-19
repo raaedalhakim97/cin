@@ -83,8 +83,8 @@ const SUMMARY_ROLES = new Set(['super_admin', 'hr_manager', 'read_only'])
 const RUN_STATUS = {
   draft:    { label: 'Draft',    cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   approved: { label: 'Approved', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  paid:     { label: 'Paid',     cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
-  not_run:  { label: 'Not Run',  cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
+  paid:     { label: 'Paid',     cls: 'bg-[#00D4A0]/10 text-accent' },
+  not_run:  { label: 'Not Run',  cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
 
 const INPUT =
@@ -762,7 +762,7 @@ function PayrollRunTab({ companyId, role, showToast }) {
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-[#00D4A0] text-xs font-bold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-accent text-xs font-bold shrink-0">
                           {initials(emp.full_name)}
                         </div>
                         <div>
@@ -964,7 +964,7 @@ function SummaryTab({ canExport, showToast }) {
               icon={CircleDollarSign}
               label="Total Payroll Cost"
               value={<MoneyText value={totalCost} revealed={revealed} />}
-              iconBg="bg-[#00D4A0]/10" iconColor="text-[#00D4A0]" valueColor="text-[#1A1A1A] dark:text-white"
+              iconBg="bg-[#00D4A0]/10" iconColor="text-accent" valueColor="text-[#1A1A1A] dark:text-white"
             />
             <StatCard
               icon={isUp ? TrendingUp : TrendingDown}
@@ -1085,7 +1085,7 @@ export default function Payroll() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === id
-                    ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                    ? 'bg-[#00D4A0]/10 text-accent'
                     : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >
