@@ -16,7 +16,7 @@ const ATTENDANCE_LABEL = {
   late_moderate:        { label: 'Late', cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   late_major:           { label: 'Late', cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   absent_approved:      { label: 'On Leave', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  absent_unauthorized:  { label: 'Absent', cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  absent_unauthorized:  { label: 'Absent', cls: 'bg-danger/10 text-danger' },
 }
 const NOT_CLOCKED_IN = { label: 'Not Clocked In', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' }
 

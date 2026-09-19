@@ -96,7 +96,7 @@ export default function SignOutDialog({ onConfirm, onCancel }) {
                        text-sm font-semibold border transition-colors
                        border-[#E8E8E8] dark:border-[#2A2A2A]
                        text-[#666666] dark:text-[#A0A0A0]
-                       hover:border-[#FF4D4D] hover:text-[#FF4D4D]"
+                       hover:border-danger hover:text-danger"
           >
             <LogOut size={15} aria-hidden="true" />
             Sign out

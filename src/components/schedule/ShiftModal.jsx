@@ -382,7 +382,7 @@ export default function ShiftModal({
             )}
 
             {formError && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
                 <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                 {formError}
               </div>

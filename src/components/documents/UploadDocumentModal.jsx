@@ -248,14 +248,14 @@ export default function UploadDocumentModal({
             />
             <p className="text-[10px] text-[#AAAAAA] dark:text-[#555555] mt-1">PDF, JPG, or PNG · Max 10MB</p>
             {fileError && (
-              <p className="flex items-center gap-1.5 text-xs text-[#FF4D4D] mt-1.5">
+              <p className="flex items-center gap-1.5 text-xs text-danger mt-1.5">
                 <AlertTriangle size={12} className="shrink-0" /> {fileError}
               </p>
             )}
           </div>
 
           {formError && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
               <AlertTriangle size={13} className="shrink-0" /> {formError}
             </div>
           )}

@@ -134,7 +134,7 @@ function TypeModal({ existing, scopeLocked, existingCodes, companyId, nextSortOr
             </label>
           )}
 
-          {formError && <p className="text-xs text-[#FF4D4D]">{formError}</p>}
+          {formError && <p className="text-xs text-danger">{formError}</p>}
 
           <button
             type="submit" disabled={saving}
@@ -165,7 +165,7 @@ function TypeRow({ type, onEdit, onMoveUp, onMoveDown, isFirst, isLast }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">
           {type.label}
-          {type.is_required && <span className="ml-1.5 text-[10px] font-semibold text-[#FF4D4D]">Required</span>}
+          {type.is_required && <span className="ml-1.5 text-[10px] font-semibold text-danger">Required</span>}
         </p>
         <p className="text-xs text-[#666666] dark:text-[#A0A0A0] capitalize">
           {type.category} · Alert {type.default_alert_days}d before expiry{!type.has_expiry ? ' · No expiry' : ''}

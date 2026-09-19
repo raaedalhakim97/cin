@@ -205,7 +205,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
             </div>
             <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Score Weights</h3>
           </div>
-          <span className={`px-3 py-1 rounded-full text-sm font-bold ${isValid ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#FF4D4D]/10 text-[#FF4D4D]'}`}>
+          <span className={`px-3 py-1 rounded-full text-sm font-bold ${isValid ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-danger/10 text-danger'}`}>
             Total {total}%
           </span>
         </div>
@@ -247,7 +247,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
           </button>
         </div>
         {!isValid && (
-          <p className="text-xs text-[#FF4D4D] mt-2">Weights must total exactly 100% before saving.</p>
+          <p className="text-xs text-danger mt-2">Weights must total exactly 100% before saving.</p>
         )}
       </form>
 

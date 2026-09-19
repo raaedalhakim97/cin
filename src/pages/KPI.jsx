@@ -192,7 +192,7 @@ const RATING_META = {
   'High Performer':       { cls: 'bg-[#00D4A0]/10 text-[#00D4A0]', hex: '#00D4A0' },
   'Meets Expectations':   { cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]', hex: '#4D9FFF' },
   'Needs Improvement':    { cls: 'bg-[#FF8C42]/10 text-[#FF8C42]', hex: '#FF8C42' },
-  'Unsatisfactory':       { cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]', hex: '#FF4D4D' },
+  'Unsatisfactory':       { cls: 'bg-danger/10 text-danger', hex: '#FF4D4D' },
 }
 const NOT_RATED_META = { cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]', hex: '#A0A0A0' }
 
@@ -835,7 +835,7 @@ function RecommendWarningModal({ employees, companyId, recommenderId, onClose, o
           </div>
 
           {err && (
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
               <AlertTriangle size={13} className="shrink-0 mt-0.5" />
               {err}
             </div>
@@ -857,7 +857,7 @@ function RecommendWarningModal({ employees, companyId, recommenderId, onClose, o
 const REC_STATUS_META = {
   pending:  { label: 'Pending Review', cls: 'bg-[#FEE440]/15 text-[#A89200] dark:text-[#FEE440]' },
   approved: { label: 'Approved',       cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
-  rejected: { label: 'Rejected',       cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  rejected: { label: 'Rejected',       cls: 'bg-danger/10 text-danger' },
 }
 
 // ─── Team KPI Tab ─────────────────────────────────────────────────────────────
@@ -1070,7 +1070,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
                     </p>
                     <p className="text-xs text-[#666666] dark:text-[#A0A0A0] truncate" title={rec.reason}>{rec.reason}</p>
                     {rec.status === 'rejected' && rec.review_note && (
-                      <p className="text-xs text-[#FF4D4D] mt-0.5 truncate" title={rec.review_note}>HR note: {rec.review_note}</p>
+                      <p className="text-xs text-danger mt-0.5 truncate" title={rec.review_note}>HR note: {rec.review_note}</p>
                     )}
                   </div>
                   <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold ${meta.cls}`}>{meta.label}</span>
@@ -1216,7 +1216,7 @@ function IssueWarningModal({ employees, warningTypes, companyId, issuerId, initi
               <div>
                 <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-2">Warning Type</label>
                 {warningTypes.length === 0 ? (
-                  <p className="text-xs text-[#FF4D4D]">No active warning types configured — ask a super admin to add one in Settings → KPI Configuration.</p>
+                  <p className="text-xs text-danger">No active warning types configured — ask a super admin to add one in Settings → KPI Configuration.</p>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {warningTypes.map(w => (
@@ -1348,7 +1348,7 @@ function GrantRewardModal({ employees, rewardTypes, companyId, issuerId, onClose
           <div>
             <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">Reward</label>
             {rewardTypes.length === 0 ? (
-              <p className="text-xs text-[#FF4D4D]">No active reward types configured — ask a super admin to add one in Settings → KPI Configuration.</p>
+              <p className="text-xs text-danger">No active reward types configured — ask a super admin to add one in Settings → KPI Configuration.</p>
             ) : (
               <select value={typeId} onChange={e => setTypeId(e.target.value)} className={INPUT}>
                 {rewardTypes.map(r => (
@@ -1529,7 +1529,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
                   </button>
                   <button
                     onClick={() => setRejectRecTarget(rec)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-danger hover:bg-[#E04040] transition-colors"
                   >
                     <X size={11} /> Reject
                   </button>
@@ -1595,7 +1595,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
                     <td className="px-4 py-3.5 text-[#666666] dark:text-[#A0A0A0] whitespace-nowrap">
                       {isWarning ? warningLabel(r.warning_level) : rewardLabel(r.reward_type)}
                     </td>
-                    <td className={`px-4 py-3.5 font-bold whitespace-nowrap ${pts >= 0 ? 'text-[#00D4A0]' : 'text-[#FF4D4D]'}`}>
+                    <td className={`px-4 py-3.5 font-bold whitespace-nowrap ${pts >= 0 ? 'text-[#00D4A0]' : 'text-danger'}`}>
                       {pts >= 0 ? '+' : ''}{pts}
                     </td>
                     <td className="px-4 py-3.5 text-[#666666] dark:text-[#A0A0A0] whitespace-nowrap">{periodLabel(r.period_year, r.period_month)}</td>
@@ -1674,7 +1674,7 @@ function RejectRecommendationModal({ rec, onClose, onConfirm }) {
             </button>
             <button
               type="submit" disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
               {saving ? 'Rejecting…' : 'Confirm Reject'}

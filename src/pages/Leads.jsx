@@ -12,7 +12,7 @@ const STATUS_BADGE = {
   contacted:    'bg-[#FF8C42]/10 text-[#FF8C42]',
   demo_booked:  'bg-[#A78BFA]/10 text-[#A78BFA]',
   converted:    'bg-[#00D4A0]/10 text-[#00D4A0]',
-  lost:         'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  lost:         'bg-danger/10 text-danger',
 }
 
 const STATUS_LABEL = {
@@ -88,7 +88,7 @@ export default function Leads() {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
               {error}
               <button onClick={fetchLeads} className="shrink-0 font-semibold hover:underline">Retry</button>
             </div>

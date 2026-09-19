@@ -158,12 +158,12 @@ export default function Signup() {
                   type="text"
                   placeholder="Sara Al Mansoori"
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.fullName ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.fullName ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('fullName', { required: 'Full name is required' })}
                 />
               </div>
-              {errors.fullName && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.fullName.message}</p>}
+              {errors.fullName && <p className="text-xs mt-1 text-danger">{errors.fullName.message}</p>}
             </div>
 
             {/* Work email */}
@@ -177,7 +177,7 @@ export default function Signup() {
                   type="email"
                   placeholder="you@company.com"
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.email ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.email ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('email', {
                     required: 'Email is required',
@@ -185,7 +185,7 @@ export default function Signup() {
                   })}
                 />
               </div>
-              {errors.email && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.email.message}</p>}
+              {errors.email && <p className="text-xs mt-1 text-danger">{errors.email.message}</p>}
             </div>
 
             {/* Password */}
@@ -199,7 +199,7 @@ export default function Signup() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="At least 8 characters"
                   className={`w-full pl-9 pr-10 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.password ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.password ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('password', {
                     required: 'Password is required',
@@ -214,7 +214,7 @@ export default function Signup() {
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs mt-1 text-danger">{errors.password.message}</p>}
             </div>
 
             {/* Company name */}
@@ -228,12 +228,12 @@ export default function Signup() {
                   type="text"
                   placeholder="Your company"
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.companyName ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.companyName ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('companyName', { required: 'Company name is required' })}
                 />
               </div>
-              {errors.companyName && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.companyName.message}</p>}
+              {errors.companyName && <p className="text-xs mt-1 text-danger">{errors.companyName.message}</p>}
             </div>
 
             {/* Country */}
@@ -254,7 +254,7 @@ export default function Signup() {
 
             {/* Server error */}
             {serverError && (
-              <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+              <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
                 <AlertCircle size={14} className="shrink-0 mt-0.5" />
                 {serverError}
               </div>

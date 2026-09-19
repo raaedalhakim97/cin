@@ -198,7 +198,7 @@ export default function IdentityBand({
           <div className="flex items-center gap-2 text-xs">
             <span className="text-[#666666] dark:text-[#A0A0A0]">Remove your photo?</span>
             <button type="button" onClick={onRemove}
-              className="font-semibold text-[#FF4D4D] hover:underline">Remove</button>
+              className="font-semibold text-danger hover:underline">Remove</button>
             <button type="button" onClick={() => setConfirmRemove(false)}
               className="font-semibold text-[#666666] dark:text-[#A0A0A0] hover:underline">Keep</button>
           </div>
@@ -221,7 +221,7 @@ export default function IdentityBand({
                 type="button"
                 onClick={() => setConfirmRemove(true)}
                 className="inline-flex items-center gap-1.5 text-[#666666] dark:text-[#A0A0A0]
-                           hover:text-[#FF4D4D] transition-colors"
+                           hover:text-danger transition-colors"
               >
                 <Trash2 size={11} /> Remove
               </button>

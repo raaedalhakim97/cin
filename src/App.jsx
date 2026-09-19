@@ -47,8 +47,8 @@ import MySchedule from './pages/MySchedule'
 function Unauthorized() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-[#F5F5F0] dark:bg-[#0F0F0F]">
-      <div className="w-16 h-16 rounded-full bg-[#FF4D4D]/10 flex items-center justify-center">
-        <ShieldOff size={32} className="text-[#FF4D4D]" />
+      <div className="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center">
+        <ShieldOff size={32} className="text-danger" />
       </div>
       <h1 className="text-xl font-bold text-[#1A1A1A] dark:text-white">Access Denied</h1>
       <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">

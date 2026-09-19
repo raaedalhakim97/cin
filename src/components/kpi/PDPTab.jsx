@@ -181,7 +181,7 @@ function ActionChecklist({ actions, canToggle, onToggle }) {
                   {actionTypeLabel(a.action_type)}
                 </span>
                 {a.due_date && (
-                  <span className={`text-[10px] flex items-center gap-1 ${overdue ? 'text-[#FF4D4D] font-semibold' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
+                  <span className={`text-[10px] flex items-center gap-1 ${overdue ? 'text-danger font-semibold' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
                     <Calendar size={10} /> {fmtDate(a.due_date)}{overdue ? ' · overdue' : ''}
                   </span>
                 )}
@@ -347,7 +347,7 @@ function PlanCard({ plan, companyId, canManage, isOwner, employeeName, showToast
             </button>
             <button
               onClick={() => { if (confirm('Cancel this development plan? This cannot be undone.')) changeStatus('cancelled') }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#FF4D4D] border border-[#FF4D4D]/30 hover:bg-[#FF4D4D]/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-danger border border-danger/30 hover:bg-danger/10 transition-colors"
             >
               Cancel
             </button>
@@ -572,7 +572,7 @@ function CreatePlanModal({ employees, companyId, defaultEmployeeId, onClose, onC
                     {ACTION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input type="date" value={d.due_date} onChange={e => updateActionDraft(i, 'due_date', e.target.value)} className={SELECT} />
-                  <button type="button" onClick={() => removeActionDraft(i)} className="text-[#FF4D4D] shrink-0">
+                  <button type="button" onClick={() => removeActionDraft(i)} className="text-danger shrink-0">
                     <Trash2 size={14} />
                   </button>
                 </div>

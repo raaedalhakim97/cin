@@ -24,7 +24,7 @@ import { SkeletonBlock } from '../../components/Skeleton'
 const statusBadge = {
   active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
-  suspended:  'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  suspended:  'bg-danger/10 text-danger',
   terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
 }
 
@@ -139,11 +139,11 @@ function AttendanceCard({ employee, canClockInOut }) {
             </div>
             <div className={`p-4 rounded-xl border ${
               clockedOut
-                ? 'bg-[#FF4D4D]/10 border-[#FF4D4D]/20'
+                ? 'bg-danger/10 border-danger/20'
                 : 'bg-[#F5F5F0] dark:bg-[#0F0F0F] border-[#E8E8E8] dark:border-[#2A2A2A]'
             }`}>
               <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1">Clock Out</p>
-              <p className={`text-lg font-bold ${clockedOut ? 'text-[#FF4D4D]' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+              <p className={`text-lg font-bold ${clockedOut ? 'text-danger' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
                 {formatTime(attendance?.clock_out) ?? '--:--'}
               </p>
             </div>
@@ -174,7 +174,7 @@ function AttendanceCard({ employee, canClockInOut }) {
           {canClockInOut && clockedIn && !clockedOut && (
             <Link
               to="/attendance"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] transition-colors"
             >
               <Timer size={15} /> Clock Out
             </Link>

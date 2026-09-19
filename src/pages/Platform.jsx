@@ -81,14 +81,14 @@ function warningsFor(c) {
 }
 
 const TONE = {
-  danger: 'text-[#FF4D4D] bg-[#FF4D4D]/10 border-[#FF4D4D]/20',
+  danger: 'text-danger bg-danger/10 border-danger/20',
   warn:   'text-[#FF8C42] bg-[#FF8C42]/10 border-[#FF8C42]/20',
 }
 
 const PLAN_BADGE = {
   active:    'bg-[#00D4A0]/10 text-[#00D4A0]',
   trial:     'bg-[#FF8C42]/10 text-[#FF8C42]',
-  suspended: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  suspended: 'bg-danger/10 text-danger',
   cancelled: 'bg-[#F5F5F0] dark:bg-[#252525] text-[#666666] dark:text-[#A0A0A0]',
 }
 
@@ -304,7 +304,7 @@ function NewCompany({ onCreated }) {
       </div>
 
       {error && (
-        <p className="mt-3 px-3 py-2 rounded-lg text-xs text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+        <p className="mt-3 px-3 py-2 rounded-lg text-xs text-danger bg-danger/10 border border-danger/20">
           {error}
         </p>
       )}
@@ -365,11 +365,11 @@ function AccessPanel({ companyId, onChanged }) {
       </p>
 
       {error && (
-        <p className="mb-2 text-xs text-[#FF4D4D]">{error}</p>
+        <p className="mb-2 text-xs text-danger">{error}</p>
       )}
 
       {rows && rows.length === 0 ? (
-        <p className="text-xs text-[#FF4D4D]">
+        <p className="text-xs text-danger">
           Nobody. This company cannot be administered until someone is invited as its owner.
         </p>
       ) : (
@@ -394,7 +394,7 @@ function AccessPanel({ companyId, onChanged }) {
                 <button
                   onClick={() => revoke(r.invite_id)}
                   disabled={revoking === r.invite_id}
-                  className="ml-auto font-semibold text-[#FF4D4D] hover:underline disabled:opacity-50"
+                  className="ml-auto font-semibold text-danger hover:underline disabled:opacity-50"
                 >
                   {revoking === r.invite_id ? 'Revoking…' : 'Revoke invite'}
                 </button>
@@ -479,7 +479,7 @@ export default function Platform() {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
               {error}
               <button onClick={reload} className="shrink-0 font-semibold hover:underline">Retry</button>
             </div>
@@ -628,7 +628,7 @@ export default function Platform() {
                               </span>
                             </td>
 
-                            <td className={`py-4 px-4 text-sm tabular-nums ${c.owners === 0 ? 'text-[#FF4D4D] font-semibold' : 'text-[#1A1A1A] dark:text-white'}`}>
+                            <td className={`py-4 px-4 text-sm tabular-nums ${c.owners === 0 ? 'text-danger font-semibold' : 'text-[#1A1A1A] dark:text-white'}`}>
                               {c.owners}
                             </td>
 

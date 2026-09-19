@@ -22,7 +22,7 @@ const STATUS_META = {
   scheduled: { label: 'Draft',     cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
   published: { label: 'Published', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
   completed: { label: 'Completed', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  no_show:   { label: 'No-Show',   cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  no_show:   { label: 'No-Show',   cls: 'bg-danger/10 text-danger' },
   cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
 
@@ -361,7 +361,7 @@ function TodayTab() {
 // ─── Coverage tab ─────────────────────────────────────────────────────────────
 
 function coverageTone(count) {
-  if (count === 0) return 'bg-[#FF4D4D]/15 text-[#FF4D4D]'
+  if (count === 0) return 'bg-danger/15 text-danger'
   if (count <= 2) return 'bg-[#FF8C42]/15 text-[#FF8C42]'
   return 'bg-[#00D4A0]/15 text-[#00D4A0]'
 }
@@ -446,7 +446,7 @@ function CoverageTab() {
         </table>
       </div>
       <div className="flex items-center gap-4 px-5 py-3.5 border-t border-[#E8E8E8] dark:border-[#2A2A2A] text-xs text-[#666666] dark:text-[#A0A0A0]">
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#FF4D4D]" />Empty</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-danger" />Empty</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#FF8C42]" />1–2 scheduled</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#00D4A0]" />3+ scheduled</span>
       </div>

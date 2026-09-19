@@ -127,7 +127,7 @@ export default function SessionTimeoutModal() {
             Stay logged in
           </button>
           {/* One hover colour, not two. This carried `hover:text-white` AND
-              `hover:text-[#FF4D4D]` on the same element, which is not a cascade
+              `hover:text-danger` on the same element, which is not a cascade
               question the class order can settle — Tailwind emits its own order, so
               which one won was an accident of the build. */}
           <button
@@ -137,7 +137,7 @@ export default function SessionTimeoutModal() {
                        text-sm font-semibold border transition-colors
                        border-[#E8E8E8] dark:border-[#2A2A2A]
                        text-[#666666] dark:text-[#A0A0A0]
-                       hover:border-[#FF4D4D] hover:text-[#FF4D4D]"
+                       hover:border-danger hover:text-danger"
           >
             <LogOut size={15} aria-hidden="true" />
             Logout

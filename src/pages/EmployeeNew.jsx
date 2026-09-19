@@ -25,11 +25,11 @@ function Field({ label, required, error, hint, children }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-[#1A1A1A] dark:text-white">
-        {label}{required && <span className="text-[#FF4D4D] ml-0.5">*</span>}
+        {label}{required && <span className="text-danger ml-0.5">*</span>}
       </label>
       {children}
       {hint  && <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">{hint}</p>}
-      {error && <p className="text-xs text-[#FF4D4D]">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   )
 }
@@ -233,9 +233,9 @@ export default function EmployeeNew() {
 
             {/* Error banner */}
             {serverError && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 mb-6">
-                <AlertTriangle size={18} className="text-[#FF4D4D] shrink-0 mt-0.5" />
-                <p className="text-sm text-[#FF4D4D]">{serverError}</p>
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-danger/10 border border-danger/20 mb-6">
+                <AlertTriangle size={18} className="text-danger shrink-0 mt-0.5" />
+                <p className="text-sm text-danger">{serverError}</p>
               </div>
             )}
 

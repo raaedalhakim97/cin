@@ -127,7 +127,7 @@ export default function RolePreview() {
                   <span
                     key={r.path}
                     title={r.path}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#FF4D4D]/[0.08] text-[#FF4D4D]"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-danger/[0.08] text-danger"
                   >
                     <Ban size={11} />
                     {r.label}

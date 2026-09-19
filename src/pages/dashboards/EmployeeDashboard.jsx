@@ -26,7 +26,7 @@ const RATING_META = {
   'High Performer':     { cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
   'Meets Expectations': { cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   'Needs Improvement':  { cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
-  'Unsatisfactory':     { cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  'Unsatisfactory':     { cls: 'bg-danger/10 text-danger' },
 }
 const NOT_RATED_META = { cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' }
 

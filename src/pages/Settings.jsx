@@ -42,7 +42,7 @@ const REQUEST_STATUS = {
   pending:     { label: 'Pending',     cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   in_progress: { label: 'In Progress', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   completed:   { label: 'Completed',   cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
-  rejected:    { label: 'Rejected',    cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  rejected:    { label: 'Rejected',    cls: 'bg-danger/10 text-danger' },
 }
 const STATUS_OPTIONS = ['pending', 'in_progress', 'completed', 'rejected']
 
@@ -242,7 +242,7 @@ function DataRequestsTab({ employee, showToast }) {
                   <td className="px-5 py-3.5"><RequestBadge type={r.request_type} /></td>
                   <td className="px-5 py-3.5"><StatusBadge status={r.status} /></td>
                   <td className="px-5 py-3.5 text-[#1A1A1A] dark:text-white whitespace-nowrap">{fmtDate(r.requested_at)}</td>
-                  <td className={`px-5 py-3.5 whitespace-nowrap font-semibold ${overdue ? 'text-[#FF4D4D]' : 'text-[#1A1A1A] dark:text-white'}`}>
+                  <td className={`px-5 py-3.5 whitespace-nowrap font-semibold ${overdue ? 'text-danger' : 'text-[#1A1A1A] dark:text-white'}`}>
                     {fmtDate(r.due_date)}
                     {overdue && <span className="ml-1.5 text-[10px] font-bold uppercase">Overdue</span>}
                   </td>

@@ -62,7 +62,7 @@ const STATUS_STYLES = {
   invited:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',
   active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
-  suspended:  'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  suspended:  'bg-danger/10 text-danger',
   terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
 }
 
@@ -88,14 +88,14 @@ const ATT_STATUS_META = {
   late_moderate:       { label: 'Late (≤60 min)',         dot: 'bg-[#FF8C42]', cell: 'bg-[#FF8C42]/15 dark:bg-[#FF8C42]/20' },
   late_major:          { label: 'Late (>60 min)',         dot: 'bg-[#FF8C42]', cell: 'bg-[#FF8C42]/20 dark:bg-[#FF8C42]/25' },
   absent_approved:     { label: 'Absent (Approved)',      dot: 'bg-[#4D9FFF]', cell: 'bg-[#4D9FFF]/10 dark:bg-[#4D9FFF]/15' },
-  absent_unauthorized: { label: 'Absent (Unauthorized)',  dot: 'bg-[#FF4D4D]', cell: 'bg-[#FF4D4D]/10 dark:bg-[#FF4D4D]/15' },
+  absent_unauthorized: { label: 'Absent (Unauthorized)',  dot: 'bg-danger', cell: 'bg-danger/10 dark:bg-danger/15' },
 }
 
 // Leave — mirrors Leave.jsx's LEAVE_TYPES / STATUS_META
 const LEAVE_TYPES = [
   { value: 'annual',      label: 'Annual Leave',      cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
   { value: 'sick',        label: 'Sick Leave',        cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
-  { value: 'emergency',   label: 'Emergency Leave',   cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  { value: 'emergency',   label: 'Emergency Leave',   cls: 'bg-danger/10 text-danger' },
   { value: 'marriage',    label: 'Marriage Leave',    cls: 'bg-[#9B5DE5]/10 text-[#9B5DE5]' },
   { value: 'paternity',   label: 'Paternity Leave',   cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   { value: 'maternity',   label: 'Maternity Leave',   cls: 'bg-[#F15BB5]/10 text-[#F15BB5]' },
@@ -108,7 +108,7 @@ const LT = Object.fromEntries(LEAVE_TYPES.map(t => [t.value, t]))
 const LEAVE_STATUS_META = {
   pending:   { label: 'Pending',   cls: 'bg-[#FEE440]/15 text-[#A89200] dark:text-[#FEE440]' },
   approved:  { label: 'Approved',  cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
-  rejected:  { label: 'Rejected',  cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  rejected:  { label: 'Rejected',  cls: 'bg-danger/10 text-danger' },
   cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
 }
 
@@ -125,7 +125,7 @@ const RATING_META = {
   'High Performer':     { cls: 'bg-[#00D4A0]/10 text-[#00D4A0]', hex: '#00D4A0' },
   'Meets Expectations': { cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]', hex: '#4D9FFF' },
   'Needs Improvement':  { cls: 'bg-[#FF8C42]/10 text-[#FF8C42]', hex: '#FF8C42' },
-  'Unsatisfactory':     { cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]', hex: '#FF4D4D' },
+  'Unsatisfactory':     { cls: 'bg-danger/10 text-danger', hex: '#FF4D4D' },
 }
 const NOT_RATED_META = { cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]', hex: '#A0A0A0' }
 function getRatingMeta(rating) {
@@ -357,7 +357,7 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
             <div key={item.key} className="flex items-center gap-2.5 text-sm">
               {item.ok
                 ? <CheckCircle2 size={15} className="text-[#00D4A0] shrink-0" />
-                : <XCircle size={15} className="text-[#FF4D4D] shrink-0" />}
+                : <XCircle size={15} className="text-danger shrink-0" />}
               <span className={item.ok ? 'text-[#1A1A1A] dark:text-white' : 'text-[#666666] dark:text-[#A0A0A0]'}>{item.label}</span>
             </div>
           ))}
@@ -424,7 +424,7 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
         )}
 
         {genError && (
-          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D] mt-3">
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger mt-3">
             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
             {genError}
           </div>
@@ -598,20 +598,20 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
 
       {/* Danger Zone — Right to Erasure, super_admin only */}
       {canErase && (
-        <div className="p-6 rounded-xl bg-[#FF4D4D]/5 border-2 border-[#FF4D4D]/30">
+        <div className="p-6 rounded-xl bg-danger/5 border-2 border-danger/30">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-[#FF4D4D]/10 flex items-center justify-center shrink-0">
-              <ShieldAlert size={16} className="text-[#FF4D4D]" />
+            <div className="w-9 h-9 rounded-xl bg-danger/10 flex items-center justify-center shrink-0">
+              <ShieldAlert size={16} className="text-danger" />
             </div>
-            <h3 className="text-base font-semibold text-[#FF4D4D]">Danger Zone — Right to Erasure (PDPL Art. 15)</h3>
+            <h3 className="text-base font-semibold text-danger">Danger Zone — Right to Erasure (PDPL Art. 15)</h3>
           </div>
           <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mb-4 max-w-2xl">
             Anonymizing this employee permanently scrubs all personal data (name, email, phone, national ID, bank account,
-            and more). Payroll records are kept to meet tax and labour-law retention rules but de-identified. <span className="font-semibold text-[#FF4D4D]">This cannot be undone.</span>
+            and more). Payroll records are kept to meet tax and labour-law retention rules but de-identified. <span className="font-semibold text-danger">This cannot be undone.</span>
           </p>
           <button
             onClick={onOpenAnonymize}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] transition-colors"
           >
             <Trash2 size={15} />
             Anonymize This Employee
@@ -745,7 +745,7 @@ function AttendanceTab({ employeeId }) {
         {[
           { label: 'Days Present', value: daysPresent,        cls: 'text-[#00D4A0]' },
           { label: 'Days Late',    value: daysLate,            cls: 'text-[#FF8C42]' },
-          { label: 'Days Absent',  value: daysAbsent,           cls: 'text-[#FF4D4D]' },
+          { label: 'Days Absent',  value: daysAbsent,           cls: 'text-danger' },
           { label: 'OT Hours',     value: fmtHours(otHours),    cls: 'text-[#1A1A1A] dark:text-white' },
         ].map(({ label, value, cls }) => (
           <div key={label} className="px-5 py-4 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
@@ -1108,7 +1108,7 @@ function PayrollTab({ employeeId }) {
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#666666] dark:text-[#A0A0A0]">Statutory & Other Deductions</span>
-                        <span className="font-semibold text-[#FF4D4D]">
+                        <span className="font-semibold text-danger">
                           {revealed ? `- ${fmtMoney(run.deductions)} ${currency}` : maskSalary()}
                         </span>
                       </div>
@@ -1167,11 +1167,11 @@ function AnonymizeModal({ employee, onClose, onConfirm, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-white dark:bg-[#1E1E1E] rounded-2xl border border-[#FF4D4D]/30 shadow-2xl">
+      <div className="w-full max-w-md bg-white dark:bg-[#1E1E1E] rounded-2xl border border-danger/30 shadow-2xl">
         <div className="flex items-start justify-between px-6 py-5 border-b border-[#E8E8E8] dark:border-[#2A2A2A]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FF4D4D]/10 flex items-center justify-center shrink-0">
-              <ShieldAlert size={18} className="text-[#FF4D4D]" />
+            <div className="w-10 h-10 rounded-xl bg-danger/10 flex items-center justify-center shrink-0">
+              <ShieldAlert size={18} className="text-danger" />
             </div>
             <div>
               <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white">Anonymize Employee</h2>
@@ -1212,20 +1212,20 @@ function AnonymizeModal({ employee, onClose, onConfirm, onSuccess }) {
                 value={nameInput}
                 onChange={e => setNameInput(e.target.value)}
                 placeholder="Full name"
-                className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#FF4D4D] transition-colors"
+                className="w-full px-3.5 py-2.5 text-sm rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-danger transition-colors"
               />
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={understood}
                   onChange={e => setUnderstood(e.target.checked)}
-                  className="mt-0.5 accent-[#FF4D4D]"
+                  className="mt-0.5 accent-danger"
                 />
                 <span className="text-sm text-[#1A1A1A] dark:text-white">I understand this is permanent</span>
               </label>
 
               {error && (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
                   <AlertTriangle size={13} className="shrink-0" />
                   {error}
                 </div>
@@ -1242,7 +1242,7 @@ function AnonymizeModal({ employee, onClose, onConfirm, onSuccess }) {
                 <button
                   onClick={handleConfirm}
                   disabled={!canConfirm}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   {submitting ? 'Anonymizing…' : 'Anonymize'}
@@ -1347,10 +1347,10 @@ export default function EmployeeDetail() {
               <SkeletonBlock className="h-56" />
             </div>
           ) : fetchError ? (
-            <div className="flex items-start gap-3 p-5 rounded-xl bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
-              <AlertTriangle size={18} className="text-[#FF4D4D] shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-5 rounded-xl bg-danger/10 border border-danger/20">
+              <AlertTriangle size={18} className="text-danger shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-[#FF4D4D]">
+                <p className="text-sm font-semibold text-danger">
                   {fetchError === 'load-failed' ? 'Something went wrong loading this employee.' : fetchError}
                 </p>
                 <div className="flex items-center gap-4 mt-2">

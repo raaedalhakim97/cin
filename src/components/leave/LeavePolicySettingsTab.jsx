@@ -197,7 +197,7 @@ function PolicyModal({ existing, takenTypes, countryRule, companyId, onClose, on
             </p>
           </div>
 
-          {formError && <p className="text-xs text-[#FF4D4D]">{formError}</p>}
+          {formError && <p className="text-xs text-danger">{formError}</p>}
 
           <div className="flex gap-3 pt-2">
             <button
@@ -377,7 +377,7 @@ export default function LeavePolicySettingsTab({ companyId, showToast }) {
                       onClick={() => remove(p)}
                       disabled={deletingId === p.id}
                       aria-label={`Remove ${TYPE_LABEL[p.leave_type]}`}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-[#FF4D4D] hover:bg-[#FF4D4D]/10 disabled:opacity-50 transition-colors"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-danger hover:bg-danger/10 disabled:opacity-50 transition-colors"
                     >
                       {deletingId === p.id
                         ? <Loader2 size={14} className="animate-spin" />

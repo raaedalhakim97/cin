@@ -100,12 +100,12 @@ export default function Demo() {
                   type="text"
                   placeholder="Your company"
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.companyName ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.companyName ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('companyName', { required: 'Company name is required' })}
                 />
               </div>
-              {errors.companyName && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.companyName.message}</p>}
+              {errors.companyName && <p className="text-xs mt-1 text-danger">{errors.companyName.message}</p>}
             </div>
 
             {/* Contact name */}
@@ -119,12 +119,12 @@ export default function Demo() {
                   type="text"
                   placeholder="Sara Al Mansoori"
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.contactName ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.contactName ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('contactName', { required: 'Contact name is required' })}
                 />
               </div>
-              {errors.contactName && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.contactName.message}</p>}
+              {errors.contactName && <p className="text-xs mt-1 text-danger">{errors.contactName.message}</p>}
             </div>
 
             {/* Work email */}
@@ -138,7 +138,7 @@ export default function Demo() {
                   type="email"
                   placeholder="you@company.com"
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white placeholder-[#AAAAAA] dark:placeholder-[#555555] border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.workEmail ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.workEmail ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('workEmail', {
                     required: 'Work email is required',
@@ -146,7 +146,7 @@ export default function Demo() {
                   })}
                 />
               </div>
-              {errors.workEmail && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.workEmail.message}</p>}
+              {errors.workEmail && <p className="text-xs mt-1 text-danger">{errors.workEmail.message}</p>}
             </div>
 
             {/* Phone */}
@@ -175,7 +175,7 @@ export default function Demo() {
                 <select
                   defaultValue=""
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white border focus:outline-none focus:border-[#00D4A0] transition-colors ${
-                    errors.employeeCount ? 'border-[#FF4D4D]' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+                    errors.employeeCount ? 'border-danger' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
                   }`}
                   {...register('employeeCount', { required: 'Employee count is required' })}
                 >
@@ -185,7 +185,7 @@ export default function Demo() {
                   ))}
                 </select>
               </div>
-              {errors.employeeCount && <p className="text-xs mt-1 text-[#FF4D4D]">{errors.employeeCount.message}</p>}
+              {errors.employeeCount && <p className="text-xs mt-1 text-danger">{errors.employeeCount.message}</p>}
             </div>
 
             {/* Message */}
@@ -206,7 +206,7 @@ export default function Demo() {
 
             {/* Server error */}
             {serverError && (
-              <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+              <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
                 <AlertCircle size={14} className="shrink-0 mt-0.5" />
                 {serverError}
               </div>

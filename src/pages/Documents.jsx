@@ -17,8 +17,8 @@ import DocumentTypeGrid from '../components/documents/DocumentTypeGrid'
 // Mirrors hr_documents_with_status.expiry_status — see DocumentTypeGrid.jsx
 const EXPIRY_META = {
   expiring_soon:     { label: 'Expiring Soon',     cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
-  expiring_critical: { label: 'Expiring Critical', cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
-  expired:           { label: 'Expired',           cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  expiring_critical: { label: 'Expiring Critical', cls: 'bg-danger/10 text-danger' },
+  expired:           { label: 'Expired',           cls: 'bg-danger/10 text-danger' },
 }
 
 function formatDate(dateStr) {
@@ -307,7 +307,7 @@ function ExpiryTrackerTab({ showToast }) {
                       <td className="px-4 py-3.5 text-[#1A1A1A] dark:text-white whitespace-nowrap">{r.typeLabel}</td>
                       <td className="px-4 py-3.5 text-[#666666] dark:text-[#A0A0A0] capitalize">{r.scope}</td>
                       <td className="px-4 py-3.5 text-[#666666] dark:text-[#A0A0A0] whitespace-nowrap">{formatDate(r.expiry_date)}</td>
-                      <td className={`px-4 py-3.5 font-semibold whitespace-nowrap ${r.days_until_expiry < 0 ? 'text-[#FF4D4D]' : 'text-[#1A1A1A] dark:text-white'}`}>
+                      <td className={`px-4 py-3.5 font-semibold whitespace-nowrap ${r.days_until_expiry < 0 ? 'text-danger' : 'text-[#1A1A1A] dark:text-white'}`}>
                         {r.days_until_expiry < 0 ? `${Math.abs(r.days_until_expiry)}d overdue` : `${r.days_until_expiry}d`}
                       </td>
                       <td className="px-4 py-3.5">

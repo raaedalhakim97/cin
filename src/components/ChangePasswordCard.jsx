@@ -162,7 +162,7 @@ export default function ChangePasswordCard({ showToast }) {
           autoComplete="new-password"
         />
 
-        {error && <p className="text-xs text-[#FF4D4D]">{error}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
 
         <button
           type="submit"
