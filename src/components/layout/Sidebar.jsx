@@ -5,6 +5,7 @@ import useAuthStore from '../../store/authStore'
 import { visibleNavFor } from '../../data/navigation'
 import useUiStore from '../../store/uiStore'
 import Logo from '../Logo'
+import SignOutDialog from './SignOutDialog'
 
 // The build identifier, injected by vite.config.js at build time.
 //
@@ -56,6 +57,7 @@ export default function Sidebar() {
   const isPlatformOwner = useAuthStore(s => s.isPlatformOwner)
   const mobileNavOpen = useUiStore(s => s.mobileNavOpen)
   const closeMobileNav = useUiStore(s => s.closeMobileNav)
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false)
 
   // Item list and the rule that filters it both live in data/navigation.js, so the
   // role preview on /permissions can show exactly this and cannot drift from it.
@@ -133,7 +135,7 @@ export default function Sidebar() {
         {/* Sign out */}
         <div className="px-3 py-4 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
           <button
-            onClick={signOut}
+            onClick={() => setConfirmingSignOut(true)}
             className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-[#666666] dark:text-[#A0A0A0] hover:bg-[#F5F5F0] dark:hover:bg-[#252525] hover:text-[#1A1A1A] dark:hover:text-white transition-colors"
           >
             <LogOut size={18} />
@@ -142,12 +144,23 @@ export default function Sidebar() {
 
           {/* Which build this is.
               Deliberately dull and deliberately here: one tap from anywhere on a phone,
-              always on screen on a desktop, and next to the one control nobody clicks by
-              accident. Tapping copies it, so a bug report can carry the exact build rather
-              than "this morning's". */}
+              always on screen on a desktop, and next to the one control that now asks
+              before it acts. Tapping copies it, so a bug report can carry the exact build
+              rather than "this morning's". */}
           <BuildStamp />
         </div>
       </aside>
+
+      {/* Only this sign-out asks. The session-timeout modal has already warned, and the
+          suspended-workspace and access-ended pages are dead ends where signing out is
+          the only thing left to do — confirming there would be asking somebody to agree
+          to the one door in the room. */}
+      {confirmingSignOut && (
+        <SignOutDialog
+          onCancel={() => setConfirmingSignOut(false)}
+          onConfirm={() => { setConfirmingSignOut(false); signOut() }}
+        />
+      )}
     </>
   )
 }
