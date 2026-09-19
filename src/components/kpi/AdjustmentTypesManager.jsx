@@ -114,7 +114,7 @@ function TypeModal({ kind, existing, existingCodes, companyId, nextSortOrder, on
 
           <button
             type="submit" disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Type'}
@@ -167,7 +167,7 @@ function TypeList({ kind, types, onToggleActive, onEdit, onAddNew }) {
               <button
                 onClick={() => onToggleActive(t)}
                 className={`px-2.5 py-1 rounded-full text-[10px] font-semibold shrink-0 transition-colors ${
-                  t.active ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
+                  t.active ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
                 }`}
               >
                 {t.active ? 'Active' : 'Inactive'}

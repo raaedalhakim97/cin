@@ -40,14 +40,14 @@ function initials(name = '') {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LEAVE_TYPES = [
-  { value: 'annual',      label: 'Annual Leave',     cls: 'bg-[#00D4A0]/10 text-[#00D4A0]', dot: 'bg-[#00D4A0]' },
+  { value: 'annual',      label: 'Annual Leave',     cls: 'bg-[#00D4A0]/10 text-accent', dot: 'bg-[#00D4A0]' },
   { value: 'sick',        label: 'Sick Leave',        cls: 'bg-[#FF8C42]/10 text-[#FF8C42]', dot: 'bg-[#FF8C42]' },
   { value: 'emergency',   label: 'Emergency Leave',   cls: 'bg-danger/10 text-danger', dot: 'bg-danger' },
   { value: 'marriage',    label: 'Marriage Leave',    cls: 'bg-[#9B5DE5]/10 text-[#9B5DE5]', dot: 'bg-[#9B5DE5]' },
   { value: 'paternity',   label: 'Paternity Leave',   cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]', dot: 'bg-[#4D9FFF]' },
   { value: 'maternity',   label: 'Maternity Leave',   cls: 'bg-[#F15BB5]/10 text-[#F15BB5]', dot: 'bg-[#F15BB5]' },
   { value: 'hajj',        label: 'Hajj Leave',        cls: 'bg-[#FEE440]/15 text-[#A89200]', dot: 'bg-[#FEE440]' },
-  { value: 'bereavement', label: 'Bereavement Leave', cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]', dot: 'bg-[#A0A0A0]' },
+  { value: 'bereavement', label: 'Bereavement Leave', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]', dot: 'bg-[#A0A0A0]' },
   { value: 'study',       label: 'Study Leave',       cls: 'bg-[#00BBF9]/10 text-[#00BBF9]', dot: 'bg-[#00BBF9]' },
 ]
 
@@ -63,9 +63,9 @@ const LT = Object.fromEntries(LEAVE_TYPES.map(t => [t.value, t]))
 const STATUS_META = {
   pending:          { label: 'Pending',          cls: 'bg-[#FEE440]/15 text-[#A89200] dark:text-[#FEE440]' },
   manager_approved: { label: 'Manager Approved', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  approved:         { label: 'Approved',          cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  approved:         { label: 'Approved',          cls: 'bg-[#00D4A0]/10 text-accent' },
   rejected:         { label: 'Rejected',          cls: 'bg-danger/10 text-danger' },
-  cancelled:        { label: 'Cancelled',         cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
+  cancelled:        { label: 'Cancelled',         cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
 
 // Requested → Manager → HR timeline for a single request, used in My Leave's
@@ -147,7 +147,7 @@ function BalanceCard({ type, balance }) {
   return (
     <div className="p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] hover:border-[#00D4A0]/30 transition-colors group">
       <div className="flex items-center gap-3 mb-4">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${meta?.cls ?? 'bg-[#A0A0A0]/10 text-[#A0A0A0]'}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${meta?.cls ?? 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}>
           <CalendarDays size={15} />
         </div>
         <div className="min-w-0">
@@ -298,7 +298,7 @@ function RequestModal({ onClose, onSubmit, saving, offeredTypes }) {
             <button
               type="submit"
               disabled={saving || days === 0}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               {saving ? 'Submitting…' : 'Submit Request'}
@@ -467,7 +467,7 @@ function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, can
             {canWrite && (
               <button
                 onClick={onRequestLeave}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
               >
                 <Plus size={14} /> Request Leave
               </button>
@@ -551,7 +551,7 @@ function TeamRequestsTab({ requests, loading, onApprove, onReject, approveLoadin
             className="flex items-center gap-4 p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] hover:border-[#00D4A0]/20 transition-colors"
           >
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-[#00D4A0] text-sm font-bold shrink-0 select-none">
+            <div className="w-10 h-10 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-accent text-sm font-bold shrink-0 select-none">
               {initials(req.employees?.full_name)}
             </div>
 
@@ -590,7 +590,7 @@ function TeamRequestsTab({ requests, loading, onApprove, onReject, approveLoadin
                   <button
                     onClick={() => onApprove(req)}
                     disabled={busy(req.id)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
                   >
                     {approveLoadingId === req.id
                       ? <Loader2 size={12} className="animate-spin" />
@@ -725,7 +725,7 @@ function LeaveCalendar({ leaves, viewDate, onPrev, onNext, loading, isHR, offere
                         title={isHR
                           ? `${lr.employees?.full_name} — ${meta?.label}`
                           : meta?.label}
-                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${meta?.cls ?? 'bg-[#A0A0A0]/10 text-[#A0A0A0]'}`}
+                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded truncate ${meta?.cls ?? 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}
                       >
                         {label}
                       </div>
@@ -1086,7 +1086,7 @@ export default function Leave() {
               title={policiesLoaded && offeredTypes.length === 0
                 ? 'Your company has not set which leave types it offers yet'
                 : undefined}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00D4A0] transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00D4A0] transition-colors shadow-sm"
             >
               <Plus size={15} />
               Request Leave
@@ -1101,7 +1101,7 @@ export default function Leave() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === id
-                    ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                    ? 'bg-[#00D4A0]/10 text-accent'
                     : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >

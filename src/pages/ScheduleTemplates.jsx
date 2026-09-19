@@ -114,7 +114,7 @@ function TemplateModal({ existing, onClose, onSaved, showToast, companyId }) {
 
           <button
             type="submit" disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Template'}
@@ -176,7 +176,7 @@ export default function ScheduleTemplates() {
             </div>
             <button
               onClick={() => { setEditing(null); setModalOpen(true) }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00D4A0] hover:bg-[#00B589] text-white text-sm font-semibold transition-colors w-fit"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00D4A0] hover:bg-[#00B589] text-[#062B22] text-sm font-semibold transition-colors w-fit"
             >
               <Plus size={16} />
               Add Template
@@ -221,7 +221,7 @@ export default function ScheduleTemplates() {
                         <td className="px-5 py-3.5">
                           <button
                             onClick={() => toggleActive(t)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${t.active ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${t.active ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'}`}
                           >
                             {t.active ? 'Active' : 'Inactive'}
                           </button>

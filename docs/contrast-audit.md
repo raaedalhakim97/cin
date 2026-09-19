@@ -58,7 +58,7 @@ It is not 281 bugs. Broken down by what it is actually doing:
 | Uses | What it is | Bar | Verdict |
 | ---: | --- | --- | --- |
 | 105 | Icons | 3:1, or exempt if decorative beside a label | Case by case |
-| 68 | Mint text on a mint tint (`bg-[#00D4A0]/10`) | 4.5:1 | **Worst case — 1.86:1** |
+| 76 | Mint text on a mint tint (`bg-[#00D4A0]/10`) | 4.5:1 | **Worst case — 1.78:1** |
 | 57 | Plain text and values | 4.5:1 | **Fails** |
 | 45 | Link and button labels | 4.5:1 | **Fails** |
 | 6 | Small-caps headings | 4.5:1 | Exempt — all on always-dark surfaces |
@@ -97,7 +97,13 @@ of the quiet furniture of the product.
 numbers. Amber already has a working light value — `#B45309` at 5.02:1, introduced in
 `SessionTimeoutModal` — so half this decision is already made.
 
-## Finding 4 — 22 uses of `#A0A0A0` with no `dark:` prefix
+## Finding 4 — `#A0A0A0` with no `dark:` prefix
+
+> **Corrected after implementation.** The scan said 22. Five were false positives from my
+> own regex — `dark:hover:text-[#A0A0A0]` and `dark:[&_…]:text-[#A0A0A0]` do carry a `dark:`
+> prefix, just not immediately before `text-`. Of the 17 real ones, two are inside
+> `AttendanceScoreTooltip`, which is dark in both themes, so `#A0A0A0` is correct there.
+> **15 were genuine and have been fixed.**
 
 `#A0A0A0` is the dark-theme body colour, where it measures 6.38:1. Used without the prefix
 it lands on a white card at **2.61:1**. These are almost certainly mistakes — a `dark:`
@@ -153,3 +159,29 @@ against, not a verdict on each screen.
 
 Nor is contrast the whole of accessibility. Keyboard order, focus rings, and what a screen
 reader announces are not measured here.
+
+## Finding 6 — added during implementation: white ink on solid mint, 89 places
+
+> **Corrected.** First counted as 21. That grep only matched lines where `bg-[#00D4A0]`
+> came *before* `text-white`; most of the codebase writes the classes the other way round.
+> The real figure is **89**, across 42 files, and all of them have been fixed.
+
+Found while fixing the pills, and **worse than anything above, because it fails in both
+themes**: `bg-[#00D4A0]` with `text-white` measures **1.92:1** regardless of the theme, since
+a mint fill is mint either way. It appears on primary buttons (`EmptyState`, `BankFileTab`,
+`ChangePasswordCard`) and on avatar circles carrying someone's initials (`Header`,
+`NewsFeed`).
+
+The fix is already proven in this codebase — `#062B22` ink on mint measures **7.94:1**, and
+is what `/login`, `SignOutDialog` and `SessionTimeoutModal` already use. One class each, no
+theme logic.
+
+It also holds on the hover fills, which is the part worth checking before a change this
+wide: `#062B22` measures 5.79:1 on `#00B589` and 6.37:1 on `#00BE90`, while white measures
+2.63 and 2.40. There is no state of a mint button where white ink passes.
+
+Verified in a browser on the signup page's submit button: ink `rgb(6,43,34)` on fill
+`rgb(0,212,160)`, **7.94:1**.
+
+`hover:text-white` and `dark:text-white` were left alone — the replacement only matched
+`text-white` with no variant prefix in front of it.

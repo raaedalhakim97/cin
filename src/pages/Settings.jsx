@@ -41,7 +41,7 @@ const RT = Object.fromEntries(REQUEST_TYPES.map(t => [t.value, t]))
 const REQUEST_STATUS = {
   pending:     { label: 'Pending',     cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   in_progress: { label: 'In Progress', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  completed:   { label: 'Completed',   cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  completed:   { label: 'Completed',   cls: 'bg-[#00D4A0]/10 text-accent' },
   rejected:    { label: 'Rejected',    cls: 'bg-danger/10 text-danger' },
 }
 const STATUS_OPTIONS = ['pending', 'in_progress', 'completed', 'rejected']
@@ -151,7 +151,7 @@ function UpdateRequestModal({ request, onClose, onSave, saving }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {saving ? 'Saving…' : 'Save'}
@@ -249,7 +249,7 @@ function DataRequestsTab({ employee, showToast }) {
                   <td className="px-5 py-3.5 text-right">
                     <button
                       onClick={() => setEditTarget(r)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#00D4A0] border border-[#00D4A0]/30 hover:bg-[#00D4A0]/10 transition-colors"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-accent border border-[#00D4A0]/30 hover:bg-[#00D4A0]/10 transition-colors"
                     >
                       Manage
                     </button>
@@ -321,7 +321,7 @@ function RetentionPoliciesTab() {
                 <td className="px-5 py-3.5">
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                     r.auto_archive
-                      ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                      ? 'bg-[#00D4A0]/10 text-accent'
                       : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
                   }`}>
                     {r.auto_archive ? 'Yes' : 'No'}
@@ -499,7 +499,7 @@ function CompanySettingsTab({ companyId, showToast }) {
       <button
         type="submit"
         disabled={saving}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
       >
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         {saving ? 'Saving…' : 'Save Changes'}
@@ -545,7 +545,7 @@ export default function Settings() {
                 onClick={() => setTab(key)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
                   tab === key
-                    ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                    ? 'bg-[#00D4A0]/10 text-accent'
                     : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >

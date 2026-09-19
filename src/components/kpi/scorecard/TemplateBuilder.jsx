@@ -22,7 +22,7 @@ const STATUS_META = {
   draft:         { label: 'Draft',            cls: 'bg-[#A0A0A0]/15 text-[#666666] dark:text-[#A0A0A0]' },
   pending_hr:    { label: 'Waiting for HR',   cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   pending_owner: { label: 'Waiting for owner', cls: 'bg-[#9B5DE5]/10 text-[#9B5DE5]' },
-  approved:      { label: 'Approved',         cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  approved:      { label: 'Approved',         cls: 'bg-[#00D4A0]/10 text-accent' },
   archived:      { label: 'Archived',         cls: 'bg-[#A0A0A0]/15 text-[#666666] dark:text-[#A0A0A0]' },
 }
 
@@ -183,7 +183,7 @@ function TemplateDetail({ template, definitions, onChanged, showToast }) {
       )}
 
       <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-semibold ${
-        verdict.ok ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#FF8C42]/10 text-[#FF8C42]'
+        verdict.ok ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#FF8C42]/10 text-[#FF8C42]'
       }`}>
         {verdict.ok ? <Check size={13} /> : <AlertTriangle size={13} />}
         {total}% assigned — {verdict.text}
@@ -203,7 +203,7 @@ function TemplateDetail({ template, definitions, onChanged, showToast }) {
             />
             <button
               type="submit" disabled={busy}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add
             </button>
@@ -308,7 +308,7 @@ export default function TemplateBuilder({ companyId, role, showToast }) {
         />
         <button
           type="submit" disabled={creating || !name.trim()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors"
         >
           {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create draft
         </button>
@@ -359,7 +359,7 @@ export default function TemplateBuilder({ companyId, role, showToast }) {
                           key={a.to} type="button" onClick={() => move(t, a.to)} disabled={busyId === t.id}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${
                             a.primary
-                              ? 'text-white bg-[#00D4A0] hover:bg-[#00B589]'
+                              ? 'text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589]'
                               : 'text-[#666666] dark:text-[#A0A0A0] border border-[#E8E8E8] dark:border-[#2A2A2A] hover:text-[#1A1A1A] dark:hover:text-white'
                           }`}
                         >

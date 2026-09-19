@@ -11,7 +11,7 @@ const STATUS_BADGE = {
   new:          'bg-[#4D9FFF]/10 text-[#4D9FFF]',
   contacted:    'bg-[#FF8C42]/10 text-[#FF8C42]',
   demo_booked:  'bg-[#A78BFA]/10 text-[#A78BFA]',
-  converted:    'bg-[#00D4A0]/10 text-[#00D4A0]',
+  converted:    'bg-[#00D4A0]/10 text-accent',
   lost:         'bg-danger/10 text-danger',
 }
 

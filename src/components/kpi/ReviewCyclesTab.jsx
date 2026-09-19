@@ -48,11 +48,11 @@ function inDays(n) {
 
 function StageBadge({ status }) {
   const map = {
-    draft:          'bg-[#A0A0A0]/10 text-[#A0A0A0]',
+    draft:          'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]',
     self_review:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',
     manager_review: 'bg-[#FF8C42]/10 text-[#FF8C42]',
     calculated:     'bg-[#9B5DE5]/10 text-[#9B5DE5]',
-    published:      'bg-[#00D4A0]/10 text-[#00D4A0]',
+    published:      'bg-[#00D4A0]/10 text-accent',
   }
   const stage = STAGES.find((s) => s.id === status)
   return (
@@ -218,7 +218,7 @@ export default function ReviewCyclesTab({ showToast }) {
           </div>
           <button
             type="button" onClick={openCycle} disabled={opening}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {opening ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             Open cycle

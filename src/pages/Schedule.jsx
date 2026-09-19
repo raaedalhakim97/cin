@@ -20,7 +20,7 @@ const DAY_LABELS_BY_START = {
 
 const STATUS_META = {
   scheduled: { label: 'Draft',     cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
-  published: { label: 'Published', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  published: { label: 'Published', cls: 'bg-[#00D4A0]/10 text-accent' },
   completed: { label: 'Completed', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   no_show:   { label: 'No-Show',   cls: 'bg-danger/10 text-danger' },
   cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
@@ -199,7 +199,7 @@ function WeekViewTab({ companyId, currentEmployeeId, shiftSettings, showToast })
         <button
           onClick={publishWeek}
           disabled={publishing || draftCount === 0}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
         >
           {publishing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           Publish Week{draftCount > 0 ? ` (${draftCount})` : ''}
@@ -232,7 +232,7 @@ function WeekViewTab({ companyId, currentEmployeeId, shiftSettings, showToast })
                   <tr key={emp.id}>
                     <td className="sticky left-0 bg-white dark:bg-[#1E1E1E] px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-[10px] font-bold shrink-0">
                           {initials(emp.full_name)}
                         </div>
                         <div className="min-w-0">
@@ -252,7 +252,7 @@ function WeekViewTab({ companyId, currentEmployeeId, shiftSettings, showToast })
                           ))}
                           <button
                             onClick={() => setModalState({ date: d, employeeId: emp.id })}
-                            className="w-full flex items-center justify-center py-1.5 rounded-lg text-[#AAAAAA] dark:text-[#555555] hover:text-[#00D4A0] hover:bg-[#00D4A0]/5 transition-colors"
+                            className="w-full flex items-center justify-center py-1.5 rounded-lg text-[#AAAAAA] dark:text-[#555555] hover:text-accent hover:bg-[#00D4A0]/5 transition-colors"
                           >
                             <Plus size={13} />
                           </button>
@@ -337,7 +337,7 @@ function TodayTab() {
               return (
                 <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isOff ? 'bg-[#A0A0A0]/20 text-[#666666] dark:text-[#A0A0A0]' : 'bg-[#00D4A0] text-white'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${isOff ? 'bg-[#A0A0A0]/20 text-[#666666] dark:text-[#A0A0A0]' : 'bg-[#00D4A0] text-[#062B22]'}`}>
                       {isOff ? <Moon size={14} /> : initials(r.full_name)}
                     </div>
                     <div className="min-w-0">
@@ -363,7 +363,7 @@ function TodayTab() {
 function coverageTone(count) {
   if (count === 0) return 'bg-danger/15 text-danger'
   if (count <= 2) return 'bg-[#FF8C42]/15 text-[#FF8C42]'
-  return 'bg-[#00D4A0]/15 text-[#00D4A0]'
+  return 'bg-[#00D4A0]/15 text-accent'
 }
 
 function CoverageTab() {
@@ -506,7 +506,7 @@ export default function Schedule() {
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
-                  activeTab === id ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
+                  activeTab === id ? 'bg-[#00D4A0]/10 text-accent' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >
                 <Icon size={15} />

@@ -205,7 +205,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
             </div>
             <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Score Weights</h3>
           </div>
-          <span className={`px-3 py-1 rounded-full text-sm font-bold ${isValid ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-danger/10 text-danger'}`}>
+          <span className={`px-3 py-1 rounded-full text-sm font-bold ${isValid ? 'bg-[#00D4A0]/10 text-accent' : 'bg-danger/10 text-danger'}`}>
             Total {total}%
           </span>
         </div>
@@ -240,7 +240,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
           </div>
           <button
             type="submit" disabled={saving || !isValid}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-40 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             {saving ? 'Saving…' : 'Save Weights'}
@@ -325,7 +325,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
 
         <button
           type="submit" disabled={savingEval}
-          className="mt-4 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+          className="mt-4 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
         >
           {savingEval ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           {savingEval ? 'Saving…' : 'Save Evaluation Cycle'}
@@ -350,7 +350,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
             onClick={toggleAutoPostRewards}
             disabled={togglingAutoPost}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors disabled:opacity-60 ${
-              row.auto_post_rewards ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
+              row.auto_post_rewards ? 'bg-[#00D4A0]/10 text-accent' : 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]'
             }`}
           >
             {togglingAutoPost ? <Loader2 size={12} className="animate-spin" /> : row.auto_post_rewards ? 'On' : 'Off'}

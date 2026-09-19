@@ -53,7 +53,7 @@ function actionTypeLabel(v) {
 }
 
 const STATUS_META = {
-  active: { label: 'Active', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  active: { label: 'Active', cls: 'bg-[#00D4A0]/10 text-accent' },
   completed: { label: 'Completed', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   cancelled: { label: 'Cancelled', cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
@@ -240,7 +240,7 @@ function AddActionForm({ onAdd }) {
       <div className="flex gap-2">
         <button
           type="submit" disabled={saving || !title.trim()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
         >
           {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Add
         </button>
@@ -582,7 +582,7 @@ function CreatePlanModal({ employees, companyId, defaultEmployeeId, onClose, onC
 
           <button
             type="submit" disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Creating…' : 'Create Plan'}
@@ -669,7 +669,7 @@ export default function PDPTab({ employee, companyId, canManage, showToast, role
               key={id}
               onClick={() => setView(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                view === id ? 'bg-[#00D4A0]/10 text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
+                view === id ? 'bg-[#00D4A0]/10 text-accent' : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
               }`}
             >
               <Icon size={14} /> {label}
@@ -733,7 +733,7 @@ export default function PDPTab({ employee, companyId, canManage, showToast, role
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
             >
               <Plus size={14} /> New Development Plan
             </button>

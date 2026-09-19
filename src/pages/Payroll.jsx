@@ -83,8 +83,8 @@ const SUMMARY_ROLES = new Set(['super_admin', 'hr_manager', 'read_only'])
 const RUN_STATUS = {
   draft:    { label: 'Draft',    cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   approved: { label: 'Approved', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  paid:     { label: 'Paid',     cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
-  not_run:  { label: 'Not Run',  cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
+  paid:     { label: 'Paid',     cls: 'bg-[#00D4A0]/10 text-accent' },
+  not_run:  { label: 'Not Run',  cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
 
 const INPUT =
@@ -250,7 +250,7 @@ function PayslipCard({ run, revealed, onToggleReveal, onDownload, downloading, t
           <button
             onClick={onDownload}
             disabled={downloading}
-            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
             {downloading ? 'Generating PDF…' : 'Download Payslip'}
@@ -516,7 +516,7 @@ function EditRunModal({ run, onClose, onSave }) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Saving…' : 'Save Changes'}
@@ -703,7 +703,7 @@ function PayrollRunTab({ companyId, role, showToast }) {
           <button
             onClick={runPayroll}
             disabled={selected.size === 0 || running}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
           >
             {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
             {running ? 'Running…' : `Run Payroll (${selected.size})`}
@@ -762,7 +762,7 @@ function PayrollRunTab({ companyId, role, showToast }) {
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-[#00D4A0] text-xs font-bold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-accent text-xs font-bold shrink-0">
                           {initials(emp.full_name)}
                         </div>
                         <div>
@@ -810,7 +810,7 @@ function PayrollRunTab({ companyId, role, showToast }) {
                           <button
                             onClick={() => markPaid(run)}
                             disabled={busy}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 transition-colors"
                           >
                             {busy ? <Loader2 size={11} className="animate-spin" /> : <Banknote size={11} />} Mark Paid
                           </button>
@@ -964,7 +964,7 @@ function SummaryTab({ canExport, showToast }) {
               icon={CircleDollarSign}
               label="Total Payroll Cost"
               value={<MoneyText value={totalCost} revealed={revealed} />}
-              iconBg="bg-[#00D4A0]/10" iconColor="text-[#00D4A0]" valueColor="text-[#1A1A1A] dark:text-white"
+              iconBg="bg-[#00D4A0]/10" iconColor="text-accent" valueColor="text-[#1A1A1A] dark:text-white"
             />
             <StatCard
               icon={isUp ? TrendingUp : TrendingDown}
@@ -1085,7 +1085,7 @@ export default function Payroll() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   activeTab === id
-                    ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                    ? 'bg-[#00D4A0]/10 text-accent'
                     : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >

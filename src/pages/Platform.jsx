@@ -86,7 +86,7 @@ const TONE = {
 }
 
 const PLAN_BADGE = {
-  active:    'bg-[#00D4A0]/10 text-[#00D4A0]',
+  active:    'bg-[#00D4A0]/10 text-accent',
   trial:     'bg-[#FF8C42]/10 text-[#FF8C42]',
   suspended: 'bg-danger/10 text-danger',
   cancelled: 'bg-[#F5F5F0] dark:bg-[#252525] text-[#666666] dark:text-[#A0A0A0]',
@@ -242,7 +242,7 @@ function NewCompany({ onCreated }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mb-6 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+        className="mb-6 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
       >
         <Plus size={16} /> New company
       </button>
@@ -310,7 +310,7 @@ function NewCompany({ onCreated }) {
       )}
 
       <button type="submit" disabled={busy}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors">
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors">
         {busy && <Loader2 size={15} className="animate-spin" />}
         {busy ? 'Creating…' : 'Create company and invite the owner'}
       </button>

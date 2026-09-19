@@ -189,7 +189,7 @@ const ATTENDANCE_SCORE_GUIDE = [
 
 const RATING_META = {
   'Exceptional':          { cls: 'bg-[#A78BFA]/10 text-[#A78BFA]', hex: '#A78BFA' },
-  'High Performer':       { cls: 'bg-[#00D4A0]/10 text-[#00D4A0]', hex: '#00D4A0' },
+  'High Performer':       { cls: 'bg-[#00D4A0]/10 text-accent', hex: '#00D4A0' },
   'Meets Expectations':   { cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]', hex: '#4D9FFF' },
   'Needs Improvement':    { cls: 'bg-[#FF8C42]/10 text-[#FF8C42]', hex: '#FF8C42' },
   'Unsatisfactory':       { cls: 'bg-danger/10 text-danger', hex: '#FF4D4D' },
@@ -250,7 +250,7 @@ function RatingBadge({ rating, className = '' }) {
 
 function EvalBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#00D4A0]/10 text-[#00D4A0]">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#00D4A0]/10 text-accent">
       <span className="w-1.5 h-1.5 rounded-full bg-[#00D4A0]" />
       Evaluation window open
     </span>
@@ -524,7 +524,7 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
             </div>
             <button
               type="submit" disabled={saving}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               {saving ? 'Saving…' : hasSubmittedSelf ? 'Update Self-Evaluation' : 'Submit Self-Evaluation'}
@@ -728,7 +728,7 @@ function ManagerScoreModal({ emp, row, period, onClose, onSave }) {
 
           <button
             type="submit" disabled={saving}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             {saving ? 'Saving…' : 'Save Manager Score'}
@@ -856,7 +856,7 @@ function RecommendWarningModal({ employees, companyId, recommenderId, onClose, o
 
 const REC_STATUS_META = {
   pending:  { label: 'Pending Review', cls: 'bg-[#FEE440]/15 text-[#A89200] dark:text-[#FEE440]' },
-  approved: { label: 'Approved',       cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  approved: { label: 'Approved',       cls: 'bg-[#00D4A0]/10 text-accent' },
   rejected: { label: 'Rejected',       cls: 'bg-danger/10 text-danger' },
 }
 
@@ -1013,7 +1013,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-[#00D4A0] text-xs font-bold shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#00D4A0]/10 flex items-center justify-center text-accent text-xs font-bold shrink-0">
                         {initials(emp.full_name)}
                       </div>
                       <div>
@@ -1035,7 +1035,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
                     {isEval ? (
                       <button
                         onClick={() => setModalTarget({ emp, row })}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
                       >
                         <Pencil size={11} /> Score
                       </button>
@@ -1381,7 +1381,7 @@ function GrantRewardModal({ employees, rewardTypes, companyId, issuerId, onClose
 
           <button
             type="submit" disabled={saving || !selectedType}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Gift size={14} />}
             {saving ? 'Saving…' : 'Grant Reward'}
@@ -1496,7 +1496,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
           </button>
           <button
             onClick={() => setShowRewardModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
           >
             <Gift size={14} /> Grant Reward
           </button>
@@ -1523,7 +1523,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => approveRec(rec)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
                   >
                     <Check size={11} /> Approve
                   </button>
@@ -1587,7 +1587,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                        isWarning ? 'bg-[#FF8C42]/10 text-[#FF8C42]' : 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                        isWarning ? 'bg-[#FF8C42]/10 text-[#FF8C42]' : 'bg-[#00D4A0]/10 text-accent'
                       }`}>
                         {isWarning ? 'Warning' : 'Reward'}
                       </span>
@@ -1760,7 +1760,7 @@ export default function KPI() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
                   activeTab === id
-                    ? 'bg-[#00D4A0]/10 text-[#00D4A0]'
+                    ? 'bg-[#00D4A0]/10 text-accent'
                     : 'text-[#666666] dark:text-[#A0A0A0] hover:text-[#1A1A1A] dark:hover:text-white'
                 }`}
               >

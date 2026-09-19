@@ -22,10 +22,10 @@ import { SkeletonBlock } from '../../components/Skeleton'
 // every role, not specific to this one.
 
 const statusBadge = {
-  active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
+  active:     'bg-[#00D4A0]/10 text-accent',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
   suspended:  'bg-danger/10 text-danger',
-  terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
+  terminated: 'bg-[#555555]/10 text-[#666666] dark:text-[#A0A0A0]',
 }
 
 const classificationLabel = {
@@ -165,7 +165,7 @@ function AttendanceCard({ employee, canClockInOut }) {
           {canClockInOut && !clockedIn && (
             <Link
               to="/attendance"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] transition-colors"
             >
               <Clock size={15} /> Clock In
             </Link>
@@ -181,7 +181,7 @@ function AttendanceCard({ employee, canClockInOut }) {
           )}
 
           {clockedIn && clockedOut && (
-            <div className="flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#00D4A0]/10 text-[#00D4A0]">
+            <div className="flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-[#00D4A0]/10 text-accent">
               <CheckCircle2 size={15} />
               Day complete
             </div>
@@ -204,7 +204,7 @@ export default function GenericDashboard({ employee }) {
         {/* Profile card */}
         <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-[#00D4A0] flex items-center justify-center text-white text-xl font-bold shrink-0">
+            <div className="w-14 h-14 rounded-full bg-[#00D4A0] flex items-center justify-center text-[#062B22] text-xl font-bold shrink-0">
               {employee.full_name?.[0]?.toUpperCase()}
             </div>
             <div>

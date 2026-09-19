@@ -8,7 +8,7 @@ import EmptyState from '../components/EmptyState'
 import { SkeletonBlock } from '../components/Skeleton'
 
 const STATUS_META = {
-  published: { label: 'Scheduled', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  published: { label: 'Scheduled', cls: 'bg-[#00D4A0]/10 text-accent' },
   completed: { label: 'Completed', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   no_show:   { label: 'No-Show',   cls: 'bg-danger/10 text-danger' },
 }
@@ -145,7 +145,7 @@ export default function MySchedule() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <p className={`text-sm font-semibold ${isToday ? 'text-[#00D4A0]' : 'text-[#1A1A1A] dark:text-white'}`}>{fmtDay(d)}</p>
-                          {isToday && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#00D4A0]/10 text-[#00D4A0]">Today</span>}
+                          {isToday && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#00D4A0]/10 text-accent">Today</span>}
                         </div>
                         {dayShifts.length === 0 ? (
                           <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">No shift scheduled</p>
@@ -155,7 +155,7 @@ export default function MySchedule() {
                               if (s.shift_type === 'off') {
                                 return (
                                   <div key={s.id} className="flex items-center gap-2.5">
-                                    <Moon size={14} className="text-[#A0A0A0] shrink-0" />
+                                    <Moon size={14} className="text-[#666666] dark:text-[#A0A0A0] shrink-0" />
                                     <p className="text-sm font-semibold text-[#666666] dark:text-[#A0A0A0]">Day off</p>
                                   </div>
                                 )

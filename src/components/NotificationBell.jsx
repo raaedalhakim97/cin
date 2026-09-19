@@ -28,7 +28,7 @@ const KIND_META = {
   leave_manager_approved:      { icon: Umbrella,      tint: 'text-[#00D4A0]' },
   leave_approved:              { icon: Umbrella,      tint: 'text-[#00D4A0]' },
   leave_rejected:              { icon: Umbrella,      tint: 'text-danger' },
-  leave_cancelled:             { icon: Umbrella,      tint: 'text-[#A0A0A0]' },
+  leave_cancelled:             { icon: Umbrella,      tint: 'text-[#666666] dark:text-[#A0A0A0]' },
   shift_published:             { icon: CalendarClock, tint: 'text-[#00D4A0]' },
   shift_day_off:               { icon: CalendarOff,   tint: 'text-[#4D9FFF]' },
   review_self_open:            { icon: ClipboardList, tint: 'text-[#4D9FFF]' },
@@ -224,7 +224,7 @@ export default function NotificationBell() {
             ) : (
               <ul className="divide-y divide-[#E8E8E8] dark:divide-[#2A2A2A]">
                 {rows.map((r) => {
-                  const meta = KIND_META[r.kind] ?? { icon: Bell, tint: 'text-[#A0A0A0]' }
+                  const meta = KIND_META[r.kind] ?? { icon: Bell, tint: 'text-[#666666] dark:text-[#A0A0A0]' }
                   const Icon = meta.icon
                   return (
                     <li key={r.id}>

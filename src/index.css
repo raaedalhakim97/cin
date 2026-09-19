@@ -30,7 +30,25 @@
  * value would put dark red on near-black for anyone whose workspace theme is light. */
 @theme inline {
   --color-danger: var(--danger);
+  --color-accent: var(--accent);
 }
+
+/* --accent is the mint, and unlike --danger it is NOT a straight swap.
+ *
+ * #00D4A0 measures 1.92:1 on a white card, and the worst case in the product was mint text
+ * on a 10% mint wash — about 1.78:1, which is close to invisible. Those are status pills:
+ * Active, Approved, Paid. They carry meaning.
+ *
+ * But mint is also the BACKGROUND of every primary button, carrying #062B22 ink at
+ * 7.94:1, and it is the brand colour on the always-dark surfaces — the login brand panel,
+ * the marketing site — where it measures 8.67:1. Darkening either of those would
+ * be a regression, so this token is applied deliberately per site rather than by a
+ * find-and-replace: `text-accent` where mint is TEXT on a light surface, and the literal
+ * #00D4A0 everywhere it is a background, a border, or on a dark panel.
+ *
+ * #00735F rather than the #00806A used in the login design notes: #00806A measures 4.47 on
+ * the #F5F5F0 page background, a hair under the bar. #00735F clears 4.5:1 on a white card
+ * (5.81), on the page (5.31) and inside its own 10% tint (5.39). */
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -69,12 +87,14 @@ html {
   background-color: #F5F5F0;
   color-scheme: light;
   --danger: #B91C1C;
+  --accent: #00735F;
 }
 
 html.dark {
   background-color: #0F0F0F;
   color-scheme: dark;
   --danger: #FF4D4D;
+  --accent: #00D4A0;
 }
 
 body {

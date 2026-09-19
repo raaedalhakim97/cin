@@ -23,7 +23,7 @@ import { SkeletonBlock } from '../../components/Skeleton'
 // established per-file convention for small display-only lookup maps.
 const RATING_META = {
   'Exceptional':        { cls: 'bg-[#A78BFA]/10 text-[#A78BFA]' },
-  'High Performer':     { cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
+  'High Performer':     { cls: 'bg-[#00D4A0]/10 text-accent' },
   'Meets Expectations': { cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   'Needs Improvement':  { cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   'Unsatisfactory':     { cls: 'bg-danger/10 text-danger' },

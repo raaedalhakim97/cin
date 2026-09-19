@@ -208,7 +208,7 @@ function PolicyModal({ existing, takenTypes, countryRule, companyId, onClose, on
             </button>
             <button
               type="submit" disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
               {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
@@ -301,7 +301,7 @@ export default function LeavePolicySettingsTab({ companyId, showToast }) {
           onClick={() => setModal({ existing: null })}
           disabled={takenTypes.size >= LEAVE_TYPES.length}
           title={takenTypes.size >= LEAVE_TYPES.length ? 'Every leave type is already in your policy' : undefined}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
         >
           <Plus size={15} />
           Add leave type
@@ -372,7 +372,7 @@ export default function LeavePolicySettingsTab({ companyId, showToast }) {
                     <button
                       onClick={() => setModal({ existing: p })}
                       aria-label={`Edit ${TYPE_LABEL[p.leave_type]}`}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-[#00D4A0] hover:bg-[#00D4A0]/10 transition-colors"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-accent hover:bg-[#00D4A0]/10 transition-colors"
                     >
                       <Pencil size={14} />
                     </button>
