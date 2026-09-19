@@ -10,7 +10,7 @@ import { SkeletonBlock } from '../components/Skeleton'
 const STATUS_META = {
   published: { label: 'Scheduled', cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
   completed: { label: 'Completed', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
-  no_show:   { label: 'No-Show',   cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  no_show:   { label: 'No-Show',   cls: 'bg-danger/10 text-danger' },
 }
 
 function localDateStr(d) {

@@ -49,7 +49,7 @@ const STATUS_STYLES = {
   invited:    'bg-[#4D9FFF]/10 text-[#4D9FFF]',
   active:     'bg-[#00D4A0]/10 text-[#00D4A0]',
   on_leave:   'bg-[#FF8C42]/10 text-[#FF8C42]',
-  suspended:  'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  suspended:  'bg-danger/10 text-danger',
   terminated: 'bg-[#555555]/20 text-[#A0A0A0]',
 }
 
@@ -315,8 +315,8 @@ export default function EmployeeList() {
                         className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-[#1A1A1A] dark:text-white hover:bg-[#F5F5F0] dark:hover:bg-[#252525] transition-colors disabled:opacity-50 border-t border-[#E8E8E8] dark:border-[#2A2A2A]"
                       >
                         {exportingPDF
-                          ? <Loader2 size={15} className="animate-spin text-[#FF4D4D] shrink-0" />
-                          : <FileText size={15} className="text-[#FF4D4D] shrink-0" />}
+                          ? <Loader2 size={15} className="animate-spin text-danger shrink-0" />
+                          : <FileText size={15} className="text-danger shrink-0" />}
                         Export to PDF
                       </button>
                     </div>
@@ -401,7 +401,7 @@ export default function EmployeeList() {
               </div>
             ) : fetchError ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 px-6 text-center">
-                <AlertCircle size={32} className="text-[#FF4D4D]" />
+                <AlertCircle size={32} className="text-danger" />
                 <p className="text-sm font-medium text-[#1A1A1A] dark:text-white">Something went wrong loading employees.</p>
                 <button
                   onClick={fetchEmployees}

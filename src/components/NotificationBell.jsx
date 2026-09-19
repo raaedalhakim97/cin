@@ -20,14 +20,14 @@ import supabase from '../services/supabase'
 
 const KIND_META = {
   attendance_late:             { icon: Clock,         tint: 'text-[#FF8C42]' },
-  attendance_absent:           { icon: UserX,         tint: 'text-[#FF4D4D]' },
+  attendance_absent:           { icon: UserX,         tint: 'text-danger' },
   attendance_missing_clockout: { icon: TimerOff,      tint: 'text-[#FF8C42]' },
   attendance_team_late:        { icon: Clock,         tint: 'text-[#FF8C42]' },
   feed_post:                   { icon: Newspaper,     tint: 'text-[#4D9FFF]' },
   leave_submitted:             { icon: Umbrella,      tint: 'text-[#4D9FFF]' },
   leave_manager_approved:      { icon: Umbrella,      tint: 'text-[#00D4A0]' },
   leave_approved:              { icon: Umbrella,      tint: 'text-[#00D4A0]' },
-  leave_rejected:              { icon: Umbrella,      tint: 'text-[#FF4D4D]' },
+  leave_rejected:              { icon: Umbrella,      tint: 'text-danger' },
   leave_cancelled:             { icon: Umbrella,      tint: 'text-[#A0A0A0]' },
   shift_published:             { icon: CalendarClock, tint: 'text-[#00D4A0]' },
   shift_day_off:               { icon: CalendarOff,   tint: 'text-[#4D9FFF]' },
@@ -185,7 +185,7 @@ export default function NotificationBell() {
         <Bell size={17} />
         {unread > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FF4D4D] text-white text-[10px] font-bold flex items-center justify-center"
+            className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center"
             aria-hidden="true"
           >
             {unread > 9 ? '9+' : unread}

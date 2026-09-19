@@ -270,11 +270,11 @@ export default function AdminDashboard() {
                 <div className="flex flex-col gap-2.5 p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
                   <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0]">Payroll File Readiness</p>
                   <div className="flex items-center gap-2 text-sm">
-                    {wps.mol ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
+                    {wps.mol ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-danger" />}
                     <span className="text-[#1A1A1A] dark:text-white">MOL Establishment ID</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    {wps.bankRouting ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-[#FF4D4D]" />}
+                    {wps.bankRouting ? <CheckCircle2 size={14} className="text-[#00D4A0]" /> : <XCircle size={14} className="text-danger" />}
                     <span className="text-[#1A1A1A] dark:text-white">Employer Bank Routing Code</span>
                   </div>
                 </div>

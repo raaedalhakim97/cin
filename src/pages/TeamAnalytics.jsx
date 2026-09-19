@@ -57,8 +57,8 @@ const RATING_PILL = {
   'Exceptional':        'bg-[#00D4A0]/[0.14] text-[#00D4A0]',
   'High Performer':     'bg-[#4DA6FF]/[0.14] text-[#4DA6FF]',
   'Meets Expectations': 'bg-[#FFB020]/[0.14] text-[#FFB020]',
-  'Needs Improvement':  'bg-[#FF4D4D]/[0.16] text-[#FF4D4D]',
-  'Unsatisfactory':     'bg-[#FF4D4D]/[0.16] text-[#FF4D4D]',
+  'Needs Improvement':  'bg-danger/[0.16] text-danger',
+  'Unsatisfactory':     'bg-danger/[0.16] text-danger',
 }
 function pillClass(rating) {
   return RATING_PILL[rating] ?? RATING_PILL['Meets Expectations']
@@ -89,7 +89,7 @@ function StatCard({ label, val, suffix, note, up }) {
         {val}
         {suffix && <span className="text-[15px] font-medium text-[#AAAAAA] dark:text-[#6B6B6B] ml-1">{suffix}</span>}
       </p>
-      <p className={`text-[13px] font-semibold mt-1.5 ${up ? 'text-[#00D4A0]' : 'text-[#FF4D4D]'}`}>{note}</p>
+      <p className={`text-[13px] font-semibold mt-1.5 ${up ? 'text-[#00D4A0]' : 'text-danger'}`}>{note}</p>
     </div>
   )
 }
@@ -427,7 +427,7 @@ export default function TeamAnalytics() {
 
           {loading ? <Spinner /> : fetchError ? (
             <div className="flex flex-col items-center text-center py-16 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
-              <AlertCircle size={28} className="text-[#FF4D4D] mb-2" />
+              <AlertCircle size={28} className="text-danger mb-2" />
               <p className="text-sm font-medium text-[#1A1A1A] dark:text-white mb-3">Something went wrong loading team analytics.</p>
               <button
                 onClick={load}

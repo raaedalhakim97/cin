@@ -23,7 +23,7 @@ export default function Toast({ toast }) {
       className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-xl text-sm font-semibold max-w-sm ${
         isOk
           ? 'bg-[#00D4A0]/10 border-[#00D4A0]/30 text-[#00D4A0]'
-          : 'bg-[#FF4D4D]/10 border-[#FF4D4D]/30 text-[#FF4D4D]'
+          : 'bg-danger/10 border-danger/30 text-danger'
       }`}
     >
       {isOk ? <Check size={15} className="shrink-0" /> : <AlertTriangle size={15} className="shrink-0" />}

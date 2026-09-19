@@ -120,8 +120,8 @@ export default function AcceptInvite() {
     return (
       <Shell>
         <div className="rounded-xl p-8 bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-center">
-          <div className="w-12 h-12 rounded-xl bg-[#FF4D4D]/10 flex items-center justify-center mx-auto mb-4">
-            <ShieldOff size={22} className="text-[#FF4D4D]" />
+          <div className="w-12 h-12 rounded-xl bg-danger/10 flex items-center justify-center mx-auto mb-4">
+            <ShieldOff size={22} className="text-danger" />
           </div>
           <h1 className="text-lg font-bold text-[#1A1A1A] dark:text-white">Invite not available</h1>
           <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-2">
@@ -218,7 +218,7 @@ export default function AcceptInvite() {
           </div>
 
           {serverError && (
-            <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+            <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
               <AlertCircle size={14} className="shrink-0 mt-0.5" />
               {serverError}
             </div>

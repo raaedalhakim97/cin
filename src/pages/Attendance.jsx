@@ -32,7 +32,7 @@ const STATUS_META = {
   late_moderate:       { label: 'Late (≤60 min)',         dot: 'bg-[#FF8C42]', badge: 'bg-[#FF8C42]/15 text-[#FF8C42]',  cell: 'bg-[#FF8C42]/15 dark:bg-[#FF8C42]/20' },
   late_major:          { label: 'Late (>60 min)',         dot: 'bg-[#FF8C42]', badge: 'bg-[#FF8C42]/20 text-[#FF8C42]',  cell: 'bg-[#FF8C42]/20 dark:bg-[#FF8C42]/25' },
   absent_approved:     { label: 'Absent (Approved)',      dot: 'bg-[#4D9FFF]', badge: 'bg-[#4D9FFF]/10 text-[#4D9FFF]',  cell: 'bg-[#4D9FFF]/10 dark:bg-[#4D9FFF]/15' },
-  absent_unauthorized: { label: 'Absent (Unauthorized)',  dot: 'bg-[#FF4D4D]', badge: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',  cell: 'bg-[#FF4D4D]/10 dark:bg-[#FF4D4D]/15' },
+  absent_unauthorized: { label: 'Absent (Unauthorized)',  dot: 'bg-danger', badge: 'bg-danger/10 text-danger',  cell: 'bg-danger/10 dark:bg-danger/15' },
 }
 
 const STATUS_OPTIONS = [
@@ -227,11 +227,11 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
             </div>
             <div className={`p-4 rounded-xl border ${
               clockedOut
-                ? 'bg-[#FF4D4D]/10 border-[#FF4D4D]/20'
+                ? 'bg-danger/10 border-danger/20'
                 : 'bg-[#F5F5F0] dark:bg-[#0F0F0F] border-[#E8E8E8] dark:border-[#2A2A2A]'
             }`}>
               <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1">Clock Out</p>
-              <p className={`text-xl font-bold ${clockedOut ? 'text-[#FF4D4D]' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+              <p className={`text-xl font-bold ${clockedOut ? 'text-danger' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
                 {formatTime(record?.clock_out) ?? '--:--'}
               </p>
             </div>
@@ -260,7 +260,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 text-sm text-danger bg-danger/10 border border-danger/20">
               <AlertTriangle size={14} className="shrink-0" />
               {error}
             </div>
@@ -291,7 +291,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
                 <button
                   onClick={onClockOut}
                   disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-60 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] disabled:opacity-60 transition-colors"
                 >
                   {actionLoading ? <Loader2 size={15} className="animate-spin" /> : <Timer size={15} />}
                   {actionLoading ? 'Clocking out…' : 'Clock Out'}
@@ -769,7 +769,7 @@ function EditModal({ cell, onClose, onSave, saving }) {
 
           {/* Validation error */}
           {err && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
               <AlertTriangle size={13} className="shrink-0" />
               {err}
             </div>

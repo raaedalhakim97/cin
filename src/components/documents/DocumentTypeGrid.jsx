@@ -11,8 +11,8 @@ import UploadDocumentModal from './UploadDocumentModal'
 const EXPIRY_META = {
   valid:             { label: 'Valid',              cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
   expiring_soon:     { label: 'Expiring Soon',       cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
-  expiring_critical: { label: 'Expiring Critical',   cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
-  expired:           { label: 'Expired',             cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  expiring_critical: { label: 'Expiring Critical',   cls: 'bg-danger/10 text-danger' },
+  expired:           { label: 'Expired',             cls: 'bg-danger/10 text-danger' },
   no_expiry:         { label: 'No Expiry',           cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   missing:           { label: 'Missing',             cls: 'bg-[#A0A0A0]/10 text-[#666666] dark:text-[#A0A0A0]' },
 }
@@ -29,7 +29,7 @@ function TypeCard({ type, doc, canManage, onUpload, onDownload, downloading }) {
   return (
     <div
       className={`p-5 rounded-xl bg-white dark:bg-[#1E1E1E] border ${
-        missing ? 'border-[#FF4D4D]/40' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+        missing ? 'border-danger/40' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -130,7 +130,7 @@ function CompactTypeCard({ type, doc, canManage, onUpload, onDownload, downloadi
           }
         : {})}
       className={`w-full text-left p-4 rounded-xl bg-white dark:bg-[#1E1E1E] border transition-colors ${
-        missing ? 'border-[#FF4D4D]/40' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
+        missing ? 'border-danger/40' : 'border-[#E8E8E8] dark:border-[#2A2A2A]'
       } ${primary ? 'hover:border-[#00D4A0]/40 cursor-pointer' : ''} disabled:opacity-60`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -142,14 +142,14 @@ function CompactTypeCard({ type, doc, canManage, onUpload, onDownload, downloadi
         ) : (
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
-              onFile ? 'bg-[#00D4A0]' : missing ? 'bg-[#FF4D4D]' : 'bg-[#A0A0A0]/50'
+              onFile ? 'bg-[#00D4A0]' : missing ? 'bg-danger' : 'bg-[#A0A0A0]/50'
             }`}
           />
         )}
       </div>
       <p
         className={`text-xs mt-1 truncate ${
-          missing ? 'text-[#FF4D4D]' : 'text-[#666666] dark:text-[#A0A0A0]'
+          missing ? 'text-danger' : 'text-[#666666] dark:text-[#A0A0A0]'
         }`}
       >
         {status}

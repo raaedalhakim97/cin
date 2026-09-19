@@ -7,6 +7,31 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* The one colour in the palette that could not be the same in both themes.
+ *
+ * #FF4D4D is the error red, and against a dark surface it is excellent — 6.7:1 on
+ * #1E1E1E. On white it measures 3.27:1, and the case that actually matters is worse
+ * still: an error message sits INSIDE a 10% tint of itself, where it fell to 2.90:1 on a
+ * card and 2.66:1 on the page. Both well under the 4.5:1 that small text needs, and small
+ * text is exactly what it is used for — "Email is required" at 12px.
+ *
+ * #B91C1C is the light-mode answer, chosen by measurement rather than by eye. In the
+ * hardest real case — red text inside its own tint on the page background — it comes out
+ * at 5.01:1. Dark mode keeps #FF4D4D, which was never the problem.
+ *
+ * `@theme inline` is what makes one token do both: the utility emits var(--danger)
+ * rather than baking a hex in, so text-danger, bg-danger/10 and border-danger/20 all
+ * follow the theme from this single pair of declarations. Writing it as 299 separate
+ * `dark:` variants across 52 files would have been the same fix with 52 places to get it
+ * wrong next time.
+ *
+ * One deliberate exception, left as a literal hex: the icon on Landing.jsx. The marketing
+ * page is always dark — #0A0A0A, not a single `dark:` variant in the file — so the light
+ * value would put dark red on near-black for anyone whose workspace theme is light. */
+@theme inline {
+  --color-danger: var(--danger);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -43,11 +68,13 @@
 html {
   background-color: #F5F5F0;
   color-scheme: light;
+  --danger: #B91C1C;
 }
 
 html.dark {
   background-color: #0F0F0F;
   color-scheme: dark;
+  --danger: #FF4D4D;
 }
 
 body {

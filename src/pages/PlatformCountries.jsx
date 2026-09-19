@@ -131,7 +131,7 @@ export default function PlatformCountries() {
           </div>
 
           {error && (
-            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
               {error}
               <button onClick={reload} className="shrink-0 font-semibold hover:underline">Retry</button>
             </div>
@@ -391,7 +391,7 @@ function NewCountry({ onDone }) {
         <input className={input} type="url" placeholder="https://…" value={f.source_url} onChange={set('source_url')} />
       </label>
 
-      {err && <p className="sm:col-span-2 text-xs text-[#FF4D4D]">{err}</p>}
+      {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
 
       <div className="sm:col-span-2 flex items-center gap-3">
         <button disabled={busy}
@@ -467,7 +467,7 @@ function LeaveRules({ country, rules, onChanged }) {
                         if (error) console.error('[LeaveRules] delete failed', error)
                         onChanged()
                       }}
-                      className="text-[#666666] dark:text-[#A0A0A0] hover:text-[#FF4D4D]"
+                      className="text-[#666666] dark:text-[#A0A0A0] hover:text-danger"
                       aria-label={`Remove the ${r.leave_type} rule`}
                     >
                       <Trash2 size={14} />
@@ -550,7 +550,7 @@ function NewRule({ country, existing, onDone }) {
       </label>
       <label className="block sm:col-span-2">
         <span className="block text-xs font-medium text-[#1A1A1A] dark:text-white mb-1">
-          Legal reference <span className="text-[#FF4D4D]">— required</span>
+          Legal reference <span className="text-danger">— required</span>
         </span>
         <input required className={input}
                placeholder="e.g. Federal Decree-Law 33/2021, Art. 29"
@@ -567,7 +567,7 @@ function NewRule({ country, existing, onDone }) {
                value={f.notes} onChange={set('notes')} />
       </label>
 
-      {err && <p className="sm:col-span-2 text-xs text-[#FF4D4D]">{err}</p>}
+      {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
 
       <div className="sm:col-span-2">
         <button disabled={busy}

@@ -169,7 +169,7 @@ function TemplateDetail({ template, definitions, onChanged, showToast }) {
                     />
                     <button
                       type="button" onClick={() => removeLine(l)}
-                      className="shrink-0 text-[#AAAAAA] hover:text-[#FF4D4D] transition-colors"
+                      className="shrink-0 text-[#AAAAAA] hover:text-danger transition-colors"
                       aria-label="Remove"
                     >
                       <Trash2 size={14} />

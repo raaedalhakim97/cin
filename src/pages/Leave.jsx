@@ -42,7 +42,7 @@ function initials(name = '') {
 const LEAVE_TYPES = [
   { value: 'annual',      label: 'Annual Leave',     cls: 'bg-[#00D4A0]/10 text-[#00D4A0]', dot: 'bg-[#00D4A0]' },
   { value: 'sick',        label: 'Sick Leave',        cls: 'bg-[#FF8C42]/10 text-[#FF8C42]', dot: 'bg-[#FF8C42]' },
-  { value: 'emergency',   label: 'Emergency Leave',   cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]', dot: 'bg-[#FF4D4D]' },
+  { value: 'emergency',   label: 'Emergency Leave',   cls: 'bg-danger/10 text-danger', dot: 'bg-danger' },
   { value: 'marriage',    label: 'Marriage Leave',    cls: 'bg-[#9B5DE5]/10 text-[#9B5DE5]', dot: 'bg-[#9B5DE5]' },
   { value: 'paternity',   label: 'Paternity Leave',   cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]', dot: 'bg-[#4D9FFF]' },
   { value: 'maternity',   label: 'Maternity Leave',   cls: 'bg-[#F15BB5]/10 text-[#F15BB5]', dot: 'bg-[#F15BB5]' },
@@ -64,7 +64,7 @@ const STATUS_META = {
   pending:          { label: 'Pending',          cls: 'bg-[#FEE440]/15 text-[#A89200] dark:text-[#FEE440]' },
   manager_approved: { label: 'Manager Approved', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   approved:         { label: 'Approved',          cls: 'bg-[#00D4A0]/10 text-[#00D4A0]' },
-  rejected:         { label: 'Rejected',          cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  rejected:         { label: 'Rejected',          cls: 'bg-danger/10 text-danger' },
   cancelled:        { label: 'Cancelled',         cls: 'bg-[#A0A0A0]/10 text-[#A0A0A0]' },
 }
 
@@ -281,7 +281,7 @@ function RequestModal({ onClose, onSubmit, saving, offeredTypes }) {
           </div>
 
           {err && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
               <AlertTriangle size={13} className="shrink-0" />
               {err}
             </div>
@@ -363,12 +363,12 @@ function RejectModal({ request, onClose, onConfirm, saving }) {
               placeholder="Explain why this request is being rejected…"
               value={reason}
               onChange={e => { setReason(e.target.value); setErr('') }}
-              className={`${INPUT} resize-none focus:border-[#FF4D4D]`}
+              className={`${INPUT} resize-none focus:border-danger`}
             />
           </div>
 
           {err && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
               <AlertTriangle size={13} className="shrink-0" />
               {err}
             </div>
@@ -385,7 +385,7 @@ function RejectModal({ request, onClose, onConfirm, saving }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-60 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] disabled:opacity-60 transition-colors"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
               {saving ? 'Rejecting…' : 'Confirm Reject'}
@@ -412,7 +412,7 @@ function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, can
         {[
           { label: 'Pending',  value: pending,  cls: 'text-[#FEE440]' },
           { label: 'Approved', value: approved, cls: 'text-[#00D4A0]' },
-          { label: 'Rejected', value: (requests ?? []).filter(r => r.status === 'rejected').length, cls: 'text-[#FF4D4D]' },
+          { label: 'Rejected', value: (requests ?? []).filter(r => r.status === 'rejected').length, cls: 'text-danger' },
           { label: 'Total Requests', value: (requests ?? []).length, cls: 'text-[#1A1A1A] dark:text-white' },
         ].map(({ label, value, cls }) => (
           <div key={label} className="px-5 py-4 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
@@ -498,7 +498,7 @@ function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, can
                         <button
                           onClick={() => onCancel(req)}
                           disabled={cancelLoadingId === req.id}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#666666] dark:text-[#A0A0A0] border border-[#E8E8E8] dark:border-[#2A2A2A] hover:text-[#FF4D4D] hover:border-[#FF4D4D]/40 disabled:opacity-50 transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#666666] dark:text-[#A0A0A0] border border-[#E8E8E8] dark:border-[#2A2A2A] hover:text-danger hover:border-danger/40 disabled:opacity-50 transition-colors"
                         >
                           {cancelLoadingId === req.id ? <Loader2 size={11} className="animate-spin" /> : <Ban size={11} />}
                           Cancel
@@ -600,7 +600,7 @@ function TeamRequestsTab({ requests, loading, onApprove, onReject, approveLoadin
                   <button
                     onClick={() => onReject(req)}
                     disabled={busy(req.id)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white bg-danger hover:bg-[#E04040] disabled:opacity-50 transition-colors"
                   >
                     {rejectLoadingId === req.id
                       ? <Loader2 size={12} className="animate-spin" />

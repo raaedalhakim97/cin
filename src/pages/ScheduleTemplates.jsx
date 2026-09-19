@@ -110,7 +110,7 @@ function TemplateModal({ existing, onClose, onSaved, showToast, companyId }) {
             </div>
           </div>
 
-          {formError && <p className="text-xs text-[#FF4D4D]">{formError}</p>}
+          {formError && <p className="text-xs text-danger">{formError}</p>}
 
           <button
             type="submit" disabled={saving}

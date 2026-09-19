@@ -198,7 +198,7 @@ function PayslipCard({ run, revealed, onToggleReveal, onDownload, downloading, t
           </div>
           <div>
             <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mb-1">Deductions</p>
-            <p className="text-xl font-bold text-[#FF4D4D]">
+            <p className="text-xl font-bold text-danger">
               <MoneyText value={run.deductions} revealed={revealed} prefix="- " />
             </p>
           </div>
@@ -237,7 +237,7 @@ function PayslipCard({ run, revealed, onToggleReveal, onDownload, downloading, t
           <div className="space-y-2.5">
             <div className="flex items-center justify-between text-sm">
               <span className="text-[#666666] dark:text-[#A0A0A0]">Statutory & Other Deductions</span>
-              <span className="font-semibold text-[#FF4D4D]">
+              <span className="font-semibold text-danger">
                 <MoneyText value={run.deductions} revealed={revealed} currency="" prefix="- " />
               </span>
             </div>
@@ -970,9 +970,9 @@ function SummaryTab({ canExport, showToast }) {
               icon={isUp ? TrendingUp : TrendingDown}
               label="vs Last Month"
               value={pct === null ? '—' : `${isUp ? '+' : ''}${pct.toFixed(1)}%`}
-              iconBg={isUp ? 'bg-[#00D4A0]/10' : 'bg-[#FF4D4D]/10'}
-              iconColor={isUp ? 'text-[#00D4A0]' : 'text-[#FF4D4D]'}
-              valueColor={isUp ? 'text-[#00D4A0]' : 'text-[#FF4D4D]'}
+              iconBg={isUp ? 'bg-[#00D4A0]/10' : 'bg-danger/10'}
+              iconColor={isUp ? 'text-[#00D4A0]' : 'text-danger'}
+              valueColor={isUp ? 'text-[#00D4A0]' : 'text-danger'}
             />
             <StatCard
               icon={Users}

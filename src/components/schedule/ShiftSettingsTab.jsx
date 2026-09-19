@@ -192,7 +192,7 @@ function WorkLocations({ companyId, showToast }) {
               <button
                 type="button"
                 onClick={() => remove(r)}
-                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-[#FF4D4D] hover:bg-[#FF4D4D]/10 transition-colors"
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md text-danger hover:bg-danger/10 transition-colors"
                 aria-label={`Remove ${r.name}`}
               >
                 <Trash2 size={14} />

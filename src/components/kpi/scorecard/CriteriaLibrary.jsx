@@ -172,7 +172,7 @@ function CriterionDetail({ definition, onChanged, showToast }) {
                     <p className="flex-1 text-xs text-[#1A1A1A] dark:text-white">{a.comment}</p>
                     <button
                       type="button" onClick={() => removeAnchor(a)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-[#AAAAAA] hover:text-[#FF4D4D] transition-all"
+                      className="shrink-0 opacity-0 group-hover:opacity-100 text-[#AAAAAA] hover:text-danger transition-all"
                       aria-label="Remove this sentence"
                     >
                       <Trash2 size={13} />
@@ -372,7 +372,7 @@ export default function CriteriaLibrary({ companyId, canEdit, showToast }) {
           )}
 
           {err && (
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-xs text-[#FF4D4D]">
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-xs text-danger">
               <AlertTriangle size={13} className="shrink-0 mt-0.5" />{err}
             </div>
           )}

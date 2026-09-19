@@ -6,7 +6,7 @@
 const TONE_STYLES = {
   mint:    { iconBg: 'bg-[#00D4A0]/10', iconColor: 'text-[#00D4A0]' },
   orange:  { iconBg: 'bg-[#FF8C42]/10', iconColor: 'text-[#FF8C42]' },
-  red:     { iconBg: 'bg-[#FF4D4D]/10', iconColor: 'text-[#FF4D4D]' },
+  red:     { iconBg: 'bg-danger/10', iconColor: 'text-danger' },
   purple:  { iconBg: 'bg-[#A78BFA]/10', iconColor: 'text-[#A78BFA]' },
   blue:    { iconBg: 'bg-[#4D9FFF]/10', iconColor: 'text-[#4D9FFF]' },
   neutral: { iconBg: 'bg-[#F5F5F0] dark:bg-[#252525]', iconColor: 'text-[#666666] dark:text-[#A0A0A0]' },

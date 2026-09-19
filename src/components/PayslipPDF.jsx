@@ -9,7 +9,11 @@ const TEXT_GRAY  = '#666666'
 const TEXT_MUTED = '#AAAAAA'
 const BORDER     = '#E8E8E8'
 const BG_LIGHT   = '#F5F5F0'
-const DANGER     = '#FF4D4D'
+// The light-mode red, hardcoded rather than taken from the --danger token: a PDF has no
+// theme. It is rendered on white and usually printed, so the dark value is the only one
+// that ever applies here. This is the deductions figure on somebody's payslip — #FF4D4D
+// measured 3.27:1 on white, which is not a number to put a salary deduction in.
+const DANGER     = '#B91C1C'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',

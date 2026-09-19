@@ -21,8 +21,13 @@ const MAX_CONCURRENT_SESSIONS = 2
 // The distinction matters because red on a server fault sends somebody chasing the one
 // thing that is not broken, and the two-session cap is the worst case of that: the
 // password was correct, and the old page told them it was a failure.
+//
+// The credential ink is the --danger token rather than a hex, so it darkens in light mode
+// with the rest of the app. The tints stay literal: they are 10% and 22% washes behind the
+// text, where the difference between the two reds is not visible and the contrast that
+// matters is the mark against them.
 const NOTICE = {
-  credential: { ink: '#FF4D4D', tint: 'rgba(255,77,77,0.10)',   edge: 'rgba(255,77,77,0.22)',   mark: '!' },
+  credential: { ink: 'var(--danger)', tint: 'rgba(255,77,77,0.10)', edge: 'rgba(255,77,77,0.22)', mark: '!' },
   action:     { ink: '#FF8C42', tint: 'rgba(255,140,66,0.10)',  edge: 'rgba(255,140,66,0.24)',  mark: '!' },
   server:     { ink: '#4D9FFF', tint: 'rgba(77,159,255,0.10)',  edge: 'rgba(77,159,255,0.24)',  mark: 'i' },
 }
@@ -122,7 +127,7 @@ const FIELD_INPUT =
 function fieldBox(hasError) {
   return `${FIELD_BOX} ${
     hasError
-      ? 'border-[#FF4D4D]'
+      ? 'border-danger'
       : 'border-[#E8E8E8] dark:border-[#2A2A2A] focus-within:border-[#00D4A0]'
   }`
 }
@@ -247,7 +252,7 @@ export default function Login() {
                     />
                   </div>
                   {errors.email && (
-                    <p className="mt-1.5 text-xs text-[#FF4D4D]">{errors.email.message}</p>
+                    <p className="mt-1.5 text-xs text-danger">{errors.email.message}</p>
                   )}
                 </div>
 
@@ -284,7 +289,7 @@ export default function Login() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="mt-1.5 text-xs text-[#FF4D4D]">{errors.password.message}</p>
+                    <p className="mt-1.5 text-xs text-danger">{errors.password.message}</p>
                   )}
                 </div>
 

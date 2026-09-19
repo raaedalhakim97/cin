@@ -110,7 +110,7 @@ function TypeModal({ kind, existing, existingCodes, companyId, nextSortOrder, on
             <input type="number" value={points} onChange={e => setPoints(e.target.value)} className={INPUT} required />
           </div>
 
-          {formError && <p className="text-xs text-[#FF4D4D]">{formError}</p>}
+          {formError && <p className="text-xs text-danger">{formError}</p>}
 
           <button
             type="submit" disabled={saving}
@@ -161,7 +161,7 @@ function TypeList({ kind, types, onToggleActive, onEdit, onAddNew }) {
                 </p>
                 <p className="text-[10px] text-[#AAAAAA] dark:text-[#555555] font-mono">{t.code}</p>
               </div>
-              <span className={`text-xs font-bold shrink-0 ${t.points >= 0 ? 'text-[#00D4A0]' : 'text-[#FF4D4D]'}`}>
+              <span className={`text-xs font-bold shrink-0 ${t.points >= 0 ? 'text-[#00D4A0]' : 'text-danger'}`}>
                 {t.points >= 0 ? '+' : ''}{t.points}
               </span>
               <button

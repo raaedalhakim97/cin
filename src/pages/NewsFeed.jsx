@@ -181,7 +181,7 @@ function ComposerModal({ post, canPin, onClose, onSave, saving }) {
           )}
 
           {err && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 text-sm text-[#FF4D4D]">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
               <AlertTriangle size={13} className="shrink-0" />
               {err}
             </div>
@@ -240,7 +240,7 @@ function DeleteConfirmModal({ post, onClose, onConfirm, deleting }) {
           <button
             onClick={onConfirm}
             disabled={deleting}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#FF4D4D] hover:bg-[#E04040] disabled:opacity-60 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-danger hover:bg-[#E04040] disabled:opacity-60 transition-colors"
           >
             {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Delete
@@ -278,7 +278,7 @@ function CommentEditRow({ comment, onSave, onCancel }) {
       <button onClick={save} disabled={saving} className="text-[#00D4A0] hover:text-[#00B589] transition-colors disabled:opacity-50">
         {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
       </button>
-      <button onClick={onCancel} className="text-[#AAAAAA] dark:text-[#555555] hover:text-[#FF4D4D] transition-colors">
+      <button onClick={onCancel} className="text-[#AAAAAA] dark:text-[#555555] hover:text-danger transition-colors">
         <X size={12} />
       </button>
     </div>
@@ -335,7 +335,7 @@ function CommentsSection({ post, comments, loading, employee, canModerate, canWr
                     {canDelete && !isEditing && (
                       <button
                         onClick={() => onDelete(c)}
-                        className="text-[#AAAAAA] dark:text-[#555555] hover:text-[#FF4D4D] transition-colors"
+                        className="text-[#AAAAAA] dark:text-[#555555] hover:text-danger transition-colors"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -451,7 +451,7 @@ function PostCard({
                       </button>
                       <button
                         onClick={() => { setMenuOpen(false); onDelete(post) }}
-                        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-[#FF4D4D] hover:bg-[#FF4D4D]/10 transition-colors"
+                        className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-danger hover:bg-danger/10 transition-colors"
                       >
                         <Trash2 size={12} /> Delete
                       </button>

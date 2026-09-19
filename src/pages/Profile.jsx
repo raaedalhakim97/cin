@@ -85,7 +85,7 @@ const REQUEST_STATUS = {
   pending:     { label: 'Pending',     cls: 'bg-[#FF8C42]/10 text-[#FF8C42]' },
   in_progress: { label: 'In Progress', cls: 'bg-[#4D9FFF]/10 text-[#4D9FFF]' },
   completed:   { label: 'Completed',   cls: 'bg-[#00D4A0]/10 text-[#00806A] dark:text-[#00D4A0]' },
-  rejected:    { label: 'Rejected',    cls: 'bg-[#FF4D4D]/10 text-[#FF4D4D]' },
+  rejected:    { label: 'Rejected',    cls: 'bg-danger/10 text-danger' },
 }
 
 const card = 'p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]'
@@ -296,7 +296,7 @@ function PrivacyDataSection({ employee, companyId, company, role, showToast }) {
                     <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
                       Requested {fmtShortDate(r.requested_at)}
                       {r.due_date && <> · due {fmtShortDate(r.due_date)}</>}
-                      {overdue && <span className="ml-1 font-bold uppercase text-[#FF4D4D]">Overdue</span>}
+                      {overdue && <span className="ml-1 font-bold uppercase text-danger">Overdue</span>}
                     </p>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${meta.cls}`}>

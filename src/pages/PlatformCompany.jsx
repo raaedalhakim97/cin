@@ -64,16 +64,16 @@ const BADGE = {
   sent: 'bg-[#4D9FFF]/10 text-[#4D9FFF]',
   signed: 'bg-[#00D4A0]/10 text-[#00A57D] dark:text-[#00D4A0]',
   expired: 'bg-[#FF8C42]/10 text-[#FF8C42]',
-  terminated: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  terminated: 'bg-danger/10 text-danger',
   // invoices
   paid: 'bg-[#00D4A0]/10 text-[#00A57D] dark:text-[#00D4A0]',
-  overdue: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  overdue: 'bg-danger/10 text-danger',
   void: 'bg-[#F5F5F0] dark:bg-[#252525] text-[#666666] dark:text-[#A0A0A0]',
   refunded: 'bg-[#A78BFA]/10 text-[#A78BFA]',
   // actions + tickets
   open: 'bg-[#FF8C42]/10 text-[#FF8C42]',
   in_progress: 'bg-[#4D9FFF]/10 text-[#4D9FFF]',
-  blocked: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  blocked: 'bg-danger/10 text-danger',
   done: 'bg-[#00D4A0]/10 text-[#00A57D] dark:text-[#00D4A0]',
   cancelled: 'bg-[#F5F5F0] dark:bg-[#252525] text-[#666666] dark:text-[#A0A0A0]',
   waiting_on_customer: 'bg-[#A78BFA]/10 text-[#A78BFA]',
@@ -82,11 +82,11 @@ const BADGE = {
   // access
   active: 'bg-[#00D4A0]/10 text-[#00A57D] dark:text-[#00D4A0]',
   pending: 'bg-[#FF8C42]/10 text-[#FF8C42]',
-  unlinked: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  unlinked: 'bg-danger/10 text-danger',
   // plan — 'active' and 'cancelled' above are shared with the invoice and action
   // vocabularies, which is fine: they mean the same kind of thing in both.
   trial: 'bg-[#4D9FFF]/10 text-[#4D9FFF]',
-  suspended: 'bg-[#FF4D4D]/10 text-[#FF4D4D]',
+  suspended: 'bg-danger/10 text-danger',
 }
 
 const ROLE_LABEL = { super_admin: 'Owner', hr_manager: 'HR Manager', admin: 'Ops Coordinator' }
@@ -215,7 +215,7 @@ export default function PlatformCompany() {
           </Link>
 
           {error && (
-            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-[#FF4D4D] bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+            <div className="mb-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm text-danger bg-danger/10 border border-danger/20">
               {error}
               <button onClick={reload} className="shrink-0 font-semibold hover:underline">Retry</button>
             </div>
@@ -355,12 +355,12 @@ function Plan({ companyId, name, row, onChanged }) {
         </label>
       </div>
 
-      {err && <p className="text-xs text-[#FF4D4D] mt-3">{err}</p>}
+      {err && <p className="text-xs text-danger mt-3">{err}</p>}
 
       {confirming ? (
-        <div className="mt-4 px-4 py-3 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/20">
+        <div className="mt-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/20">
           <p className="text-sm text-[#1A1A1A] dark:text-white font-semibold flex items-start gap-2">
-            <AlertTriangle size={15} className="text-[#FF4D4D] shrink-0 mt-0.5" />
+            <AlertTriangle size={15} className="text-danger shrink-0 mt-0.5" />
             Shut the workspace at {name}?
           </p>
           <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1.5 ml-[23px]">
@@ -369,7 +369,7 @@ function Plan({ companyId, name, row, onChanged }) {
           </p>
           <div className="flex gap-2 mt-3 ml-[23px]">
             <button onClick={save} disabled={busy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#FF4D4D] hover:bg-[#E63939] disabled:opacity-50">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-danger hover:bg-[#E63939] disabled:opacity-50">
               {busy && <Loader2 size={13} className="animate-spin" />} Yes, set to {chosen.label.toLowerCase()}
             </button>
             <button onClick={() => setConfirming(false)}
@@ -441,7 +441,7 @@ function Contacts({ companyId, rows, onChanged }) {
                  onChange={(e) => setF({ ...f, phone: e.target.value })} />
           <input className={input} type="email" placeholder="name@company.com" value={f.email}
                  onChange={(e) => setF({ ...f, email: e.target.value })} />
-          {err && <p className="sm:col-span-2 text-xs text-[#FF4D4D]">{err}</p>}
+          {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
                   className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save contact
@@ -469,7 +469,7 @@ function Contacts({ companyId, rows, onChanged }) {
                   {!r.phone && !r.email ? 'no number or email' : null}
                 </span>
               </span>
-              <button onClick={() => remove(r.id)} className="shrink-0 text-[#FF4D4D] hover:underline" aria-label="Remove contact">
+              <button onClick={() => remove(r.id)} className="shrink-0 text-danger hover:underline" aria-label="Remove contact">
                 <Trash2 size={13} />
               </button>
             </li>
@@ -535,7 +535,7 @@ function Access({ rows, onChanged }) {
                 {r.position_title ? ` · ${r.position_title}` : ''} · {r.email}
               </span>
               {r.status === 'unlinked' && (
-                <span className="text-[11px] text-[#FF4D4D]">
+                <span className="text-[11px] text-danger">
                   signs in but has no employee record — they will hit “account not linked”
                 </span>
               )}
@@ -547,7 +547,7 @@ function Access({ rows, onChanged }) {
                     {busy === r.invite_id ? 'Fetching…' : 'Show invite link'}
                   </button>
                   <button onClick={() => revoke(r.invite_id)} disabled={busy === r.invite_id}
-                          className="font-semibold text-[#FF4D4D] hover:underline disabled:opacity-50">
+                          className="font-semibold text-danger hover:underline disabled:opacity-50">
                     Revoke
                   </button>
                 </span>
@@ -560,12 +560,12 @@ function Access({ rows, onChanged }) {
               {link?.id === r.invite_id && (
                 <div className="w-full mt-1.5 p-2.5 rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A]">
                   {link.error ? (
-                    <p className="text-[11px] text-[#FF4D4D]">{link.error}</p>
+                    <p className="text-[11px] text-danger">{link.error}</p>
                   ) : (
                     <>
                       <p className="text-[11px] text-[#666666] dark:text-[#A0A0A0] mb-1">
                         Send this to {link.email}. Whoever opens it sets the password.
-                        {link.expired && <span className="text-[#FF4D4D] font-semibold"> This link has expired — revoke and re-invite.</span>}
+                        {link.expired && <span className="text-danger font-semibold"> This link has expired — revoke and re-invite.</span>}
                       </p>
                       <p className="font-mono text-[11px] wrap-break-word text-[#1A1A1A] dark:text-white select-all">
                         {link.url}
@@ -667,7 +667,7 @@ function Contract({ companyId, row, defaultCurrency, onChanged }) {
             <input type="checkbox" checked={!!f.auto_renew} onChange={(e) => setF({ ...f, auto_renew: e.target.checked })} />
             Auto-renews
           </label>
-          {err && <p className="sm:col-span-2 text-xs text-[#FF4D4D]">{err}</p>}
+          {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
                   className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save contract
@@ -754,7 +754,7 @@ function Payments({ companyId, rows, defaultCurrency, onChanged }) {
               {['draft', 'sent', 'paid', 'overdue', 'void'].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>
-          {err && <p className="sm:col-span-2 text-xs text-[#FF4D4D]">{err}</p>}
+          {err && <p className="sm:col-span-2 text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
                   className="sm:col-span-2 justify-self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save invoice
@@ -832,7 +832,7 @@ function Actions({ companyId, rows, onChanged }) {
             </select>
             <input type="date" className={input} value={f.due_on} onChange={(e) => setF({ ...f, due_on: e.target.value })} />
           </div>
-          {err && <p className="text-xs text-[#FF4D4D]">{err}</p>}
+          {err && <p className="text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save action
@@ -916,7 +916,7 @@ function Support({ companyId, rows, onChanged }) {
             <input className={input} placeholder="Raised by" value={f.raised_by}
                    onChange={(e) => setF({ ...f, raised_by: e.target.value })} />
           </div>
-          {err && <p className="text-xs text-[#FF4D4D]">{err}</p>}
+          {err && <p className="text-xs text-danger">{err}</p>}
           <button type="submit" disabled={busy}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60">
             {busy && <Loader2 size={12} className="animate-spin" />} Save ticket
@@ -974,7 +974,7 @@ function Documents({ rows }) {
                     {d.expiry_date ? ` · expires ${DATE(d.expiry_date)}` : ''}
                   </span>
                 </span>
-                {expired && <span className="shrink-0 text-[#FF4D4D] font-semibold">expired</span>}
+                {expired && <span className="shrink-0 text-danger font-semibold">expired</span>}
               </li>
             )
           })}

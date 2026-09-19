@@ -88,7 +88,7 @@ export default function PendingInvitesModal({ canRevoke, onClose, showToast, onC
                       <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">{inv.email}</p>
                       <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">
                         {INVITE_ROLE_LABEL[inv.role] ?? inv.role} · Sent {formatDate(inv.created_at)} ·{' '}
-                        {expired ? <span className="text-[#FF4D4D] font-semibold">Expired</span> : `Expires ${formatDate(inv.expires_at)}`}
+                        {expired ? <span className="text-danger font-semibold">Expired</span> : `Expires ${formatDate(inv.expires_at)}`}
                       </p>
                     </div>
                     <button
@@ -105,7 +105,7 @@ export default function PendingInvitesModal({ canRevoke, onClose, showToast, onC
                         onClick={() => revoke(inv)}
                         disabled={revokingId === inv.id}
                         title="Revoke invite"
-                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-[#FF4D4D] disabled:opacity-50 transition-colors"
+                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-danger disabled:opacity-50 transition-colors"
                       >
                         {revokingId === inv.id ? <Loader2 size={15} className="animate-spin" /> : <Ban size={15} />}
                       </button>
