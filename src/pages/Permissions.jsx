@@ -21,7 +21,7 @@ function Pill({ code, note }) {
   if (code === '-') {
     return (
       <span
-        className="text-[#AAAAAA] dark:text-[#555555] text-sm select-none"
+        className="text-[#666666] dark:text-[#A0A0A0] text-sm select-none"
         title={note ? `No access — ${note}` : 'No access'}
       >
         –

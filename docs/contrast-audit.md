@@ -32,7 +32,7 @@ was looking for.
 | **`#FF8C42`** amber | **110** | **2.31** | **2.11** | **fails** |
 | **`#4D9FFF`** blue | **54** | **2.72** | **2.49** | **fails** |
 | `#00A57D` | 26 | 3.14 | 2.88 | fails |
-| `#B5B5B5` | 24 | 2.05 | 1.87 | fails |
+| `#B5B5B5` | 24 | 2.05 | 1.87 | **not a failure — see the note below** |
 | `#A0A0A0` without a `dark:` prefix | 22 | 2.61 | 2.39 | fails |
 
 ### Dark theme
@@ -75,7 +75,26 @@ pills — "Active", "Approved", "Paid" — so they carry meaning.
 `text-[#00A57D] dark:text-[#00D4A0]` — exactly the right shape, applied in one file. But
 `#00A57D` measures 3.14:1, so it fixes the icons and not the text.
 
+> **`#B5B5B5` was a false alarm — corrected.** The table above measures every colour against
+> the light surfaces, but all 24 uses of `#B5B5B5` are on Landing and the legal pages, which
+> are `#0A0A0A` in both themes. There it measures **9.66:1**. It never touches a white card.
+> Left exactly as it is.
+
 ## Finding 2 — the faint grey pair, 140 sites
+
+> **Done — 112 sites changed, and the recommendation changed while doing it.** The original
+> plan was a `--muted` token. That turned out to be impossible on this palette: the only
+> grey dimmer than the `#666666` body colour that still clears 4.5:1 on **both** a white
+> card and the `#F5F5F0` page is `#6E6E6E` (5.10 / 4.66), which is visually
+> indistinguishable from the body colour. `#767676` already fails on the page at 4.15.
+>
+> So there is no room here for a third readable grey, and inventing a token for one would
+> have been a fiction. Readable text moved to the **existing** body pair
+> `text-[#666666] dark:text-[#A0A0A0]` instead. Where a hierarchy step is genuinely needed,
+> it has to come from size, weight or position — not from a fourth shade of grey.
+>
+> Verified in a browser on the signup footer line: **5.25:1** light and **7.33:1** dark,
+> against 2.12 and 2.57 before.
 
 `#AAAAAA` light / `#555555` dark, at 2.32:1 and 2.24:1. By role:
 

@@ -192,7 +192,7 @@ export default function HRDashboard() {
           </div>
           {pendingApprovals.length === 0 ? (
             <div className="flex flex-col items-center py-10 gap-2">
-              <CalendarOff size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+              <CalendarOff size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No pending requests</p>
             </div>
           ) : (
@@ -237,7 +237,7 @@ export default function HRDashboard() {
 
       {/* Compliance snapshot */}
       <div>
-        <p className="text-xs font-semibold tracking-widest text-[#AAAAAA] dark:text-[#555555] uppercase mb-3">
+        <p className="text-xs font-semibold tracking-widest text-[#666666] dark:text-[#A0A0A0] uppercase mb-3">
           Compliance Snapshot
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -256,7 +256,7 @@ export default function HRDashboard() {
 
       {/* Scheduling snapshot */}
       <div>
-        <p className="text-xs font-semibold tracking-widest text-[#AAAAAA] dark:text-[#555555] uppercase mb-3">
+        <p className="text-xs font-semibold tracking-widest text-[#666666] dark:text-[#A0A0A0] uppercase mb-3">
           Scheduling Snapshot
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

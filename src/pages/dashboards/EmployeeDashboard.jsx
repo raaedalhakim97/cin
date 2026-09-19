@@ -211,7 +211,7 @@ export default function EmployeeDashboard() {
 
             {activePlans.length === 0 ? (
               <div className="flex flex-col items-center py-10 gap-2">
-                <Target size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+                <Target size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
                 <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No active development plans</p>
                 <Link to="/kpi" className="text-xs text-[#00D4A0] hover:underline">Start one on the KPI page</Link>
               </div>
@@ -241,7 +241,7 @@ export default function EmployeeDashboard() {
                           </div>
                         </>
                       ) : (
-                        <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">No baseline/target score set for this plan yet</p>
+                        <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">No baseline/target score set for this plan yet</p>
                       )}
                     </div>
                   )

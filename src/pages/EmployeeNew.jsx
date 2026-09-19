@@ -28,7 +28,7 @@ function Field({ label, required, error, hint, children }) {
         {label}{required && <span className="text-danger ml-0.5">*</span>}
       </label>
       {children}
-      {hint  && <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">{hint}</p>}
+      {hint  && <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">{hint}</p>}
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   )
@@ -358,7 +358,7 @@ export default function EmployeeNew() {
 
               {/* ── Compensation ─────────────────────────────────────────── */}
               <Section title="Compensation">
-                <p className="text-xs text-[#AAAAAA] dark:text-[#555555] -mt-2">
+                <p className="text-xs text-[#666666] dark:text-[#A0A0A0] -mt-2">
                   Salary values are stored securely and displayed masked to authorized users.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

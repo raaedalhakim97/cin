@@ -216,7 +216,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
                 : 'bg-[#F5F5F0] dark:bg-[#0F0F0F] border-[#E8E8E8] dark:border-[#2A2A2A]'
             }`}>
               <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1">Clock In</p>
-              <p className={`text-xl font-bold ${clockedIn ? 'text-[#00D4A0]' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+              <p className={`text-xl font-bold ${clockedIn ? 'text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
                 {formatTime(record?.clock_in) ?? '--:--'}
               </p>
               {clockedIn && record?.shifts && (
@@ -231,7 +231,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
                 : 'bg-[#F5F5F0] dark:bg-[#0F0F0F] border-[#E8E8E8] dark:border-[#2A2A2A]'
             }`}>
               <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1">Clock Out</p>
-              <p className={`text-xl font-bold ${clockedOut ? 'text-danger' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+              <p className={`text-xl font-bold ${clockedOut ? 'text-danger' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
                 {formatTime(record?.clock_out) ?? '--:--'}
               </p>
             </div>
@@ -401,7 +401,7 @@ function EarlyCheckoutModal({ prompt, saving, onCancel, onConfirm }) {
         </p>
 
         <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1.5">
-          Reason <span className="font-normal text-[#AAAAAA] dark:text-[#555555]">(optional)</span>
+          Reason <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">(optional)</span>
         </label>
         <input
           type="text"
@@ -601,7 +601,7 @@ function CalendarGrid({ records, viewDate, loading, canEdit, onDayClick }) {
                 {clickable && (
                   <Edit3
                     size={9}
-                    className="absolute top-1.5 right-1.5 text-[#AAAAAA] dark:text-[#555555] opacity-0 group-hover:opacity-100"
+                    className="absolute top-1.5 right-1.5 text-[#666666] dark:text-[#A0A0A0] opacity-0 group-hover:opacity-100"
                   />
                 )}
 

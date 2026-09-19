@@ -69,7 +69,7 @@ export default function HowCalculatedPopover({ row, align = 'left', className = 
           type="button"
           onClick={() => setOpen(o => !o)}
           title="How is this calculated?"
-          className="flex items-center justify-center w-5 h-5 rounded-full text-[#AAAAAA] dark:text-[#555555] hover:text-accent hover:bg-[#00D4A0]/10 transition-colors"
+          className="flex items-center justify-center w-5 h-5 rounded-full text-[#666666] dark:text-[#A0A0A0] hover:text-accent hover:bg-[#00D4A0]/10 transition-colors"
         >
           <Info size={13} />
         </button>
@@ -113,7 +113,7 @@ export default function HowCalculatedPopover({ row, align = 'left', className = 
             <span className="text-sm font-bold text-[#00D4A0]">{displayedTotal.toFixed(1)}</span>
           </div>
 
-          <p className="text-[10px] text-[#AAAAAA] dark:text-[#555555] mt-2">
+          <p className="text-[10px] text-[#666666] dark:text-[#A0A0A0] mt-2">
             {isDefault
               ? 'Weights not recorded for this score — showing default 30/25/20/15/10 split.'
               : "Weights are set by your company's KPI Configuration and locked in per score."}

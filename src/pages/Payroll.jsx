@@ -294,7 +294,7 @@ function PreviousMonthsList({ runs, onSelect }) {
                 <td className="px-5 py-3.5 text-[#1A1A1A] dark:text-white">{maskSalary()}</td>
                 <td className="px-5 py-3.5 text-[#1A1A1A] dark:text-white">{maskSalary()}</td>
                 <td className="px-5 py-3.5"><span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${meta.cls}`}>{meta.label}</span></td>
-                <td className="px-5 py-3.5 text-right text-[#AAAAAA] dark:text-[#555555]"><ChevronRight size={14} className="inline" /></td>
+                <td className="px-5 py-3.5 text-right text-[#666666] dark:text-[#A0A0A0]"><ChevronRight size={14} className="inline" /></td>
               </tr>
             )
           })}
@@ -719,7 +719,7 @@ function PayrollRunTab({ companyId, role, showToast }) {
           </div>
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center py-16">
-            <Users size={22} className="text-[#AAAAAA] dark:text-[#555555] mb-2" />
+            <Users size={22} className="text-[#666666] dark:text-[#A0A0A0] mb-2" />
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No eligible employees found</p>
           </div>
         ) : (
@@ -820,7 +820,7 @@ function PayrollRunTab({ companyId, role, showToast }) {
                             <CheckCircle2 size={13} /> Paid
                           </span>
                         )}
-                        {status === 'not_run' && <span className="text-xs text-[#AAAAAA] dark:text-[#555555]">—</span>}
+                        {status === 'not_run' && <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">—</span>}
                       </div>
                     </td>
                   </tr>

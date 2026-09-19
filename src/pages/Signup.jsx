@@ -153,7 +153,7 @@ export default function Signup() {
                 Full name
               </label>
               <div className="relative">
-                <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Sara Al Mansoori"
@@ -172,7 +172,7 @@ export default function Signup() {
                 Work email
               </label>
               <div className="relative">
-                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="email"
                   placeholder="you@company.com"
@@ -194,7 +194,7 @@ export default function Signup() {
                 Password
               </label>
               <div className="relative">
-                <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="At least 8 characters"
@@ -209,7 +209,7 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] hover:text-[#666666] dark:hover:text-[#A0A0A0] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] hover:text-[#666666] dark:hover:text-[#A0A0A0] transition-colors"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -223,7 +223,7 @@ export default function Signup() {
                 Company name
               </label>
               <div className="relative">
-                <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Your company"
@@ -272,7 +272,7 @@ export default function Signup() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#AAAAAA] dark:text-[#555555] mt-6">
+        <p className="text-center text-xs text-[#666666] dark:text-[#A0A0A0] mt-6">
           Already have an account?{' '}
           <Link to="/login" className="text-[#00D4A0] hover:underline">Log in</Link>
         </p>

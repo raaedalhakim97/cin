@@ -169,7 +169,7 @@ function TemplateDetail({ template, definitions, onChanged, showToast }) {
                     />
                     <button
                       type="button" onClick={() => removeLine(l)}
-                      className="shrink-0 text-[#AAAAAA] hover:text-danger transition-colors"
+                      className="shrink-0 text-[#666666] dark:text-[#A0A0A0] hover:text-danger transition-colors"
                       aria-label="Remove"
                     >
                       <Trash2 size={14} />
@@ -316,7 +316,7 @@ export default function TemplateBuilder({ companyId, role, showToast }) {
 
       {templates.length === 0 ? (
         <div className="p-8 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-center">
-          <FileText size={20} className="mx-auto text-[#AAAAAA] dark:text-[#555555] mb-2" />
+          <FileText size={20} className="mx-auto text-[#666666] dark:text-[#A0A0A0] mb-2" />
           <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">No scorecards yet</p>
           <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1">
             Create one above, add criteria and weights, then send it for approval.

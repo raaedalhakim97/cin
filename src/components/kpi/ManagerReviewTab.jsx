@@ -277,7 +277,7 @@ export default function ManagerReviewTab({ role, showToast }) {
                   <div className="flex-1 min-w-[220px]">
                     <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">
                       Comment{' '}
-                      <span className="font-normal text-[#AAAAAA] dark:text-[#555555]">
+                      <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">
                         (the employee sees this once published)
                       </span>
                     </label>

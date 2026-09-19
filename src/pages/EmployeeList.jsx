@@ -350,7 +350,7 @@ export default function EmployeeList() {
             <div className="relative flex-1 min-w-[220px] max-w-sm">
               <Search
                 size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555]"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0]"
               />
               <input
                 type="text"

@@ -457,7 +457,7 @@ function Contacts({ companyId, rows, onChanged }) {
             <li key={r.id} className="flex items-start gap-2 text-xs">
               <button onClick={() => makePrimary(r.id)} title={r.is_primary ? 'Primary contact' : 'Make primary'}
                       className="shrink-0 mt-0.5">
-                <Star size={13} className={r.is_primary ? 'text-[#FF8C42] fill-[#FF8C42]' : 'text-[#AAAAAA] dark:text-[#555555]'} />
+                <Star size={13} className={r.is_primary ? 'text-[#FF8C42] fill-[#FF8C42]' : 'text-[#666666] dark:text-[#A0A0A0]'} />
               </button>
               <span className="min-w-0 flex-1">
                 <span className="font-semibold text-[#1A1A1A] dark:text-white">{r.full_name}</span>

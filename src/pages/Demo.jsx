@@ -95,7 +95,7 @@ export default function Demo() {
                 Company name
               </label>
               <div className="relative">
-                <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Your company"
@@ -114,7 +114,7 @@ export default function Demo() {
                 Contact name
               </label>
               <div className="relative">
-                <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Sara Al Mansoori"
@@ -133,7 +133,7 @@ export default function Demo() {
                 Work email
               </label>
               <div className="relative">
-                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="email"
                   placeholder="you@company.com"
@@ -152,10 +152,10 @@ export default function Demo() {
             {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-[#1A1A1A] dark:text-white mb-1.5">
-                Phone <span className="text-[#AAAAAA] dark:text-[#555555] font-normal">(optional)</span>
+                Phone <span className="text-[#666666] dark:text-[#A0A0A0] font-normal">(optional)</span>
               </label>
               <div className="relative">
-                <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <input
                   type="tel"
                   placeholder="+971 50 123 4567"
@@ -171,7 +171,7 @@ export default function Demo() {
                 Employee count
               </label>
               <div className="relative">
-                <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <select
                   defaultValue=""
                   className={`w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[#F5F5F0] dark:bg-[#0F0F0F] text-[#1A1A1A] dark:text-white border focus:outline-none focus:border-[#00D4A0] transition-colors ${
@@ -191,10 +191,10 @@ export default function Demo() {
             {/* Message */}
             <div>
               <label className="block text-sm font-medium text-[#1A1A1A] dark:text-white mb-1.5">
-                Message <span className="text-[#AAAAAA] dark:text-[#555555] font-normal">(optional)</span>
+                Message <span className="text-[#666666] dark:text-[#A0A0A0] font-normal">(optional)</span>
               </label>
               <div className="relative">
-                <MessageSquare size={15} className="absolute left-3 top-3 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+                <MessageSquare size={15} className="absolute left-3 top-3 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
                 <textarea
                   rows={3}
                   placeholder="What are you hoping to solve with BYOND?"
@@ -224,7 +224,7 @@ export default function Demo() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#AAAAAA] dark:text-[#555555] mt-6">
+        <p className="text-center text-xs text-[#666666] dark:text-[#A0A0A0] mt-6">
           Prefer to jump right in?{' '}
           <Link to="/signup" className="text-[#00D4A0] hover:underline">Start a free trial</Link>
         </p>

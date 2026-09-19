@@ -59,7 +59,7 @@ function TypeCard({ type, doc, canManage, onUpload, onDownload, downloading }) {
           <p>{doc.expiry_date ? `Expires ${formatDate(doc.expiry_date)}` : 'No expiry date'}</p>
         </div>
       ) : (
-        <p className="text-xs text-[#AAAAAA] dark:text-[#555555] mb-4">Not uploaded yet</p>
+        <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mb-4">Not uploaded yet</p>
       )}
 
       <div className="flex items-center gap-2">

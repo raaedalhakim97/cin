@@ -289,7 +289,7 @@ function ScoreGauge({ score, color, size = 176 }) {
 function AttendanceScoreTooltip() {
   return (
     <div className="relative inline-flex group">
-      <Info size={12} className="text-[#AAAAAA] dark:text-[#555555] hover:text-[#00D4A0] transition-colors cursor-help" />
+      <Info size={12} className="text-[#666666] dark:text-[#A0A0A0] hover:text-[#00D4A0] transition-colors cursor-help" />
       <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 w-64 p-3 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] shadow-xl">
         <p className="text-[11px] font-semibold text-white mb-1.5">Attendance scoring (per day)</p>
         <div className="space-y-1">
@@ -631,7 +631,7 @@ function HistoryTab({ employee }) {
                   <td className="px-4 py-3.5">
                     {r.bonus_eligible
                       ? <span className="flex items-center gap-1 text-xs text-[#00D4A0] font-semibold"><Gift size={12} /> Yes</span>
-                      : <span className="text-xs text-[#AAAAAA] dark:text-[#555555]">—</span>}
+                      : <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">—</span>}
                   </td>
                 </tr>
               ))}
@@ -988,7 +988,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
       <div className="rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] overflow-hidden">
         {loading ? <Spinner /> : sorted.length === 0 ? (
           <div className="flex flex-col items-center py-16">
-            <Users size={22} className="text-[#AAAAAA] dark:text-[#555555] mb-2" />
+            <Users size={22} className="text-[#666666] dark:text-[#A0A0A0] mb-2" />
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No employees found</p>
           </div>
         ) : (
@@ -1008,7 +1008,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
                     {i < 3 && row ? (
                       <Trophy size={15} className={i === 0 ? 'text-[#FFD700]' : i === 1 ? 'text-[#C0C0C0]' : 'text-[#CD7F32]'} />
                     ) : (
-                      <span className="text-xs text-[#AAAAAA] dark:text-[#555555]">{i + 1}</span>
+                      <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">{i + 1}</span>
                     )}
                   </td>
                   <td className="px-4 py-3.5">
@@ -1040,7 +1040,7 @@ function TeamKPITab({ companyId, showToast, evalFreq, evalAnchor, role, issuerId
                         <Pencil size={11} /> Score
                       </button>
                     ) : (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#AAAAAA] dark:text-[#555555]">
+                      <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#666666] dark:text-[#A0A0A0]">
                         <Lock size={11} /> Locked
                       </span>
                     )}
@@ -1561,7 +1561,7 @@ function WarningsRewardsTab({ companyId, issuerId, showToast }) {
       <div className="rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] overflow-hidden overflow-x-auto">
         {loading ? <Spinner /> : filtered.length === 0 ? (
           <div className="flex flex-col items-center py-16">
-            <ShieldAlert size={22} className="text-[#AAAAAA] dark:text-[#555555] mb-2" />
+            <ShieldAlert size={22} className="text-[#666666] dark:text-[#A0A0A0] mb-2" />
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No warnings or rewards recorded yet</p>
           </div>
         ) : (

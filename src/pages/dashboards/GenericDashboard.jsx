@@ -112,7 +112,7 @@ function AttendanceCard({ employee, canClockInOut }) {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <CalendarDays size={18} className="text-[#AAAAAA] dark:text-[#555555]" />
+        <CalendarDays size={18} className="text-[#666666] dark:text-[#A0A0A0]" />
       </div>
 
       {loadingRecord ? (
@@ -133,7 +133,7 @@ function AttendanceCard({ employee, canClockInOut }) {
                 : 'bg-[#F5F5F0] dark:bg-[#0F0F0F] border-[#E8E8E8] dark:border-[#2A2A2A]'
             }`}>
               <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1">Clock In</p>
-              <p className={`text-lg font-bold ${clockedIn ? 'text-[#00D4A0]' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+              <p className={`text-lg font-bold ${clockedIn ? 'text-[#00D4A0]' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
                 {formatTime(attendance?.clock_in) ?? '--:--'}
               </p>
             </div>
@@ -143,7 +143,7 @@ function AttendanceCard({ employee, canClockInOut }) {
                 : 'bg-[#F5F5F0] dark:bg-[#0F0F0F] border-[#E8E8E8] dark:border-[#2A2A2A]'
             }`}>
               <p className="text-xs font-medium text-[#666666] dark:text-[#A0A0A0] mb-1">Clock Out</p>
-              <p className={`text-lg font-bold ${clockedOut ? 'text-danger' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+              <p className={`text-lg font-bold ${clockedOut ? 'text-danger' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
                 {formatTime(attendance?.clock_out) ?? '--:--'}
               </p>
             </div>
@@ -221,7 +221,7 @@ export default function GenericDashboard({ employee }) {
               )}
             </div>
           </div>
-          <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">{employee.email}</p>
+          <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">{employee.email}</p>
         </div>
 
         <LatestNewsWidget />
@@ -229,7 +229,7 @@ export default function GenericDashboard({ employee }) {
 
       {/* Right column — employment stats */}
       <div className="lg:col-span-2 space-y-4">
-        <p className="text-xs font-semibold tracking-widest text-[#AAAAAA] dark:text-[#555555] uppercase">
+        <p className="text-xs font-semibold tracking-widest text-[#666666] dark:text-[#A0A0A0] uppercase">
           Employment Details
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

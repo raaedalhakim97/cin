@@ -159,7 +159,7 @@ function TypeList({ kind, types, onToggleActive, onEdit, onAddNew }) {
                   {t.label}
                   {!isReward && <span className="ml-1.5 text-xs font-normal text-[#666666] dark:text-[#A0A0A0]">(Level {t.warning_level})</span>}
                 </p>
-                <p className="text-[10px] text-[#AAAAAA] dark:text-[#555555] font-mono">{t.code}</p>
+                <p className="text-[10px] text-[#666666] dark:text-[#A0A0A0] font-mono">{t.code}</p>
               </div>
               <span className={`text-xs font-bold shrink-0 ${t.points >= 0 ? 'text-[#00D4A0]' : 'text-danger'}`}>
                 {t.points >= 0 ? '+' : ''}{t.points}

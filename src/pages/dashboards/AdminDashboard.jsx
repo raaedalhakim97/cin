@@ -234,7 +234,7 @@ export default function AdminDashboard() {
         </div>
         {trendData.length === 0 ? (
           <div className="flex flex-col items-center py-10 gap-2">
-            <BarChart3 size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+            <BarChart3 size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No KPI history yet</p>
           </div>
         ) : (
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
 
         {/* Compliance snapshot */}
         <div className="space-y-4">
-          <p className="text-xs font-semibold tracking-widest text-[#AAAAAA] dark:text-[#555555] uppercase">
+          <p className="text-xs font-semibold tracking-widest text-[#666666] dark:text-[#A0A0A0] uppercase">
             Compliance Snapshot
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -288,7 +288,7 @@ export default function AdminDashboard() {
           <h2 className="text-base font-semibold text-[#1A1A1A] dark:text-white mb-4">Recent Activity</h2>
           {activity.length === 0 ? (
             <div className="flex flex-col items-center py-10 gap-2">
-              <Activity size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+              <Activity size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No recent activity</p>
             </div>
           ) : (
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
 
       {/* Scheduling snapshot */}
       <div>
-        <p className="text-xs font-semibold tracking-widest text-[#AAAAAA] dark:text-[#555555] uppercase mb-3">
+        <p className="text-xs font-semibold tracking-widest text-[#666666] dark:text-[#A0A0A0] uppercase mb-3">
           Scheduling Snapshot
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
