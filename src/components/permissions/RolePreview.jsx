@@ -106,7 +106,7 @@ export default function RolePreview() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#AAAAAA] dark:text-[#555555] mt-2">
+          <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-2">
             {nav.length} of {NAV_ITEMS.length} menu items
           </p>
         </div>
@@ -154,7 +154,7 @@ export default function RolePreview() {
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-[#AAAAAA] dark:text-[#555555] mt-2">
+              <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-2">
                 Reached from a link elsewhere in the app rather than the menu — an employee
                 record opened from the list, for instance.
               </p>

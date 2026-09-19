@@ -149,7 +149,7 @@ export default function ManagerDashboard() {
           <h2 className="text-base font-semibold text-[#1A1A1A] dark:text-white mb-4">Team Today</h2>
           {team.length === 0 ? (
             <div className="flex flex-col items-center py-10 gap-2">
-              <Users size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+              <Users size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No active team members yet</p>
             </div>
           ) : (
@@ -191,7 +191,7 @@ export default function ManagerDashboard() {
           </div>
           {pendingLeave.length === 0 ? (
             <div className="flex flex-col items-center py-10 gap-2">
-              <CalendarOff size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+              <CalendarOff size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No pending requests</p>
             </div>
           ) : (
@@ -219,7 +219,7 @@ export default function ManagerDashboard() {
         <h2 className="text-base font-semibold text-[#1A1A1A] dark:text-white mb-4">Team KPI Snapshot</h2>
         {trendData.length === 0 ? (
           <div className="flex flex-col items-center py-10 gap-2">
-            <BarChart3 size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+            <BarChart3 size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
             <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No KPI history for your team yet</p>
           </div>
         ) : (

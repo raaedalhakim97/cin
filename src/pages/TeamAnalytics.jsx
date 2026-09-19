@@ -87,7 +87,7 @@ function StatCard({ label, val, suffix, note, up }) {
       <p className="text-xs uppercase tracking-wide text-[#666666] dark:text-[#9A9A9A] font-semibold">{label}</p>
       <p className="text-[32px] font-bold mt-2 tracking-tight text-[#1A1A1A] dark:text-white">
         {val}
-        {suffix && <span className="text-[15px] font-medium text-[#AAAAAA] dark:text-[#6B6B6B] ml-1">{suffix}</span>}
+        {suffix && <span className="text-[15px] font-medium text-[#666666] dark:text-[#A0A0A0] ml-1">{suffix}</span>}
       </p>
       <p className={`text-[13px] font-semibold mt-1.5 ${up ? 'text-[#00D4A0]' : 'text-danger'}`}>{note}</p>
     </div>
@@ -438,7 +438,7 @@ export default function TeamAnalytics() {
             </div>
           ) : latestByEmployee.length === 0 ? (
             <div className="flex flex-col items-center py-16 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
-              <Users size={22} className="text-[#AAAAAA] dark:text-[#555555] mb-2" />
+              <Users size={22} className="text-[#666666] dark:text-[#A0A0A0] mb-2" />
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No KPI scores recorded yet — analytics will populate once employees are evaluated.</p>
             </div>
           ) : (
@@ -453,7 +453,7 @@ export default function TeamAnalytics() {
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
                   <div className="flex items-baseline justify-between mb-4">
                     <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Team score trend</h3>
-                    <span className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">{trendHint}</span>
+                    <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">{trendHint}</span>
                   </div>
                   {trendData.length ? (
                     <>
@@ -472,7 +472,7 @@ export default function TeamAnalytics() {
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
                   <div className="flex items-baseline justify-between mb-4">
                     <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Where the team is strong</h3>
-                    <span className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">avg by component</span>
+                    <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">avg by component</span>
                   </div>
                   <RadarChart components={componentAverages} />
                 </div>
@@ -482,14 +482,14 @@ export default function TeamAnalytics() {
               <div className="p-5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E] mb-4">
                 <div className="flex items-baseline justify-between mb-4">
                   <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Team roster</h3>
-                  <span className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">each employee's latest evaluation · sorted by score</span>
+                  <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">each employee's latest evaluation · sorted by score</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-[#E8E8E8] dark:border-[#2E2E2E]">
                         {['Employee', 'Department', 'Score', 'Performance', 'Rating'].map(h => (
-                          <th key={h} className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#AAAAAA] dark:text-[#6B6B6B] uppercase tracking-wide whitespace-nowrap">{h}</th>
+                          <th key={h} className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#666666] dark:text-[#A0A0A0] uppercase tracking-wide whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -513,7 +513,7 @@ export default function TeamAnalytics() {
                                 </div>
                                 <div>
                                   <p className="font-semibold text-[#1A1A1A] dark:text-white">{employee.full_name}</p>
-                                  <p className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">{employee.job_title || '—'}</p>
+                                  <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">{employee.job_title || '—'}</p>
                                 </div>
                               </div>
                             </td>
@@ -544,7 +544,7 @@ export default function TeamAnalytics() {
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
                   <div className="flex items-baseline justify-between mb-2">
                     <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Strengths</h3>
-                    <span className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">what's working</span>
+                    <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">what's working</span>
                   </div>
                   {insights.strengths.length === 0 ? (
                     <p className="text-sm text-[#666666] dark:text-[#A0A0A0] py-6">No standout signals yet — check back after more evaluations.</p>
@@ -566,7 +566,7 @@ export default function TeamAnalytics() {
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
                   <div className="flex items-baseline justify-between mb-2">
                     <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Watch areas</h3>
-                    <span className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">needs attention</span>
+                    <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">needs attention</span>
                   </div>
                   {insights.watch.length === 0 ? (
                     <p className="text-sm text-[#666666] dark:text-[#A0A0A0] py-6">Nothing flagged — the team is tracking evenly right now.</p>
@@ -590,7 +590,7 @@ export default function TeamAnalytics() {
               <div className="p-5 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2E2E2E]">
                 <div className="flex items-baseline justify-between mb-2">
                   <h3 className="text-base font-semibold text-[#00D4A0]">How to improve the team</h3>
-                  <span className="text-xs text-[#AAAAAA] dark:text-[#6B6B6B]">generated from the data above</span>
+                  <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">generated from the data above</span>
                 </div>
                 <div>
                   {recommendations.map(r => (

@@ -67,7 +67,7 @@ function EmployeeDocumentsTab({ companyId, currentEmployeeId, canManage, showToa
   return (
     <div className="space-y-6">
       <div className="relative max-w-md">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555]" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0]" />
         <input
           type="text"
           value={search}

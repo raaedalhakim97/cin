@@ -45,7 +45,7 @@ export default function ScorecardsTab({ companyId, role, me, showToast }) {
       </div>
 
       {current && (
-        <p className="text-xs text-[#AAAAAA] dark:text-[#555555] -mt-3">{current.blurb}</p>
+        <p className="text-xs text-[#666666] dark:text-[#A0A0A0] -mt-3">{current.blurb}</p>
       )}
 
       {active === 'criteria' && isHr && (

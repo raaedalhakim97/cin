@@ -104,7 +104,7 @@ export default function OperationsDashboard() {
           </div>
           {todayShifts.length === 0 ? (
             <div className="flex flex-col items-center py-10 gap-2">
-              <Calendar size={22} className="text-[#AAAAAA] dark:text-[#555555]" />
+              <Calendar size={22} className="text-[#666666] dark:text-[#A0A0A0]" />
               <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">No shifts scheduled today</p>
             </div>
           ) : (

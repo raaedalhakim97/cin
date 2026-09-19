@@ -332,7 +332,7 @@ export default function ShiftModal({
                       ))}
                     </select>
                     {templates.length === 0 && (
-                      <p className="text-xs text-[#AAAAAA] dark:text-[#555555] mt-1">No shift templates yet — use Custom Hours, or add one under Shift Templates.</p>
+                      <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1">No shift templates yet — use Custom Hours, or add one under Shift Templates.</p>
                     )}
                   </div>
                 )}

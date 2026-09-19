@@ -244,7 +244,7 @@ export default function NotificationBell() {
                             }`}>
                               {r.title}
                             </span>
-                            <span className="ml-auto shrink-0 text-[11px] text-[#AAAAAA] dark:text-[#555555]">
+                            <span className="ml-auto shrink-0 text-[11px] text-[#666666] dark:text-[#A0A0A0]">
                               {timeAgo(r.created_at)}
                             </span>
                           </span>

@@ -133,7 +133,7 @@ export default function SelfReviewCard({ employeeId, showToast }) {
             </div>
             <div className="flex-1 min-w-[240px]">
               <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">
-                Anything your manager should know <span className="font-normal text-[#AAAAAA] dark:text-[#555555]">(optional)</span>
+                Anything your manager should know <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">(optional)</span>
               </label>
               <input
                 type="text" value={comment} maxLength={2000}

@@ -322,7 +322,7 @@ export default function Assignments({ companyId, role, me, showToast }) {
 
       {employees.length === 0 ? (
         <div className="p-8 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-center">
-          <Users size={20} className="mx-auto text-[#AAAAAA] dark:text-[#555555] mb-2" />
+          <Users size={20} className="mx-auto text-[#666666] dark:text-[#A0A0A0] mb-2" />
           <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">Nobody to assign.</p>
         </div>
       ) : (
@@ -367,7 +367,7 @@ export default function Assignments({ companyId, role, me, showToast }) {
                     </button>
 
                     {reason ? (
-                      <p className="text-xs text-[#AAAAAA] dark:text-[#555555] shrink-0 max-w-[16rem] text-right">{reason}</p>
+                      <p className="text-xs text-[#666666] dark:text-[#A0A0A0] shrink-0 max-w-[16rem] text-right">{reason}</p>
                     ) : card ? (
                       (role === 'super_admin' || role === 'hr_manager') && (
                         <button
@@ -425,7 +425,7 @@ export default function Assignments({ companyId, role, me, showToast }) {
                           ))}
                       </select>
                       {namableManagers.length === 0 && (
-                        <span className="text-[11px] text-[#AAAAAA] dark:text-[#555555]">
+                        <span className="text-[11px] text-[#666666] dark:text-[#A0A0A0]">
                           Nobody holds the manager role yet — set one in Permissions first.
                         </span>
                       )}

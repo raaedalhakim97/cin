@@ -148,7 +148,7 @@ export default function MySchedule() {
                           {isToday && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#00D4A0]/10 text-accent">Today</span>}
                         </div>
                         {dayShifts.length === 0 ? (
-                          <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">No shift scheduled</p>
+                          <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">No shift scheduled</p>
                         ) : (
                           <div className="space-y-2">
                             {dayShifts.map((s) => {

@@ -252,7 +252,7 @@ function WeekViewTab({ companyId, currentEmployeeId, shiftSettings, showToast })
                           ))}
                           <button
                             onClick={() => setModalState({ date: d, employeeId: emp.id })}
-                            className="w-full flex items-center justify-center py-1.5 rounded-lg text-[#AAAAAA] dark:text-[#555555] hover:text-accent hover:bg-[#00D4A0]/5 transition-colors"
+                            className="w-full flex items-center justify-center py-1.5 rounded-lg text-[#666666] dark:text-[#A0A0A0] hover:text-accent hover:bg-[#00D4A0]/5 transition-colors"
                           >
                             <Plus size={13} />
                           </button>

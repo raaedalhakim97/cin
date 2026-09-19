@@ -108,7 +108,7 @@ export default function Leads() {
             ) : leads.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3">
                 <div className="w-14 h-14 rounded-full bg-[#F5F5F0] dark:bg-[#252525] flex items-center justify-center">
-                  <Inbox size={24} className="text-[#AAAAAA] dark:text-[#555555]" />
+                  <Inbox size={24} className="text-[#666666] dark:text-[#A0A0A0]" />
                 </div>
                 <p className="text-sm font-medium text-[#1A1A1A] dark:text-white">No demo requests yet</p>
                 <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">Submissions from /demo will show up here</p>

@@ -101,7 +101,7 @@ function LeaveStageTimeline({ req }) {
             s.done ? 'bg-[#00D4A0]' : i === currentIdx ? 'bg-[#FF8C42]' : 'bg-[#E8E8E8] dark:bg-[#2A2A2A]'
           }`} />
           <span className={`text-[10px] whitespace-nowrap ${
-            s.done ? 'text-[#00D4A0] font-semibold' : i === currentIdx ? 'text-[#FF8C42] font-semibold' : 'text-[#AAAAAA] dark:text-[#555555]'
+            s.done ? 'text-[#00D4A0] font-semibold' : i === currentIdx ? 'text-[#FF8C42] font-semibold' : 'text-[#666666] dark:text-[#A0A0A0]'
           }`}>
             {s.label}
           </span>

@@ -168,13 +168,13 @@ function WorkLocations({ companyId, showToast }) {
       </p>
 
       {loading ? <Spinner /> : rows.length === 0 ? (
-        <p className="text-sm text-[#AAAAAA] dark:text-[#555555] py-3">No locations yet.</p>
+        <p className="text-sm text-[#666666] dark:text-[#A0A0A0] py-3">No locations yet.</p>
       ) : (
         <div className="divide-y divide-[#E8E8E8] dark:divide-[#2A2A2A] border-y border-[#E8E8E8] dark:border-[#2A2A2A] mb-4">
           {rows.map((r) => (
             <div key={r.id} className="flex items-center gap-3 py-3">
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold truncate ${r.active ? 'text-[#1A1A1A] dark:text-white' : 'text-[#AAAAAA] dark:text-[#555555]'}`}>
+                <p className={`text-sm font-semibold truncate ${r.active ? 'text-[#1A1A1A] dark:text-white' : 'text-[#666666] dark:text-[#A0A0A0]'}`}>
                   {r.name}
                   {!r.active && <span className="ml-2 text-xs font-normal">(inactive)</span>}
                 </p>

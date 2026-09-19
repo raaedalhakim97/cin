@@ -204,7 +204,7 @@ export default function UploadDocumentModal({
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">
-                Expiry Date {selectedType && !selectedType.has_expiry && <span className="font-normal text-[#AAAAAA] dark:text-[#555555]">(n/a)</span>}
+                Expiry Date {selectedType && !selectedType.has_expiry && <span className="font-normal text-[#666666] dark:text-[#A0A0A0]">(n/a)</span>}
               </label>
               <input
                 type="date"
@@ -246,7 +246,7 @@ export default function UploadDocumentModal({
               onChange={handleFileChange}
               className="w-full text-sm text-[#666666] dark:text-[#A0A0A0] file:mr-3 file:px-3.5 file:py-2 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#00D4A0]/10 file:text-accent hover:file:bg-[#00D4A0]/20 file:cursor-pointer cursor-pointer"
             />
-            <p className="text-[10px] text-[#AAAAAA] dark:text-[#555555] mt-1">PDF, JPG, or PNG · Max 10MB</p>
+            <p className="text-[10px] text-[#666666] dark:text-[#A0A0A0] mt-1">PDF, JPG, or PNG · Max 10MB</p>
             {fileError && (
               <p className="flex items-center gap-1.5 text-xs text-danger mt-1.5">
                 <AlertTriangle size={12} className="shrink-0" /> {fileError}

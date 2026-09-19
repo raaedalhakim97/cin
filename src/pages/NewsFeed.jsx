@@ -278,7 +278,7 @@ function CommentEditRow({ comment, onSave, onCancel }) {
       <button onClick={save} disabled={saving} className="text-[#00D4A0] hover:text-[#00B589] transition-colors disabled:opacity-50">
         {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
       </button>
-      <button onClick={onCancel} className="text-[#AAAAAA] dark:text-[#555555] hover:text-danger transition-colors">
+      <button onClick={onCancel} className="text-[#666666] dark:text-[#A0A0A0] hover:text-danger transition-colors">
         <X size={12} />
       </button>
     </div>
@@ -323,11 +323,11 @@ function CommentsSection({ post, comments, loading, employee, canModerate, canWr
                     {c.employees?.full_name ?? 'Unknown'}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-[#AAAAAA] dark:text-[#555555]">{timeAgo(c.created_at)}</span>
+                    <span className="text-[10px] text-[#666666] dark:text-[#A0A0A0]">{timeAgo(c.created_at)}</span>
                     {isOwn && !isEditing && (
                       <button
                         onClick={() => setEditingId(c.id)}
-                        className="text-[#AAAAAA] dark:text-[#555555] hover:text-[#00D4A0] transition-colors"
+                        className="text-[#666666] dark:text-[#A0A0A0] hover:text-[#00D4A0] transition-colors"
                       >
                         <Pencil size={11} />
                       </button>
@@ -335,7 +335,7 @@ function CommentsSection({ post, comments, loading, employee, canModerate, canWr
                     {canDelete && !isEditing && (
                       <button
                         onClick={() => onDelete(c)}
-                        className="text-[#AAAAAA] dark:text-[#555555] hover:text-danger transition-colors"
+                        className="text-[#666666] dark:text-[#A0A0A0] hover:text-danger transition-colors"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -416,7 +416,7 @@ function PostCard({
                 <BadgeCheck size={10} /> System
               </span>
             )}
-            <span className="text-xs text-[#AAAAAA] dark:text-[#555555]">· {timeAgo(post.published_at)}</span>
+            <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">· {timeAgo(post.published_at)}</span>
           </div>
           <div className="mt-1.5">
             <CategoryTag category={post.category} />
@@ -530,7 +530,7 @@ function DraftCard({ post, onEdit, onPublish, publishing }) {
         <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white truncate">{post.title || 'Untitled draft'}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <CategoryTag category={post.category} />
-          <span className="text-[10px] text-[#AAAAAA] dark:text-[#555555]">Updated {timeAgo(post.updated_at ?? post.created_at)}</span>
+          <span className="text-[10px] text-[#666666] dark:text-[#A0A0A0]">Updated {timeAgo(post.updated_at ?? post.created_at)}</span>
         </div>
       </div>
       <button
@@ -900,7 +900,7 @@ export default function NewsFeed() {
           {/* Drafts */}
           {canPost && !loadingDrafts && drafts.length > 0 && (
             <div className="mb-6 space-y-2">
-              <p className="text-xs font-semibold tracking-widest text-[#AAAAAA] dark:text-[#555555] uppercase">
+              <p className="text-xs font-semibold tracking-widest text-[#666666] dark:text-[#A0A0A0] uppercase">
                 Your Drafts
               </p>
               {drafts.map(d => (

@@ -417,7 +417,7 @@ function ProfileCompletenessCard({ employee, onOpenDocuments, showToast }) {
                 {copied ? 'Copied' : 'Copy link'}
               </button>
             </div>
-            <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">
+            <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">
               Valid for {result.expires_in_days} days, single-use. There's no email service yet — share this link with {result.email} yourself.
             </p>
           </div>
@@ -554,7 +554,7 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
               <h3 className="text-base font-semibold text-[#1A1A1A] dark:text-white">
                 Compensation
               </h3>
-              <span className="text-xs text-[#AAAAAA] dark:text-[#555555]">
+              <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">
                 Masked for security
               </span>
             </div>

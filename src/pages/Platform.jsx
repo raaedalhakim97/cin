@@ -517,7 +517,7 @@ export default function Platform() {
             ) : list.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3">
                 <div className="w-14 h-14 rounded-full bg-[#F5F5F0] dark:bg-[#252525] flex items-center justify-center">
-                  <Building2 size={24} className="text-[#AAAAAA] dark:text-[#555555]" />
+                  <Building2 size={24} className="text-[#666666] dark:text-[#A0A0A0]" />
                 </div>
                 <p className="text-sm font-medium text-[#1A1A1A] dark:text-white">No companies yet</p>
                 <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">Create the first one above</p>

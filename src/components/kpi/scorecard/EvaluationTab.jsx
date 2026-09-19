@@ -106,11 +106,11 @@ function RatingSide({ title, level, anchorId, note, anchors, editable, onSave, s
       <div className="p-3.5 rounded-xl bg-[#F5F5F0] dark:bg-[#252525]">
         <p className="text-[11px] font-semibold text-[#666666] dark:text-[#A0A0A0] uppercase tracking-wide mb-2">{title}</p>
         {lockNote ? (
-          <p className="flex items-center gap-1.5 text-xs text-[#AAAAAA] dark:text-[#555555]">
+          <p className="flex items-center gap-1.5 text-xs text-[#666666] dark:text-[#A0A0A0]">
             <Lock size={11} /> {lockNote}
           </p>
         ) : level == null ? (
-          <p className="text-xs text-[#AAAAAA] dark:text-[#555555]">Not rated.</p>
+          <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">Not rated.</p>
         ) : (
           <>
             <p className="text-sm font-semibold" style={{ color: levelHex(level) }}>
@@ -388,7 +388,7 @@ export default function EvaluationTab({ me, role, showToast }) {
   if (cycles.length === 0) {
     return (
       <div className="p-8 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-center max-w-xl">
-        <ClipboardCheck size={20} className="mx-auto text-[#AAAAAA] dark:text-[#555555] mb-2" />
+        <ClipboardCheck size={20} className="mx-auto text-[#666666] dark:text-[#A0A0A0] mb-2" />
         <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">No review cycle has been opened</p>
         <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1">
           HR opens a quarter in Review Cycles. Opening it creates everyone's review and copies
@@ -566,7 +566,7 @@ export default function EvaluationTab({ me, role, showToast }) {
                           {/* What the percentage is made of. A figure nobody can take apart
                               is a figure nobody trusts, and this one decides a level. */}
                           {attendance && attendance.expected_days != null && (
-                            <p className="text-[11px] text-[#AAAAAA] dark:text-[#555555]">
+                            <p className="text-[11px] text-[#666666] dark:text-[#A0A0A0]">
                               {attendance.attended_days} of {attendance.expected_days} expected days attended
                               {attendance.absent_days > 0 && ` · ${attendance.absent_days} with no record`}
                               {attendance.leave_days > 0 && ` · ${attendance.leave_days} on approved leave, not counted`}

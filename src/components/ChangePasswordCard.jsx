@@ -29,7 +29,7 @@ function PasswordField({ id, label, value, onChange, placeholder, autoComplete }
         {label}
       </label>
       <div className="relative">
-        <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] pointer-events-none" />
+        <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] pointer-events-none" />
         <input
           id={id}
           type={visible ? 'text' : 'password'}
@@ -43,7 +43,7 @@ function PasswordField({ id, label, value, onChange, placeholder, autoComplete }
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#AAAAAA] dark:text-[#555555] hover:text-[#666666] dark:hover:text-[#A0A0A0] transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666666] dark:text-[#A0A0A0] hover:text-[#666666] dark:hover:text-[#A0A0A0] transition-colors"
         >
           {visible ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>

@@ -59,7 +59,7 @@ export default function LatestNewsWidget() {
         </div>
       ) : posts.length === 0 ? (
         <div className="flex flex-col items-center py-6">
-          <Newspaper size={20} className="text-[#AAAAAA] dark:text-[#555555] mb-2" />
+          <Newspaper size={20} className="text-[#666666] dark:text-[#A0A0A0] mb-2" />
           <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">No posts yet</p>
         </div>
       ) : (

@@ -162,17 +162,17 @@ function CriterionDetail({ definition, onChanged, showToast }) {
 
               <div className="p-3 space-y-2">
                 {mine.length === 0 && (
-                  <p className="text-[11px] text-[#AAAAAA] dark:text-[#555555] italic">
+                  <p className="text-[11px] text-[#666666] dark:text-[#A0A0A0] italic">
                     No sentence written yet. A rater choosing this level will have nothing to show for it.
                   </p>
                 )}
                 {mine.map((a) => (
                   <div key={a.id} className="flex items-start gap-2 group">
-                    <ChevronRight size={13} className="text-[#AAAAAA] dark:text-[#555555] shrink-0 mt-0.5" />
+                    <ChevronRight size={13} className="text-[#666666] dark:text-[#A0A0A0] shrink-0 mt-0.5" />
                     <p className="flex-1 text-sm text-[#1A1A1A] dark:text-white">{a.comment}</p>
                     <button
                       type="button" onClick={() => removeAnchor(a)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-[#AAAAAA] hover:text-danger transition-all"
+                      className="shrink-0 opacity-0 group-hover:opacity-100 text-[#666666] dark:text-[#A0A0A0] hover:text-danger transition-all"
                       aria-label="Remove this sentence"
                     >
                       <Trash2 size={13} />
@@ -389,7 +389,7 @@ export default function CriteriaLibrary({ companyId, canEdit, showToast }) {
 
       {rows.length === 0 ? (
         <div className="p-8 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-center">
-          <Sparkles size={20} className="mx-auto text-[#AAAAAA] dark:text-[#555555] mb-2" />
+          <Sparkles size={20} className="mx-auto text-[#666666] dark:text-[#A0A0A0] mb-2" />
           <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">Nothing measured yet</p>
           <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1 max-w-md mx-auto">
             Nothing is pre-filled here deliberately. What a company measures, and the words it
