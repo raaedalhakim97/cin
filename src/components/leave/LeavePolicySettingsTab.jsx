@@ -354,8 +354,11 @@ export default function LeavePolicySettingsTab({ companyId, showToast }) {
                       {' · '}{ACCRUAL_LABEL[p.accrual] ?? p.accrual}
                       {p.min_service_months > 0 && ` · after ${p.min_service_months} months`}
                     </p>
+                    {/* Standard body grey, not the faint #AAAAAA/#555555 this had: those
+                        measure 2.32:1 and 2.24:1, which is not a colour to write a leave
+                        policy in. The faint pair is for disabled states and decoration. */}
                     {p.notes && (
-                      <p className="text-xs text-[#AAAAAA] dark:text-[#555555] mt-1.5">{p.notes}</p>
+                      <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1.5">{p.notes}</p>
                     )}
                     {below && (
                       <p className="flex items-start gap-1.5 text-xs text-[#FF8C42] mt-2">

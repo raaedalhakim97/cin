@@ -349,7 +349,7 @@ function CommentsSection({ post, comments, loading, employee, canModerate, canWr
                     onSave={async (comment, body) => { await onEditComment(comment, body); setEditingId(null) }}
                   />
                 ) : (
-                  <p className="text-xs text-[#1A1A1A] dark:text-white mt-0.5 whitespace-pre-wrap break-words">{c.body}</p>
+                  <p className="text-sm text-[#1A1A1A] dark:text-white mt-0.5 whitespace-pre-wrap break-words">{c.body}</p>
                 )}
               </div>
             </div>

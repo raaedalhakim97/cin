@@ -117,7 +117,7 @@ function RatingSide({ title, level, anchorId, note, anchors, editable, onSave, s
               {LEVEL_BY_NUMBER[level]?.label}
             </p>
             {anchors.find((a) => a.id === anchorId)?.comment && (
-              <p className="text-xs text-[#1A1A1A] dark:text-white mt-1.5 italic">
+              <p className="text-sm text-[#1A1A1A] dark:text-white mt-1.5 italic">
                 “{anchors.find((a) => a.id === anchorId).comment}”
               </p>
             )}

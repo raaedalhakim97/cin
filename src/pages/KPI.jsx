@@ -690,7 +690,7 @@ function ManagerScoreModal({ emp, row, period, onClose, onSave }) {
                 {expectationsOpen ? <ChevronUp size={14} className="text-[#666666] dark:text-[#A0A0A0]" /> : <ChevronDown size={14} className="text-[#666666] dark:text-[#A0A0A0]" />}
               </button>
               {expectationsOpen && (
-                <p className="px-3.5 py-3 text-xs text-[#666666] dark:text-[#A0A0A0] whitespace-pre-wrap border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
+                <p className="px-3.5 py-3 text-sm text-[#666666] dark:text-[#A0A0A0] whitespace-pre-wrap border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
                   {emp.job_description}
                 </p>
               )}
@@ -1201,7 +1201,7 @@ function IssueWarningModal({ employees, warningTypes, companyId, issuerId, initi
               <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
                 Level {initial.warningLevel} · recommended by {initial.managerName ?? 'manager'}
               </p>
-              <p className="text-xs text-[#1A1A1A] dark:text-white mt-2 whitespace-pre-wrap">{initial.reason}</p>
+              <p className="text-sm text-[#1A1A1A] dark:text-white mt-2 whitespace-pre-wrap">{initial.reason}</p>
             </div>
           ) : (
             <>

@@ -249,7 +249,7 @@ export default function NotificationBell() {
                             </span>
                           </span>
                           {r.body && (
-                            <span className="block mt-0.5 text-xs text-[#666666] dark:text-[#A0A0A0] line-clamp-2">
+                            <span className="block mt-0.5 text-sm text-[#666666] dark:text-[#A0A0A0] line-clamp-2">
                               {r.body}
                             </span>
                           )}

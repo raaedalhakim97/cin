@@ -106,7 +106,7 @@ function CriterionDetail({ definition, onChanged, showToast }) {
   return (
     <div className="px-5 pb-5 space-y-5 border-t border-[#E8E8E8] dark:border-[#2A2A2A] pt-5">
       {definition.description && (
-        <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">{definition.description}</p>
+        <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">{definition.description}</p>
       )}
 
       {isAuto && (
@@ -169,7 +169,7 @@ function CriterionDetail({ definition, onChanged, showToast }) {
                 {mine.map((a) => (
                   <div key={a.id} className="flex items-start gap-2 group">
                     <ChevronRight size={13} className="text-[#AAAAAA] dark:text-[#555555] shrink-0 mt-0.5" />
-                    <p className="flex-1 text-xs text-[#1A1A1A] dark:text-white">{a.comment}</p>
+                    <p className="flex-1 text-sm text-[#1A1A1A] dark:text-white">{a.comment}</p>
                     <button
                       type="button" onClick={() => removeAnchor(a)}
                       className="shrink-0 opacity-0 group-hover:opacity-100 text-[#AAAAAA] hover:text-danger transition-all"

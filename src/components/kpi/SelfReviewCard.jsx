@@ -187,7 +187,7 @@ export default function SelfReviewCard({ employeeId, showToast }) {
           {cycle.status === 'published' && review.manager_comment && (
             <div className="mt-3 px-3.5 py-3 rounded-lg bg-[#F5F5F0] dark:bg-[#252525] max-w-lg">
               <p className="text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">Your manager wrote</p>
-              <p className="text-xs text-[#666666] dark:text-[#A0A0A0]">{review.manager_comment}</p>
+              <p className="text-sm text-[#666666] dark:text-[#A0A0A0]">{review.manager_comment}</p>
             </div>
           )}
         </div>

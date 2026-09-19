@@ -245,7 +245,7 @@ export default function ManagerReviewTab({ role, showToast }) {
                         </span>
                       </p>
                       {r.self_comment && (
-                        <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1.5 italic">
+                        <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-1.5 italic">
                           “{r.self_comment}”
                         </p>
                       )}
