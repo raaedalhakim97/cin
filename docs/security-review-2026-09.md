@@ -18,12 +18,17 @@ data, every `SECURITY DEFINER` function pins its `search_path`, and every privil
 checks the caller before it acts. The one real hole is **column-level**, not row-level, and
 it is the exact shape of a bug this codebase has fixed once before.
 
-| # | Severity | Finding | Fix effort |
+| # | Severity | Finding | Status |
 |---|---|---|---|
-| 1 | **High** | `national_id`, `labour_card_number`, `phone` are returned raw by the API to roles that only mask them in the browser | Medium — a table split |
-| 2 | Medium | `payroll_runs` select policy is granted to `PUBLIC`, not `authenticated` | Low — one policy |
-| 3 | Medium | Leaked-password protection is off | Trivial — one toggle |
-| 4 | Low | `demo_requests` allows unauthenticated INSERT with no rate limit | Low |
+| 1 | **High** | `national_id` / `labour_card_number` returned raw by the API to roles that only mask them in the browser | **Fixed** — migrations 61–62, moved to a gated `employee_identifiers` table |
+| 2 | Medium | `payroll_runs` select policy granted to `PUBLIC`, not `authenticated` | **Fixed** — migration 60 |
+| 3 | Medium | Leaked-password protection is off | Open — Raaed's dashboard toggle |
+| 4 | Low | `demo_requests` allows unauthenticated INSERT with no rate limit | Open |
+
+> **`phone` reconsidered.** The first draft grouped `phone` with the identity numbers. It was
+> left on `employees`: a colleague's work phone number is contact information, not an identity
+> document, and managers legitimately need it. Only `national_id` and `labour_card_number`
+> moved.
 
 ## What is already strong (verified, not assumed)
 
