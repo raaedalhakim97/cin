@@ -136,7 +136,9 @@ export default function EmployeeNew() {
       full_name:           clean(values.full_name),
       email:               clean(values.email),
       phone:               clean(values.phone),
-      national_id:         clean(values.national_id),
+      // national_id no longer lives on employees — it is written to employee_identifiers
+      // below, for the same reason pay is a separate write. See the security review of
+      // 2026-09-22 and migration 61.
       job_title:           clean(values.job_title),
       job_description:     clean(values.job_description),
       interview_score:     values.interview_score !== '' && values.interview_score != null ? Number(values.interview_score) : null,
@@ -187,6 +189,23 @@ export default function EmployeeNew() {
         // employee twice.
         console.error('[EmployeeNew] employee_pay insert failed', payError)
         setServerError('The employee was created, but their salary details did not save. Open their record and add them there.')
+        setSubmitting(false)
+        setTimeout(() => navigate(`/employees/${data.id}`), 2500)
+        return
+      }
+    }
+
+    // National ID is a third write for the same reason pay is a second one (migration 61):
+    // identity numbers left the employee record so that reading an employee no longer means
+    // reading their Emirates ID. Only written when something was entered.
+    const nationalId = clean(values.national_id)
+    if (nationalId != null) {
+      const { error: idError } = await supabase
+        .from('employee_identifiers')
+        .insert({ employee_id: data.id, company_id: payload.company_id, national_id: nationalId })
+      if (idError) {
+        console.error('[EmployeeNew] employee_identifiers insert failed', idError)
+        setServerError('The employee was created, but their ID number did not save. Open their record and add it there.')
         setSubmitting(false)
         setTimeout(() => navigate(`/employees/${data.id}`), 2500)
         return

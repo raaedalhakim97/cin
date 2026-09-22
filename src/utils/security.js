@@ -24,10 +24,14 @@ export const SENSITIVE_FIELDS = [
   'iban',
   'agent_bank_routing_code',
   'national_id',
+  'labour_card_number',
   // The whole embedded row, not only its columns. Since migration 52 pay is a separate
   // table, and a query that reaches for it with select('*, employee_pay(*)') would put the
   // lot into the store in one object that none of the field names above would catch.
   'employee_pay',
+  // Identity numbers became their own table in migration 61, for the same reason. A nested
+  // select('*, employee_identifiers(*)') must not survive into the store.
+  'employee_identifiers',
 ]
 
 // Strips all sensitive fields from an employee object before it enters the store
