@@ -32,7 +32,8 @@ function fmtDate(d) {
 function countMissingPayDetails(rows) {
   return (rows ?? []).filter((e) => {
     const pay = (Array.isArray(e.employee_pay) ? e.employee_pay[0] : e.employee_pay) ?? {}
-    return !e.labour_card_number || !pay.iban || !pay.agent_bank_routing_code
+    const ident = (Array.isArray(e.employee_identifiers) ? e.employee_identifiers[0] : e.employee_identifiers) ?? {}
+    return !ident.labour_card_number || !pay.iban || !pay.agent_bank_routing_code
   }).length
 }
 
@@ -84,7 +85,7 @@ export default function HRDashboard() {
       // migration 52, and a missing pay row counts as missing details just as a null column
       // did. Counted here as "people with no bank details on file", which is what the card
       // has always meant.
-      supabase.from('employees').select('id, labour_card_number, employee_pay!employee_pay_employee_id_fkey(iban, agent_bank_routing_code)')
+      supabase.from('employees').select('id, employee_identifiers!employee_identifiers_employee_id_fkey(labour_card_number), employee_pay!employee_pay_employee_id_fkey(iban, agent_bank_routing_code)')
         .neq('status', 'terminated'),
       supabase.from('hr_documents_with_status').select('id', { count: 'exact', head: true })
         .in('expiry_status', ['expiring_soon', 'expiring_critical']),

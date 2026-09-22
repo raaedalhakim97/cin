@@ -444,6 +444,12 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
   const pay = (Array.isArray(employee.employee_pay)
     ? employee.employee_pay[0]
     : employee.employee_pay) ?? {}
+  // Identity numbers are their own table since migration 61, gated to HR, operations and
+  // self. A department_manager or read_only viewer gets the employee and no identifiers row,
+  // so ident is {} and maskNationalId() shows dots — the intended degradation, not an error.
+  const ident = (Array.isArray(employee.employee_identifiers)
+    ? employee.employee_identifiers[0]
+    : employee.employee_identifiers) ?? {}
   // "Emirates ID" in Dubai, "National ID" in Lagos — same column, the country supplies
   // the word. country_rules.identity_label existed since migration 31 and nothing read it.
   const identityLabel = useAuthStore(s => s.countryRules?.identity_label) ?? 'National ID'
@@ -485,7 +491,7 @@ function ProfileTab({ employee, canErase, onOpenAnonymize, canManageFeedAccess, 
             {/* Contact + sensitive */}
             <InfoRow icon={Mail}    label="Email"       value={employee.email} />
             <InfoRow icon={Phone}   label="Phone"       value={employee.phone} />
-            <InfoRow icon={Shield}  label={identityLabel} value={maskNationalId(employee.national_id)} />
+            <InfoRow icon={Shield}  label={identityLabel} value={maskNationalId(ident.national_id)} />
             <InfoRow icon={CreditCard} label="Bank Account" value={maskBankAccount()} />
           </div>
         </div>
@@ -1305,7 +1311,7 @@ export default function EmployeeDetail() {
       // and bank details are a separate table, and the policy on it answers for itself —
       // an operations or auditor account gets the employee and no pay row at all, which
       // is the whole point of the move. `select('*')` on employees no longer returns pay.
-      .select('*, departments!employees_department_id_fkey(name), employee_pay!employee_pay_employee_id_fkey(basic_salary, housing_allowance, transport_allowance, other_allowance, bank_account, iban, agent_bank_routing_code)')
+      .select('*, departments!employees_department_id_fkey(name), employee_pay!employee_pay_employee_id_fkey(basic_salary, housing_allowance, transport_allowance, other_allowance, bank_account, iban, agent_bank_routing_code), employee_identifiers!employee_identifiers_employee_id_fkey(national_id, labour_card_number)')
       .eq('id', id)
       .single()
 

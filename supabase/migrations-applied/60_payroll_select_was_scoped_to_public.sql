@@ -1,0 +1,18 @@
+-- Finding 2 of the September security review (docs/security-review-2026-09.md).
+--
+-- payroll_runs had two SELECT policies. payroll_mgr_select was scoped to `authenticated`,
+-- like every other policy in the schema. payroll_select alone was scoped to the PUBLIC
+-- pseudo-role, which includes `anon`.
+--
+-- It was never exploitable: the USING clause requires
+-- company_id = get_user_company_id(auth.uid()), and for an anonymous caller auth.uid() is
+-- null, so the row test failed closed and returned nothing. But it held because the FILTER
+-- excluded anon, not because the ROLE LIST did — one refactor of get_user_company_id away
+-- from becoming a company-wide payroll leak to unauthenticated callers.
+--
+-- ALTER, not DROP/CREATE: the qualifier is correct and unchanged. Only the role list moves,
+-- from PUBLIC to authenticated, matching every other policy here. No legitimate user loses
+-- access — real users are authenticated, and anon never satisfied the filter.
+--
+-- Applied to production 2026-09-22 and verified: role list = authenticated, qual intact.
+ALTER POLICY payroll_select ON public.payroll_runs TO authenticated;
