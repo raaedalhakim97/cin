@@ -399,7 +399,7 @@ function RejectModal({ request, onClose, onConfirm, saving }) {
 
 // ─── My Leave Tab ─────────────────────────────────────────────────────────────
 
-function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, cancelLoadingId, canWrite, offeredTypes, policiesLoaded }) {
+function MyLeaveTab({ balances, overtimeHours, requests, loading, onRequestLeave, onCancel, cancelLoadingId, canWrite, offeredTypes, policiesLoaded }) {
   const balanceMap = Object.fromEntries((balances ?? []).map(b => [b.leave_type, b]))
 
   const pending  = (requests ?? []).filter(r => r.status === 'pending').length
@@ -421,6 +421,39 @@ function MyLeaveTab({ balances, requests, loading, onRequestLeave, onCancel, can
           </div>
         ))}
       </div>
+
+      {/* Overtime banked.
+          Deliberately its own strip, not one of the balance cards below: those are leave in
+          DAYS that counts DOWN from an entitlement, and this is overtime in HOURS that counts
+          UP as it is worked. Mixing the two units in one grid reads as a bug. It carries no
+          progress bar and no "remaining", because nothing is being spent — it is a record the
+          company may choose to pay out or not, and that decision does not happen here. */}
+      <section>
+        <div className="flex items-center gap-4 px-5 py-4 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+          <div className="w-11 h-11 shrink-0 rounded-xl bg-[#00D4A0]/10 flex items-center justify-center">
+            <Clock size={20} className="text-accent" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">Overtime banked</p>
+            <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
+              Hours worked beyond your schedule in {new Date().getFullYear()}. A record — your
+              company decides whether it is paid.
+            </p>
+          </div>
+          <div className="ml-auto text-right shrink-0">
+            {overtimeHours == null ? (
+              <span className="text-2xl font-bold text-[#AAAAAA] dark:text-[#555555]">—</span>
+            ) : (
+              <p className="text-2xl font-bold text-[#1A1A1A] dark:text-white tabular-nums">
+                {Number.isInteger(overtimeHours) ? overtimeHours : overtimeHours.toFixed(1)}
+                <span className="text-sm font-medium text-[#666666] dark:text-[#A0A0A0] ml-1">
+                  {overtimeHours === 1 ? 'hr' : 'hrs'}
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Balance Cards */}
       <section>
@@ -775,6 +808,7 @@ export default function Leave() {
   const [policies,     setPolicies]     = useState([])
   const [policiesLoaded, setPoliciesLoaded] = useState(false)
   const [balances,     setBalances]     = useState([])
+  const [overtimeHours, setOvertimeHours] = useState(null)
   const [myRequests,   setMyRequests]   = useState([])
   const [teamRequests, setTeamRequests] = useState([])
   const [calLeaves,    setCalLeaves]    = useState([])
@@ -828,6 +862,22 @@ export default function Leave() {
       .eq('year', currentYear)
     setBalances(data ?? [])
     setLoadingBal(false)
+  }, [employee?.id, currentYear])
+
+  // Banked overtime is a count, not an entitlement — the hours a person has worked beyond
+  // their schedule this year, totalled from attendance. It is shown here because this is
+  // where employees already look at their time; whether it is ever paid is the company's
+  // call, made off this screen. Read through my_overtime_hours so the sum happens in the
+  // database and no attendance rows travel to do it.
+  const fetchOvertime = useCallback(async () => {
+    if (!employee?.id) return
+    const { data, error } = await supabase.rpc('my_overtime_hours', { p_year: currentYear })
+    if (error) {
+      console.error('[Leave] my_overtime_hours failed', error)
+      setOvertimeHours(null)
+      return
+    }
+    setOvertimeHours(Number(data ?? 0))
   }, [employee?.id, currentYear])
 
   const fetchMyRequests = useCallback(async () => {
@@ -887,6 +937,7 @@ export default function Leave() {
 
   useEffect(() => { fetchPolicies() },               [fetchPolicies])
   useEffect(() => { fetchBalances() },               [fetchBalances])
+  useEffect(() => { fetchOvertime() },               [fetchOvertime])
   useEffect(() => { fetchMyRequests() },             [fetchMyRequests])
   useEffect(() => { if (canManage) fetchTeamRequests() }, [canManage, fetchTeamRequests])
   useEffect(() => {
@@ -1120,6 +1171,7 @@ export default function Leave() {
           {activeTab === 'my-leave' && (
             <MyLeaveTab
               balances={balances}
+              overtimeHours={overtimeHours}
               requests={myRequests}
               loading={loadingBal || loadingMy}
               onRequestLeave={() => setShowRequestModal(true)}
