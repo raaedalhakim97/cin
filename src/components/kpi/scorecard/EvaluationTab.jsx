@@ -252,7 +252,7 @@ export default function EvaluationTab({ me, role, showToast }) {
   const loadReviews = useCallback(async () => {
     if (!cycleId) { setReviews([]); return }
     const { data, error } = await supabase.from('kpi_reviews')
-      .select('id, employee_id, employees!kpi_reviews_employee_id_fkey(full_name, job_title, department_id, reports_to, departments!employees_department_id_fkey(name))')
+      .select('id, employee_id, self_submitted_at, employees!kpi_reviews_employee_id_fkey(full_name, job_title, department_id, reports_to, departments!employees_department_id_fkey(name))')
       .eq('cycle_id', cycleId)
     if (error) {
       console.error('[EvaluationTab] reviews failed', error)
@@ -262,6 +262,7 @@ export default function EvaluationTab({ me, role, showToast }) {
     const mapped = (data ?? []).map((r) => ({
       id: r.id,
       employee_id: r.employee_id,
+      self_submitted_at: r.self_submitted_at,
       name: r.employees?.full_name ?? 'Unknown',
       job_title: r.employees?.job_title ?? null,
       department_id: r.employees?.department_id ?? null,
@@ -284,6 +285,9 @@ export default function EvaluationTab({ me, role, showToast }) {
   const iRate = selected ? canRate(selected, me, role) : false
   const published = cycle?.status === 'published'
   const selfOpen = cycle?.status === 'self_review'
+  // Self-assessment is once a quarter: after the employee submits on My KPI, their own
+  // ratings here lock too. The line guard refuses the write either way.
+  const selfSubmitted = !!selected?.self_submitted_at
   const managerOpen = cycle?.status === 'manager_review'
   // The subject sees the manager's side and the score only once the quarter is published.
   const showManagerSide = !isMine || published
@@ -408,7 +412,9 @@ export default function EvaluationTab({ me, role, showToast }) {
         </select>
         {cycle && (
           <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">
-            {selfOpen && 'Self-assessment is open.'}
+            {selfOpen && (isMine && selfSubmitted
+              ? 'You submitted your self-assessment. It is locked until next quarter.'
+              : 'Self-assessment is open.')}
             {managerOpen && 'Managers are rating now. Self-assessment is closed.'}
             {cycle.status === 'calculated' && 'Scores calculated, not yet published.'}
             {published && 'Published.'}
@@ -581,7 +587,7 @@ export default function EvaluationTab({ me, role, showToast }) {
                             title={isMine ? 'Your own rating' : 'Their own rating'}
                             level={line.self_level} anchorId={line.self_anchor_id}
                             note={line.self_note} anchors={lineAnchors}
-                            editable={isMine && selfOpen}
+                            editable={isMine && selfOpen && !selfSubmitted}
                             lockNote={!isMine && line.self_level == null && !selfOpen ? 'They did not self-assess.' : null}
                             saving={savingKey === `${line.id}-self`}
                             onSave={(p) => saveSide(line, 'self', p)}
