@@ -189,7 +189,7 @@ function TodayCard({ record, loading, isOwnRecord, actionLoading, error, onClock
   const dayLabel   = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
-    <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+    <div data-tour="att-today" className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h2 className="text-base font-semibold text-[#1A1A1A] dark:text-white">Today</h2>
@@ -459,7 +459,7 @@ function WeeklySummary({ records }) {
   const todayStr = localDateStr(new Date())
 
   return (
-    <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+    <div data-tour="att-week" className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-base font-semibold text-[#1A1A1A] dark:text-white">This Week</h2>
         <span className="text-xs text-[#666666] dark:text-[#A0A0A0]">{monLabel} – {sunLabel}</span>
@@ -1414,6 +1414,8 @@ export default function Attendance() {
                   {/* HR/Admin employee dropdown */}
                   {canViewRoster && employees.length > 0 && (
                     <select
+                      data-tour="att-roster"
+                      aria-label="Whose attendance to show"
                       value={selectedEmpId ?? ''}
                       onChange={e => setSelectedEmpId(e.target.value)}
                       className="px-3.5 py-2.5 text-sm rounded-lg bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white focus:outline-none focus:border-[#00D4A0] transition-colors"
@@ -1446,6 +1448,7 @@ export default function Attendance() {
                   {/* Export — anyone who may read the roster's attendance */}
                   {canViewRoster && (
                     <button
+                      data-tour="att-export"
                       onClick={handleExportAttendance}
                       disabled={exportingAtt}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white text-sm font-semibold hover:border-[#00D4A0]/40 disabled:opacity-50 transition-colors"
@@ -1476,15 +1479,18 @@ export default function Attendance() {
               </div>
 
               {canViewRoster && (
-                <AttendanceExceptions
-                  rows={exceptions}
-                  loading={exceptionsLoading}
-                  canEdit={canAdmin}
-                  onFix={fixException}
-                />
+                <div data-tour="att-exceptions">
+                  <AttendanceExceptions
+                    rows={exceptions}
+                    loading={exceptionsLoading}
+                    canEdit={canAdmin}
+                    onFix={fixException}
+                  />
+                </div>
               )}
 
               {/* ── Monthly Calendar ───────────────────────────────────────── */}
+              <div data-tour="att-calendar">
               <CalendarGrid
                 records={monthRecords}
                 viewDate={viewDate}
@@ -1492,6 +1498,7 @@ export default function Attendance() {
                 canEdit={canAdmin}
                 onDayClick={cell => setEditCell(cell)}
               />
+              </div>
             </>
           )}
         </main>

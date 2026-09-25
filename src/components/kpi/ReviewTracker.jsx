@@ -280,7 +280,7 @@ export default function ReviewTracker({ employeeId, role, refreshKey, onGo }) {
   ].filter(([, w]) => w > 0).map(([l, w]) => `${l} ${w}%`).join(' · ')
 
   return (
-    <section className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] mb-6 max-w-5xl"
+    <section data-tour="kpi-tracker" className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] mb-6 max-w-5xl"
              aria-label="Quarterly review progress">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">

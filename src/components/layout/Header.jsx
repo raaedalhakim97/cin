@@ -4,6 +4,7 @@ import useThemeStore from '../../store/themeStore'
 import useUiStore from '../../store/uiStore'
 import TrialBanner from '../TrialBanner'
 import NotificationBell from '../NotificationBell'
+import PageTutorial from '../PageTutorial'
 
 const roleLabel = {
   super_admin:        'Super Admin',
@@ -39,7 +40,10 @@ export default function Header() {
         {/* Notifications. Only for someone whose account is linked to an employee
             record — an unlinked user has no notifications by definition, and the
             bell would sit there permanently empty. */}
-        {employee?.id && <NotificationBell />}
+        {employee?.id && <div data-tour="header-bell"><NotificationBell /></div>}
+
+        {/* First-visit guide for this page, and the ? that replays it. */}
+        <PageTutorial />
 
         {/* Theme toggle */}
         <button

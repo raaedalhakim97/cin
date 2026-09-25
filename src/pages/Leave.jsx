@@ -455,7 +455,7 @@ function MyLeaveTab({ balances, overtimeHours, requests, loading, onRequestLeave
       </section>
 
       {/* Balance Cards */}
-      <section>
+      <section data-tour="leave-balances">
         <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white mb-4">Leave Balances — {new Date().getFullYear()}</h2>
         {loading || !policiesLoaded ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
@@ -1131,6 +1131,7 @@ export default function Leave() {
                 answer is nothing. Opening the form on an empty policy would show an empty
                 Leave Type select and fail on submit — a dead end dressed as an action. */}
             <button
+              data-tour="leave-request"
               onClick={() => setShowRequestModal(true)}
               disabled={!policiesLoaded || offeredTypes.length === 0}
               title={policiesLoaded && offeredTypes.length === 0
@@ -1144,7 +1145,7 @@ export default function Leave() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit max-w-full mb-8 overflow-x-auto">
+          <div data-tour="leave-tabs" className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit max-w-full mb-8 overflow-x-auto">
             {tabs.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
