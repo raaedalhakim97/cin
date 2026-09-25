@@ -13,7 +13,7 @@ import supabase from '../../services/supabase'
 // Results are not shown here. Once a quarter is published the employee sees
 // their score on the Evaluation tab.
 
-export default function SelfReviewCard({ employeeId, showToast }) {
+export default function SelfReviewCard({ employeeId, showToast, onSubmitted }) {
   const [state, setState] = useState({ loading: true, cycle: null, review: null })
   const [score, setScore] = useState('')
   const [comment, setComment] = useState('')
@@ -93,10 +93,11 @@ export default function SelfReviewCard({ employeeId, showToast }) {
     }
     showToast('success', 'Self-assessment submitted. The next one opens next quarter.')
     setReloadKey((k) => k + 1)
+    onSubmitted?.()
   }
 
   return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+    <div id="self-assessment" className="p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] scroll-mt-24">
       <div className="flex items-center gap-3 mb-1">
         <div className="w-9 h-9 rounded-xl bg-[#4D9FFF]/10 flex items-center justify-center shrink-0">
           <ClipboardCheck size={16} className="text-[#4D9FFF]" />

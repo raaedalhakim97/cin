@@ -178,8 +178,9 @@ export default function ReviewCyclesTab({ showToast }) {
         <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mb-4 max-w-lg">
           Opening a quarter creates a review for every active employee, notifies each of them,
           and lets them start scoring themselves. Until you do this, nobody can self-assess.
-          The two deadlines are shown on everyone&rsquo;s scorecard, and anyone who has not
-          filled theirs in is reminded once a day for the two days before.
+          Both deadlines drive the countdown at the top of everyone&rsquo;s KPI page. Anyone who
+          still has something to do is reminded 7, 3 and 1 day before, on the day, and once
+          after. You&rsquo;re told when a stage is ready to move on.
         </p>
 
         <div className="flex flex-wrap items-end gap-3">

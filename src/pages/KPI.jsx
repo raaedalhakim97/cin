@@ -30,6 +30,7 @@ import PDPTab from '../components/kpi/PDPTab'
 import ReviewCyclesTab from '../components/kpi/ReviewCyclesTab'
 import ManagerReviewTab from '../components/kpi/ManagerReviewTab'
 import SelfReviewCard from '../components/kpi/SelfReviewCard'
+import ReviewTracker from '../components/kpi/ReviewTracker'
 import ScorecardsTab from '../components/kpi/scorecard/ScorecardsTab'
 import EvaluationTab from '../components/kpi/scorecard/EvaluationTab'
 import ToastComp, { useToast } from '../components/Toast'
@@ -379,7 +380,7 @@ function TrendChart({ data }) {
 
 // ─── My KPI Tab ───────────────────────────────────────────────────────────────
 
-function MyKPITab({ employee, showToast, evalFreq, evalAnchor }) {
+function MyKPITab({ employee, showToast, evalFreq, evalAnchor, onReviewChanged }) {
   const now = new Date()
   const curY = now.getFullYear()
   const curM = now.getMonth() + 1
@@ -417,7 +418,7 @@ function MyKPITab({ employee, showToast, evalFreq, evalAnchor }) {
     <div className="space-y-8 max-w-5xl">
       {/* The quarterly self-assessment. Renders nothing unless HR has opened a
           cycle, so it cannot invite a write the database would reject. */}
-      <SelfReviewCard employeeId={employee?.id} showToast={showToast} />
+      <SelfReviewCard employeeId={employee?.id} showToast={showToast} onSubmitted={onReviewChanged} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6 items-stretch">
         {/* Gauge card */}
@@ -1604,6 +1605,21 @@ export default function KPI() {
   const canWarn = WARN_ROLES.has(role)
 
   const [activeTab, setActiveTab] = useState('my-kpi')
+  // Bumped when the viewer submits their self-assessment, so the tracker's counts and
+  // "your part" line move with it instead of waiting for a reload.
+  const [reviewTick, setReviewTick] = useState(0)
+
+  // The tracker's buttons. 'self' is the card on My KPI rather than a tab of its own.
+  function goFromTracker(target) {
+    if (target === 'self') {
+      setActiveTab('my-kpi')
+      requestAnimationFrame(() => {
+        document.getElementById('self-assessment')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+      return
+    }
+    setActiveTab(target)
+  }
   const { toast, showToast } = useToast()
 
   // Evaluation-cycle settings (migration 28) — fetched once here and passed
@@ -1660,6 +1676,8 @@ export default function KPI() {
             </p>
           </div>
 
+          <ReviewTracker employeeId={employee?.id} role={role} refreshKey={reviewTick} onGo={goFromTracker} />
+
           <div className="flex gap-1 p-1 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] w-fit max-w-full mb-8 overflow-x-auto">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
@@ -1682,6 +1700,7 @@ export default function KPI() {
               employee={employee} companyId={companyId} showToast={showToast}
               evalFreq={evalSettings.freq} evalAnchor={evalSettings.anchor}
               role={role}
+              onReviewChanged={() => setReviewTick((t) => t + 1)}
             />
           )}
           {activeTab === 'evaluation' && (
