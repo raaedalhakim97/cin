@@ -639,7 +639,7 @@ function CalendarGrid({ records, viewDate, loading, canEdit, onDayClick }) {
 
 // ─── Admin Override Modal ─────────────────────────────────────────────────────
 
-function EditModal({ cell, onClose, onSave, saving }) {
+function EditModal({ cell, onClose, onSave, saving, onApproveOvertime, approving }) {
   const { record, dateStr } = cell
 
   const [form, setForm] = useState({
@@ -752,6 +752,39 @@ function EditModal({ cell, onClose, onSave, saving }) {
               className={inputCls}
             />
           </div>
+
+          {/* Overtime approval.
+              Overtime is counted as it is worked, but it only reaches the employee's banked
+              total once someone acknowledges it — my_overtime_hours sums approved rows only.
+              Shown against the saved record, not the field above: approve the number that is
+              stored, so change the hours and Save first if they are being corrected. */}
+          {record?.id && Number(record.overtime_hours) > 0 && onApproveOvertime && (
+            <div className="flex items-center justify-between gap-3 px-3.5 py-3 rounded-lg bg-[#F5F5F0] dark:bg-[#252525] border border-[#E8E8E8] dark:border-[#2A2A2A]">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#1A1A1A] dark:text-white flex items-center gap-1.5">
+                  {record.overtime_approved && <CheckCircle2 size={14} className="text-accent shrink-0" />}
+                  {record.overtime_approved ? 'Overtime approved' : 'Overtime not approved'}
+                </p>
+                <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5 text-pretty">
+                  {record.overtime_approved
+                    ? 'These hours count toward the employee’s banked overtime.'
+                    : 'These hours do not count until you approve them.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={approving}
+                onClick={() => onApproveOvertime(record.id, !record.overtime_approved)}
+                className={`shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60 ${
+                  record.overtime_approved
+                    ? 'border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#666666] dark:text-[#A0A0A0] hover:text-danger hover:border-danger'
+                    : 'text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589]'
+                }`}
+              >
+                {approving ? <Loader2 size={13} className="animate-spin" /> : (record.overtime_approved ? 'Remove' : 'Approve')}
+              </button>
+            </div>
+          )}
 
           {/* Notes */}
           <div>
@@ -1251,6 +1284,32 @@ export default function Attendance() {
     setModalSaving(false)
   }
 
+  // Approve (or un-approve) the overtime on one record. Goes through the approve_overtime
+  // RPC rather than a direct update because the RPC stamps approved_by from the caller and
+  // lets a manager approve their own team, which att_update — HR only — does not. The open
+  // modal's record is flipped optimistically so the button state changes without closing.
+  const [otApproving, setOtApproving] = useState(false)
+  async function approveOvertime(recordId, approved) {
+    setOtApproving(true)
+    const { error } = await supabase.rpc('approve_overtime', {
+      p_attendance_id: recordId,
+      p_approved: approved,
+    })
+    if (error) {
+      console.error('[Attendance] approve_overtime failed', error)
+      showToast('error', 'Could not update overtime approval. Please try again.')
+    } else {
+      await fetchMonth(selectedEmpId, viewDate)
+      setEditCell(prev =>
+        prev?.record?.id === recordId
+          ? { ...prev, record: { ...prev.record, overtime_approved: approved } }
+          : prev
+      )
+      showToast('success', approved ? 'Overtime approved' : 'Overtime approval removed')
+    }
+    setOtApproving(false)
+  }
+
   // saveOverride writes employee_id: selectedEmpId, so fixing an exception
   // belonging to someone else has to move the page to that person first —
   // otherwise the correction would reassign their day to whoever happened to
@@ -1445,6 +1504,8 @@ export default function Attendance() {
           onClose={() => setEditCell(null)}
           onSave={saveOverride}
           saving={modalSaving}
+          onApproveOvertime={approveOvertime}
+          approving={otApproving}
         />
       )}
 
