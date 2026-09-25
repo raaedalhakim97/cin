@@ -20,13 +20,6 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
-const FREQ_OPTIONS = [
-  { value: 1, label: 'Monthly' },
-  { value: 3, label: 'Quarterly' },
-  { value: 6, label: 'Semi-annual' },
-  { value: 12, label: 'Annual' },
-]
-
 // Mirrors the DB's is_evaluation_month(p_month) RPC and the same helper in
 // KPI.jsx — duplicated per this codebase's per-file convention for small
 // pure helpers rather than sharing a module.
@@ -82,7 +75,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
         weight_manager: data.weight_manager,
         weight_self: data.weight_self,
         late_grace_minutes: data.late_grace_minutes,
-        evaluation_frequency_months: data.evaluation_frequency_months ?? 6,
+        evaluation_frequency_months: 3,
         evaluation_anchor_month: data.evaluation_anchor_month ?? 6,
       })
     }
@@ -95,7 +88,7 @@ export default function KpiConfigTab({ companyId, showToast }) {
     const { error } = await supabase
       .from('kpi_settings')
       .update({
-        evaluation_frequency_months: form.evaluation_frequency_months,
+        evaluation_frequency_months: 3,
         evaluation_anchor_month: form.evaluation_anchor_month,
       })
       .eq('id', row.id)
@@ -292,15 +285,12 @@ export default function KpiConfigTab({ companyId, showToast }) {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Frequency is fixed at quarterly — BYOND runs one performance cycle, the quarterly
+              review, and the database enforces it (migration 66). Only the anchor is a choice:
+              it decides which months the quarters close on. */}
           <div>
             <label className="block text-sm font-semibold text-[#1A1A1A] dark:text-white mb-1.5">Frequency</label>
-            <select
-              value={form.evaluation_frequency_months}
-              onChange={e => setForm(prev => ({ ...prev, evaluation_frequency_months: Number(e.target.value) }))}
-              className={INPUT}
-            >
-              {FREQ_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <p className={`${INPUT} text-[#666666] dark:text-[#A0A0A0]`}>Quarterly</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-[#1A1A1A] dark:text-white mb-1.5">Anchor Month</label>

@@ -1703,7 +1703,7 @@ export default function KPI() {
   // down to My KPI / Team KPI, since both gate their forms on it. Defaults
   // (6/6 = semi-annual, June anchor) match the DB column defaults, so the
   // brief window before this resolves still computes a sensible isEvalMonth.
-  const [evalSettings, setEvalSettings] = useState({ freq: 6, anchor: 6 })
+  const [evalSettings, setEvalSettings] = useState({ freq: 3, anchor: 6 })
   useEffect(() => {
     async function loadEvalSettings() {
       const { data } = await supabase
@@ -1712,7 +1712,7 @@ export default function KPI() {
         .maybeSingle()
       if (data) {
         setEvalSettings({
-          freq: data.evaluation_frequency_months ?? 6,
+          freq: data.evaluation_frequency_months ?? 3,
           anchor: data.evaluation_anchor_month ?? 6,
         })
       }

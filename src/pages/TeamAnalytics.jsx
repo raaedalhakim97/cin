@@ -139,7 +139,7 @@ export default function TeamAnalytics() {
 
   const [employees, setEmployees] = useState([])
   const [scores, setScores] = useState([])
-  const [evalSettings, setEvalSettings] = useState({ freq: 6, anchor: 6 })
+  const [evalSettings, setEvalSettings] = useState({ freq: 3, anchor: 6 })
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
 
@@ -164,7 +164,7 @@ export default function TeamAnalytics() {
     setEmployees(emps ?? [])
     setScores(scoreRows ?? [])
     setEvalSettings({
-      freq: settings?.evaluation_frequency_months ?? 6,
+      freq: settings?.evaluation_frequency_months ?? 3,
       anchor: settings?.evaluation_anchor_month ?? 6,
     })
     setLoading(false)
