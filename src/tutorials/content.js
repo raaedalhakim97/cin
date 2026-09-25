@@ -308,6 +308,15 @@ export const TUTORIALS = {
   },
 }
 
+// What each guide is called in its header on a phone.
+export const PAGE_TITLES = {
+  dashboard: 'Home', profile: 'My profile', attendance: 'Attendance', leave: 'Leave',
+  kpi: 'KPI & performance', 'my-schedule': 'My schedule', news: 'News feed',
+  employees: 'Employees', 'employee-detail': 'Employee record', 'employee-new': 'Add an employee',
+  'team-analytics': 'Team analytics', documents: 'HR documents', schedule: 'Schedule',
+  'schedule-templates': 'Shift templates', settings: 'Settings', permissions: 'Permissions',
+}
+
 // The steps for this page and role, or null when there is no guide for it.
 export function tutorialFor(pageKey, role) {
   const page = TUTORIALS[pageKey]
@@ -317,5 +326,5 @@ export function tutorialFor(pageKey, role) {
   if (!steps?.length) return null
   const variant = page[role] ? role : audience
   const v = VERSION[pageKey] ?? VERSION.default
-  return { key: `${pageKey}.${variant}.v${v}`, steps }
+  return { key: `${pageKey}.${variant}.v${v}`, steps, title: PAGE_TITLES[pageKey] ?? 'This page' }
 }

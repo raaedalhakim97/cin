@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useLocation } from 'react-router-dom'
 import { HelpCircle, X } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
 import { pageKeyFor, tutorialFor } from '../tutorials/content'
+import TutorialDrawer from './TutorialDrawer'
 
 // The first-visit guide for whichever page is open, written for the viewer's role.
 //
@@ -34,6 +35,15 @@ function writeLocal(uid, key) {
   } catch { /* private window or blocked storage: the database row still counts */ }
 }
 
+// Phones get the side panel; everything wider gets the spotlight.
+const PHONE_QUERY = '(max-width: 639px)'
+function subscribePhone(cb) {
+  const mq = window.matchMedia(PHONE_QUERY)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+function isPhone() { return window.matchMedia(PHONE_QUERY).matches }
+
 function findTarget(name) {
   return name ? document.querySelector(`[data-tour="${name}"]`) : null
 }
@@ -56,7 +66,7 @@ export default function PageTutorial() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [rect, setRect] = useState(null)
-  const [narrow, setNarrow] = useState(false)
+  const narrow = useSyncExternalStore(subscribePhone, isPhone, () => false)
   const cardRef = useRef(null)
   const tKey = tutorial?.key
 
@@ -95,7 +105,7 @@ export default function PageTutorial() {
   // Find the step's element, waiting briefly for pages that are still loading, then
   // keep the spotlight on it through scrolling and resizing.
   useEffect(() => {
-    if (!open) return undefined
+    if (!open || narrow) return undefined
     let el = null
     let raf = 0
     let waited = 0
@@ -104,7 +114,6 @@ export default function PageTutorial() {
     const measure = () => {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => {
-        setNarrow(window.innerWidth < 640)
         setRect(el && usable(el) ? el.getBoundingClientRect() : null)
       })
     }
@@ -132,24 +141,22 @@ export default function PageTutorial() {
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
-  }, [open, target, step])
+  }, [open, target, step, narrow])
 
   useLayoutEffect(() => {
-    if (open) cardRef.current?.focus()
-  }, [open, step])
+    if (open && !narrow) cardRef.current?.focus()
+  }, [open, step, narrow])
 
   if (!tutorial) return null
 
   const last = step === tutorial.steps.length - 1
   const pad = 6
 
-  // Card placement: under the spotlight if it fits, else above it; docked to the
-  // bottom on a phone, centred when there is nothing to point at.
+  // Card placement (wider screens only — phones get TutorialDrawer): under the
+  // spotlight if it fits, else above it, centred when there is nothing to point at.
   let cardStyle = {}
   let cardClass = 'fixed z-[72] w-[min(360px,calc(100vw-32px))]'
-  if (narrow) {
-    cardClass = 'fixed z-[72] left-4 right-4 bottom-4'
-  } else if (rect) {
+  if (rect) {
     const cardH = 220
     const below = rect.bottom + pad + GAP
     const top = below + cardH < window.innerHeight ? below : Math.max(16, rect.top - pad - GAP - cardH)
@@ -172,7 +179,17 @@ export default function PageTutorial() {
         <HelpCircle size={17} />
       </button>
 
-      {current && (
+      {current && narrow && (
+        <TutorialDrawer
+          title={tutorial.title}
+          steps={tutorial.steps}
+          step={step}
+          setStep={setStep}
+          onClose={close}
+        />
+      )}
+
+      {current && !narrow && (
         <>
           {/* The dim layer. With a target it is the spotlight's own shadow, so the
               element stays lit; without one it is a plain backdrop. Clicking it does
