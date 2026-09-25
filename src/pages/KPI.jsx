@@ -379,21 +379,14 @@ function TrendChart({ data }) {
 
 // ─── My KPI Tab ───────────────────────────────────────────────────────────────
 
-function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }) {
+function MyKPITab({ employee, showToast, evalFreq, evalAnchor }) {
   const now = new Date()
   const curY = now.getFullYear()
   const curM = now.getMonth() + 1
   const isEval = isEvaluationMonth(curM, evalFreq, evalAnchor)
-  // Migration 46 (make_read_only_role_truly_read_only) — kpi_self_eval_insert/
-  // update RLS now excludes read_only. Hide the form rather than let it 400.
-  const canSelfEval = role !== 'read_only'
-  const nextEval = nextEvaluationMonth(curY, curM, evalFreq, evalAnchor)
 
   const [row, setRow] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [selfScore, setSelfScore] = useState(50)
-  const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
 
   // manager_score/self_score carry-forward is handled by the DB's
   // aa_compute_kpi_total trigger — this is a plain read.
@@ -408,36 +401,10 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
       .eq('period_month', curM)
       .maybeSingle()
     setRow(data ?? null)
-    setSelfScore(data?.self_score ?? 50)
-    setNotes(data?.notes ?? '')
     setLoading(false)
   }, [employee, curY, curM])
 
   useEffect(() => { fetchRow() }, [fetchRow])
-
-  async function submitSelfEval(e) {
-    e.preventDefault()
-    if (!employee?.id || !canSelfEval) return
-    setSaving(true)
-    const { error } = row
-      ? await supabase.from('kpi_scores').update({ self_score: selfScore, notes }).eq('id', row.id)
-      : await supabase.from('kpi_scores').insert({
-          company_id: companyId,
-          employee_id: employee.id,
-          period_year: curY,
-          period_month: curM,
-          self_score: selfScore,
-          notes,
-        })
-    setSaving(false)
-    if (error) {
-      console.error('[KPI] submitSelfEval failed', error)
-      showToast('error', 'Something went wrong saving your self-evaluation. Please try again.')
-      return
-    }
-    showToast('success', row ? 'Self-evaluation updated' : 'Self-evaluation submitted')
-    fetchRow()
-  }
 
   if (!employee) return <AccountNotLinked />
   if (loading) return <Spinner />
@@ -445,7 +412,6 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
   const total = row ? num(row.total_score) : 0
   const ratingLabel = row?.rating ?? null
   const meta = getRatingMeta(ratingLabel)
-  const hasSubmittedSelf = row?.self_score != null
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -495,67 +461,8 @@ function MyKPITab({ employee, companyId, showToast, evalFreq, evalAnchor, role }
         </div>
       </div>
 
-      {/* Self-evaluation form — only open during an evaluation month, and never for read_only */}
-      {isEval && canSelfEval ? (
-        <div className="p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] max-w-2xl">
-          <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white">Self-Evaluation — {periodLabel(curY, curM)}</h2>
-          <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-1 mb-5">
-            Rate your own performance this month. This contributes 10% to your total score.
-          </p>
-          <form onSubmit={submitSelfEval} className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-[#1A1A1A] dark:text-white">Self Score</label>
-                <span className="text-lg font-bold text-[#00D4A0]">{selfScore}</span>
-              </div>
-              <input
-                type="range" min={0} max={100} value={selfScore}
-                onChange={e => setSelfScore(Number(e.target.value))}
-                className="w-full accent-[#00D4A0]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#1A1A1A] dark:text-white mb-1">Comments (optional)</label>
-              <textarea
-                rows={3} value={notes} onChange={e => setNotes(e.target.value)}
-                placeholder="What went well this month? What could improve?"
-                className={INPUT}
-              />
-            </div>
-            <button
-              type="submit" disabled={saving}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-[#062B22] bg-[#00D4A0] hover:bg-[#00B589] disabled:opacity-60 transition-colors"
-            >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              {saving ? 'Saving…' : hasSubmittedSelf ? 'Update Self-Evaluation' : 'Submit Self-Evaluation'}
-            </button>
-          </form>
-        </div>
-      ) : (
-        <div className="p-6 rounded-2xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] max-w-2xl">
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#A0A0A0]/10 flex items-center justify-center shrink-0">
-              <Lock size={14} className="text-[#666666] dark:text-[#A0A0A0]" />
-            </div>
-            <h2 className="text-base font-bold text-[#1A1A1A] dark:text-white">Self-Evaluation — {periodLabel(curY, curM)}</h2>
-          </div>
-          <p className="text-sm text-[#666666] dark:text-[#A0A0A0] mt-2">
-            {canSelfEval
-              ? 'Self-evaluation is only open during evaluation months.'
-              : 'Read-only accounts cannot submit a self-evaluation.'}
-          </p>
-          {canSelfEval && (
-            <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white mt-3">
-              Next evaluation: {periodLabel(nextEval.year, nextEval.month)}
-            </p>
-          )}
-          {row?.self_score != null && (
-            <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-3 pt-3 border-t border-[#E8E8E8] dark:border-[#2A2A2A]">
-              Your current self score ({num(row.self_score).toFixed(0)}) is carried forward from your last evaluation.
-            </p>
-          )}
-        </div>
-      )}
+      {/* The monthly self-evaluation form that lived here was removed: self-evaluation is
+          quarterly only, and happens in SelfReviewCard above when HR opens a review cycle. */}
     </div>
   )
 }
