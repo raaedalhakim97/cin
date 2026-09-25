@@ -436,8 +436,7 @@ function MyLeaveTab({ balances, overtimeHours, requests, loading, onRequestLeave
           <div className="min-w-0">
             <p className="text-sm font-semibold text-[#1A1A1A] dark:text-white">Overtime banked</p>
             <p className="text-xs text-[#666666] dark:text-[#A0A0A0] mt-0.5">
-              Hours worked beyond your schedule in {new Date().getFullYear()}. A record — your
-              company decides whether it is paid.
+              Hours worked beyond your schedule in {new Date().getFullYear()}.
             </p>
           </div>
           <div className="ml-auto text-right shrink-0">
