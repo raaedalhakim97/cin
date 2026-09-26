@@ -13,7 +13,7 @@ import {
   FileText,
   AlertCircle,
   Inbox,
-} from 'lucide-react'
+ Network } from 'lucide-react'
 import supabase from '../services/supabase'
 import useAuthStore from '../store/authStore'
 import { exportToExcel, exportToPDF, hasExportableData, localDateStr } from '../utils/exportHelpers'
@@ -331,6 +331,16 @@ export default function EmployeeList() {
                 <Inbox size={16} />
                 Pending Invites{pendingInviteIds.size > 0 ? ` (${pendingInviteIds.size})` : ''}
               </button>
+
+              {canCreate && (
+                <Link
+                  to="/team-structure"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-white text-sm font-semibold hover:border-[#00D4A0]/40 transition-colors"
+                >
+                  <Network size={16} />
+                  Managers &amp; teams
+                </Link>
+              )}
 
               {canCreate && (
                 <Link

@@ -31,6 +31,7 @@ import Leave from './pages/Leave'
 import Payroll from './pages/Payroll'
 import KPI from './pages/KPI'
 import TeamAnalytics from './pages/TeamAnalytics'
+import TeamStructure from './pages/TeamStructure'
 import NewsFeed from './pages/NewsFeed'
 import Leads from './pages/Leads'
 import Platform from './pages/Platform'
@@ -264,6 +265,13 @@ function App() {
             } />
 
             {/* super_admin + hr_manager only */}
+            {/* Who manages whom. Owner + HR; only the owner can change roles (set_employee_role). */}
+            <Route path="/team-structure" element={
+              <PrivateRoute roles={ADMIN_HR}>
+                <TeamStructure />
+              </PrivateRoute>
+            } />
+
             <Route path="/team-analytics" element={
               <PrivateRoute roles={ADMIN_HR}>
                 <TeamAnalytics />

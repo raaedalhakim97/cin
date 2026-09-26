@@ -271,6 +271,14 @@ export const TUTORIALS = {
     ],
   },
 
+  'team-structure': {
+    hr: [
+      { title: 'Who manages whom', body: 'A person\'s manager rates them in the quarterly review and is told about their team. Anyone without one falls to HR.', target: 'team-summary' },
+      { title: 'Make someone a manager', body: 'The account owner can give someone the manager role here, or take it away. HR can see who the managers are.', target: 'team-managers' },
+      { title: 'Choose each person\'s manager', body: 'Pick a manager next to each name, or tick several people and set them all at once. Leaving it on their department uses the department\'s manager.', target: 'team-people' },
+    ],
+  },
+
   'team-analytics': {
     hr: [
       { title: 'Team performance', body: 'The company\'s KPI at a glance: the average, the top performer, who is at risk below 60, and who is bonus-eligible.' },
@@ -312,7 +320,7 @@ export const TUTORIALS = {
 export const PAGE_TITLES = {
   dashboard: 'Home', profile: 'My profile', attendance: 'Attendance', leave: 'Leave',
   kpi: 'KPI & performance', 'my-schedule': 'My schedule', news: 'News feed',
-  employees: 'Employees', 'employee-detail': 'Employee record', 'employee-new': 'Add an employee',
+  employees: 'Employees', 'employee-detail': 'Employee record', 'team-structure': 'Managers & teams', 'employee-new': 'Add an employee',
   'team-analytics': 'Team analytics', documents: 'HR documents', schedule: 'Schedule',
   'schedule-templates': 'Shift templates', settings: 'Settings', permissions: 'Permissions',
 }

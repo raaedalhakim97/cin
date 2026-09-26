@@ -73,7 +73,7 @@ function warningsFor(r) {
       key: 'nomgr',
       head: `${r.no_manager.length} ${r.no_manager.length === 1 ? 'person has' : 'people have'} no manager — yours to rate`,
       names: r.no_manager,
-      then: 'Rate them in Team Review, or give them a manager in their employee record.',
+      then: 'Rate them in Team Review, or give them a manager in Employees → Managers & teams.',
     })
     if (out.length) out[out.length - 1].then = (out[out.length - 1].then ? out[out.length - 1].then + ' ' : '')
       + 'Anyone left unrated is scored on less of their quarter, and below half of it they get no rating at all.'

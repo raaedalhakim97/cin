@@ -426,7 +426,7 @@ export default function Assignments({ companyId, role, me, showToast }) {
                       </select>
                       {namableManagers.length === 0 && (
                         <span className="text-[11px] text-[#666666] dark:text-[#A0A0A0]">
-                          Nobody holds the manager role yet — set one in Permissions first.
+                          Nobody holds the manager role yet — the owner can make someone a manager in Employees → Managers & teams.
                         </span>
                       )}
                     </div>

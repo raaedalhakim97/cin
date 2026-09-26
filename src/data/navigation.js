@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, CalendarCheck, CalendarOff, CreditCard, BarChart3,
   BarChart2, Newspaper, Inbox, Settings, ShieldCheck, FileText, Calendar,
-  CalendarClock, UserCircle, Building2, Globe2, UserPlus, FileSpreadsheet,
+  CalendarClock, UserCircle, Building2, Globe2, UserPlus, FileSpreadsheet, Network,
 } from 'lucide-react'
 import { NAV } from './vocabulary'
 import { FEATURES } from './features'
@@ -51,6 +51,7 @@ export const NAV_ITEMS = [
   { label: NAV.payroll,       icon: CreditCard,      path: '/payroll',            live: true, feature: 'payroll' },
   { label: NAV.kpi,           icon: BarChart3,       path: '/kpi',                live: true },
   { label: NAV.teamAnalytics, icon: BarChart2,       path: '/team-analytics',     live: true, roles: ADMIN_HR },
+  { label: NAV.teams,         icon: Network,         path: '/team-structure',     live: true, roles: ADMIN_HR },
   { label: NAV.documents,     icon: FileText,        path: '/documents',          live: true, roles: DOCUMENTS_ROLES },
   { label: NAV.schedule,      icon: Calendar,        path: '/schedule',           live: true, roles: SCHEDULE_ROLES },
   { label: NAV.mySchedule,    icon: CalendarClock,   path: '/my-schedule',        live: true },
@@ -103,6 +104,7 @@ export const ROUTE_ACCESS = [
   { path: '/employees/:id',      label: 'Employee record',       icon: Users,           roles: ADMIN_HR_MGR },
   { path: '/employees/new',      label: 'Add an employee',       icon: UserPlus,        roles: ADMIN_HR },
   { path: '/team-analytics',     label: 'Team analytics',        icon: BarChart2,       roles: ADMIN_HR },
+  { path: '/team-structure',     label: 'Managers & teams',      icon: Network,         roles: ADMIN_HR },
   { path: '/documents',          label: 'Documents',             icon: FileText,        roles: DOCUMENTS_ROLES },
   { path: '/schedule',           label: 'Schedule',              icon: Calendar,        roles: SCHEDULE_ROLES },
   { path: '/schedule/templates', label: 'Schedule templates',    icon: FileSpreadsheet, roles: SCHEDULE_ROLES },

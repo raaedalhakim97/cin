@@ -20,6 +20,7 @@ export const NAV = {
   // and the handbook uses the term throughout (Art. 14).
   kpi: 'KPI',
   teamAnalytics: 'Team analytics',
+  teams: 'Managers & teams',
   documents: 'Documents',
   schedule: 'Schedule',
   mySchedule: 'My schedule',
