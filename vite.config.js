@@ -26,13 +26,36 @@ function buildSha() {
   }
 }
 
+const BUILD_SHA = buildSha()
+const BUILD_TIME = new Date().toISOString()
+
+// The same stamp, published beside the app as /version.json, so a tab that has been open
+// since before a deploy can ask the server what is live now and notice it is behind. A
+// single-page app never reloads itself: without this, a phone left open overnight keeps
+// running yesterday's code through logouts and logins until someone closes the tab.
+// See src/components/VersionWatcher.jsx.
+function emitVersionFile() {
+  return {
+    name: 'byond-emit-version',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify({ sha: BUILD_SHA, builtAt: BUILD_TIME }),
+      })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    emitVersionFile(),
   ],
   define: {
-    __BUILD_SHA__: JSON.stringify(buildSha()),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __BUILD_SHA__: JSON.stringify(BUILD_SHA),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
 })

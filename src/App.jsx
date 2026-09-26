@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import VersionWatcher from './components/VersionWatcher'
 import { Loader2, ShieldOff } from 'lucide-react'
 import supabase from './services/supabase'
 import useAuthStore from './store/authStore'
@@ -181,6 +182,9 @@ function App() {
         </div>
       ) : (
         <BrowserRouter>
+          {/* Moves an open tab onto the latest deploy (see the component). */}
+          <VersionWatcher />
+
           {/* Session timeout modal: only rendered when a session exists */}
           {session && <SessionTimeoutModal />}
 
