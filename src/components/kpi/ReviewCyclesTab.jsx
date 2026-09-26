@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CalendarClock, ChevronRight, Loader2, Lock, Play, Users, CheckCircle2, AlertTriangle } from 'lucide-react'
 import supabase from '../../services/supabase'
+import ReviewStepDialog from './ReviewStepDialog'
 
 // HR's control panel for the quarterly review cycle.
 //
@@ -67,6 +68,9 @@ export default function ReviewCyclesTab({ showToast }) {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState(null)
   const [opening, setOpening] = useState(false)
+  // The cycle whose next step is waiting on HR's confirmation. Every step is one-way, so
+  // none runs straight from the button — ReviewStepDialog says who has not finished first.
+  const [confirming, setConfirming] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   // The quarter that just ended is the one you normally review.
@@ -167,6 +171,15 @@ export default function ReviewCyclesTab({ showToast }) {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {confirming && (
+        <ReviewStepDialog
+          cycle={confirming}
+          showToast={showToast}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => { const c = confirming; setConfirming(null); advance(c) }}
+        />
+      )}
+
       {/* Open a new quarter */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#1E1E1E] border border-[#E8E8E8] dark:border-[#2A2A2A]">
         <div className="flex items-center gap-3 mb-2">
@@ -260,7 +273,7 @@ export default function ReviewCyclesTab({ showToast }) {
 
                   {nextLabel ? (
                     <button
-                      type="button" onClick={() => advance(c)} disabled={busyId === c.id}
+                      type="button" onClick={() => setConfirming(c)} disabled={busyId === c.id}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-[#1A1A1A] dark:text-white border border-[#E8E8E8] dark:border-[#2A2A2A] hover:border-[#00D4A0]/40 disabled:opacity-60 transition-colors shrink-0"
                     >
                       {busyId === c.id ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} />}
